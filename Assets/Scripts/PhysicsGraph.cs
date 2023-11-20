@@ -112,13 +112,13 @@ public sealed class PhysicsGraph:MonoBehaviour{
                 p.x=min.x;
             }
             else if(p.x>=max.x) {
-                p.x=max.x-0.00001f;
+                p.x=max.x-0.01f;
             }
             if(p.y<min.y) {
                 p.y=min.y;
             }
             else if(p.y>=max.y) {
-                p.y=max.y-0.00001f;
+                p.y=max.y-0.01f;
             }
             return p;
         }
@@ -280,7 +280,7 @@ public sealed class PhysicsGraph:MonoBehaviour{
         stacks.Dispose();
     }
 
-    public unsafe PhysicsGraph Init(int reserveVertexNumber=128) {
+    public unsafe PhysicsGraph Init(int reserveVertexNumber=512) {
         head=-1;
         nodeAllocator.start=0;
         nodeAllocator.freed=0;
@@ -288,10 +288,6 @@ public sealed class PhysicsGraph:MonoBehaviour{
         nodes.Length=nodes.Capacity;
 
         graph=new UnsafeList<Vertex>(reserveVertexNumber,Allocator.Persistent);
-        graph.Length=reserveVertexNumber;
-        for(int i = 0;i<reserveVertexNumber;i++) {
-            (graph.Ptr+i)->neighbors=new UnsafeList<int>(2,Allocator.Persistent);
-        }
 
         resultPositions=new UnsafeList<float2>(reserveVertexNumber,Allocator.Persistent);
         edgesAttractions=new UnsafeHashMap<int2,float>(reserveVertexNumber,Allocator.Persistent);
@@ -347,6 +343,7 @@ public sealed class PhysicsGraph:MonoBehaviour{
 
             for(;i<inputGraph.Length;i++) {
                 (graph.Ptr+i)->neighbors=new UnsafeList<int>(inputGraph[i].Count,Allocator.Persistent);
+                (graph.Ptr+i)->neighbors.Length=inputGraph[i].Count;
             }
         }
         else {
@@ -354,8 +351,8 @@ public sealed class PhysicsGraph:MonoBehaviour{
         }
 
         resultPositions.Length=inputGraph.Length;
-        edgesAttractions.Capacity=inputGraph.Length;
-
+        edgesAttractions.Capacity=math.max(inputGraph.Length,edgesAttractions.Capacity);
+        
         for(short i = 0;i<graph.Length;i++) {
             vertices[i].transform.localScale=new Vector3(vertexRadius*2,vertexRadius*2,0);
             Vertex*v=i+graph.Ptr;
@@ -389,22 +386,22 @@ public sealed class PhysicsGraph:MonoBehaviour{
                     for(int j = i;j<end;j++) {
                         /*
                         jobs[i]=new FindForce() {
-                            Stack=stacks.Ptr+i+j,
+                            Stack=stacks.Ptr+(j%MaximumJob),
                             graph=graph.Ptr,
-                            vertex=graph.Ptr+i+j,
+                            vertex=graph.Ptr+j,
                             nodesAddr=nodes.Ptr,
-                            resultPosition=resultPositions.Ptr+i+j,
+                            resultPosition=resultPositions.Ptr+j,
                             edgesAttraction=this.edgesAttractions,
                             treeHead=head,
                             coolingFactor=coolingFactor,
                         }.Schedule();
                         */
                         new FindForce(){
-                            Stack=stacks.Ptr+i+j,
+                            Stack=stacks.Ptr+(j%MaximumJob),
                             graph=graph.Ptr,
-                            vertex=graph.Ptr+i+j,
+                            vertex=graph.Ptr+j,
                             nodesAddr=nodes.Ptr,
-                            resultPosition=resultPositions.Ptr+i+j,
+                            resultPosition=resultPositions.Ptr+j,
                             edgesAttraction=this.edgesAttractions,
                             treeHead=head,
                             coolingFactor=coolingFactor,
@@ -565,7 +562,7 @@ public sealed class PhysicsGraph:MonoBehaviour{
         if(b.IsOutside(position)) {
             Debug.LogWarning($"point at position {position} exists tree bound");
             position=b.Clamp(position);
-        }    
+        }
         v->position=position;
         vertices[id].transform.position=(Vector2)position;
         Insert(this.head,v);

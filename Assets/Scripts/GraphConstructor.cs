@@ -229,9 +229,6 @@ public sealed class GraphConstructor:MonoBehaviour{
 
     [SerializeField]private Camera cam;
     [SerializeField]private TMP_InputField parentInput,childrenInput;
-    [SerializeField]private VertexPool pool;
-    [SerializeField]private GameObject vertexGO;
-    [SerializeField]private Transform folder;
 
     private Dictionary<GameObject,int> mapping;//GameObject->vertex index in matrix
     public Dictionary<GameObject,int> Mapping{get{return mapping;}}
@@ -248,8 +245,7 @@ public sealed class GraphConstructor:MonoBehaviour{
     [SerializeField]private int vertexNumber;
     public int VertexNumber{get{return vertexNumber;}}
 
-    public GameObject input;
-
+    [SerializeField]private GameObject input;
     [SerializeField]private PhysicsGraph physicsModel;
     [SerializeField]private TextAsset inputFile;
 
@@ -269,26 +265,42 @@ public sealed class GraphConstructor:MonoBehaviour{
             Debug.Log("vertexSeparation and radiusDiff require a positive float");
             EditorApplication.isPlaying=false;
         }
-        else if(inputFile==null) {
-            Debug.Log("no inout file");
-            EditorApplication.isPlaying=false;
-        }
 
-        fixed(char* str = inputFile.text) {
+        mapping=new Dictionary<GameObject, int>();
+        reverseMapping=null;
+        physicsModel.Init().SetSize(100);
+        if(inputFile!=null) {
+            ProcessTextFile(inputFile.text);
+        }
+    }
+
+
+    unsafe public void ProcessTextFile(string file){
+        fixed(char* str = file) {
             ProcessTextFile(str,inputFile.text.Length);
         }
 
+        if(reverseMapping!=null){
+            for(int i=0;i<reverseMapping.Length;i++){
+                VertexPool.instance.Release(reverseMapping[i]);
+            }
+        }
+
         reverseMapping=new GameObject[adjacencyList.Length];
-        mapping=new Dictionary<GameObject, int>(adjacencyList.Length*3/2);
+        mapping.Clear();
+        mapping.EnsureCapacity(adjacencyList.Length*3/2);
         for(int i = 0;i<adjacencyList.Length;i++) {
-            reverseMapping[i]=Instantiate(vertexGO,folder);
+            reverseMapping[i]=VertexPool.instance.Get();
+            reverseMapping[i].transform.position=Vector3.zero;
             mapping[reverseMapping[i]]=i;
             reverseMapping[i].transform.GetComponentInChildren<TMP_Text>().text=i.ToString();
         }
 
-        physicsModel.Init(reverseMapping.Length).LoadGraph(this.adjacencyList,reverseMapping).SetSize(50);
-        GetCoordinates();
+        physicsModel.LoadGraph(this.adjacencyList,reverseMapping);
+        //GetCoordinates();
+        System.GC.Collect();
     }
+
 
     unsafe private void ProcessTextFile(in char*str,in int len) {
         int le,ri;
@@ -394,6 +406,7 @@ public sealed class GraphConstructor:MonoBehaviour{
         }
     }
 
+
     private class GetCoordinatesHelper {
         private int vertex,count;
 
@@ -498,7 +511,8 @@ public sealed class GraphConstructor:MonoBehaviour{
         }
     }
 
-    async void GetCoordinates() {
+
+    private async void GetCoordinates() {
         await CreateDotFile();
         Vector2[] results=new GetCoordinatesHelper(adjacencyList.Length).LayoutProcess().results;
         for(int i = 0;i<results.Length;i++) {
@@ -625,7 +639,6 @@ public sealed class GraphConstructor:MonoBehaviour{
         return;
         ConstructGraph();return;
 
-        pool.CreatePool(vertexNumber,vertexGO);
         mapping=new Dictionary<GameObject,int>(MaximumVertexNumber*2);
         reverseMapping=new GameObject[MaximumVertexNumber];
         adjacencyList=new List<int>[MaximumVertexNumber];
@@ -671,7 +684,7 @@ public sealed class GraphConstructor:MonoBehaviour{
         int parent=GetParentInText();
         Action<int> CheckVertexExists=(ID)=>{
             if(reverseMapping[ID]==null){
-                GameObject v=pool.GetGO();
+                GameObject v=VertexPool.instance.Get();
                 reverseMapping[ID]=v;
 
                 mapping.Add(v,ID);
@@ -723,7 +736,7 @@ public sealed class GraphConstructor:MonoBehaviour{
             else{
                 RemoveVertexOnScene(v);
                 mapping.Remove(vertex);
-                pool.ReturnGO(vertex);
+                VertexPool.instance.Release(vertex);
                 
                 for(int i=0;i<adjacencyList[v].Count;i++){
                     adjacencyMatrix[v,adjacencyList[v][i]]=false;

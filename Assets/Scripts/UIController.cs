@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -420,6 +422,15 @@ public sealed class UIController : MonoBehaviour{
                 yield break;
             }
             Debug.Log($"return file:{FileBrowser.Result[0]}");
+            try{
+                StreamReader reader=new StreamReader(FileBrowser.Result[0]);
+                string text=reader.ReadToEnd();
+                GraphConstructor.instance.ProcessTextFile(text);
+                reader.Close();
+                reader.Dispose();
+            }catch(Exception e){
+                Debug.Log($"catch {e} while open file {FileBrowser.Result[0]}");
+            }
         }
         else{
             Debug.Log("fail to get file");

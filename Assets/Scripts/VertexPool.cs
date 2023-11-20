@@ -1,29 +1,36 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 public class VertexPool : MonoBehaviour{
-    public Transform folder;
+    private static VertexPool _instance;
+    public static VertexPool instance{
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]get{
+            return _instance;
+        }
+    }
 
-    private GameObject vertex;
+    [SerializeField]private GameObject vertexPrefab;
     private Stack<GameObject> pool;
+    
+    //order in script execution order is earlier than other script
+    void Awake(){
+        _instance=this;
 
-    public void CreatePool(in int size,GameObject v){
-        vertex=v;
+        const int size=300;
         pool=new Stack<GameObject>(size);
         
-        v.SetActive(false);
-        pool.Push(v);
-        for(int i=1;i<size;i++){
-            GameObject newV=Instantiate(v,folder);
+        for(int i=0;i<size;i++){
+            GameObject newV=Instantiate(vertexPrefab,transform);
             newV.SetActive(false);
             pool.Push(newV);
         }
     }
 
-    public GameObject GetGO(){
+    public GameObject Get(){
         if(pool.Count==0){
-            return Instantiate(vertex);
+            return Instantiate(vertexPrefab);
         }
         else{
             GameObject v=pool.Pop();
@@ -32,7 +39,7 @@ public class VertexPool : MonoBehaviour{
         }
     }
 
-    public void ReturnGO(GameObject v){
+    public void Release(GameObject v){
         v.SetActive(false);
         pool.Push(v);
     }
