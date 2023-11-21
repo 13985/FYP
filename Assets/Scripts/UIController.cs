@@ -35,6 +35,9 @@ public sealed class UIController : MonoBehaviour{
     [SerializeField]private Slider animationSpeedSlider;
     [SerializeField]private ToggleButton resumeRun,pauseRun,openAnimationPanel;
 
+    [Header("input counter")]
+    [SerializeField]private TextMeshProUGUI graphDataText;//show the number of vertex and edge
+
     private Vector2 previousScreenPosition;//used in LateUpdate for zoom in/out
     private float _animationSpeed;
     public float animationSpeed{
@@ -45,9 +48,9 @@ public sealed class UIController : MonoBehaviour{
 
     [System.Serializable]
     private struct Detail{
-        public Button openButton;
-        public TextMeshProUGUI triangle;
-        public GameObject panel;
+        [SerializeField]private Button openButton;
+        [SerializeField]private TextMeshProUGUI triangle;
+        [SerializeField]private GameObject panel;
         [System.NonSerialized]private bool isOpened;
 
         public void Init() {
@@ -57,18 +60,36 @@ public sealed class UIController : MonoBehaviour{
         }
 
         public void Toggle() {
-            if(isOpened) {
+            switch (isOpened){
+            case true:{
                 triangle.text="<";
                 panel.SetActive(false);
                 isOpened=false;
+                break;
             }
-            else {
+            case false:{
                 triangle.text=">";
                 panel.SetActive(true);
                 isOpened=true;
+                break;
+            }
             }
         }
-            
+        
+        public void Set(bool active){
+            isOpened=active;
+            panel.SetActive(active);
+            switch (active){
+            case true:{
+                triangle.text=">";
+                break;
+            }
+            case false:{
+                triangle.text="<";
+                break;
+            }
+            }
+        }
     }
 
 
@@ -153,6 +174,7 @@ public sealed class UIController : MonoBehaviour{
 
         FileBrowser.SetExcludedExtensions( ".lnk", ".tmp", ".zip", ".rar", ".exe" );
         FileBrowser.AddQuickLink( "current", Application.dataPath, null );
+        SetGraphData(0,0);
     }
 
     private void TestProcess() {
@@ -251,19 +273,32 @@ public sealed class UIController : MonoBehaviour{
     
     public void OnVertexPanelPressed() {
         vertexDetail.Toggle();
+        screenDetail.Set(false);
+        graphDetail.Set(false);
     }
 
     public void OnGraphDetailPressed() {
+        vertexDetail.Set(false);
+        screenDetail.Set(false);
         graphDetail.Toggle();
     }
 
     public void OnScreenPanelPressed(){
+        vertexDetail.Set(false);
         screenDetail.Toggle();
+        graphDetail.Set(false);
     }
 
     public void OnRandomLayoutPressed() {
         GraphConstructor.instance.RandomLayout();
     }
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void SetGraphData(in int vertexNumber,in int edgeNumber){
+        graphDataText.text=string.Format("|V|:{0}\n|E|:{1}",vertexNumber,edgeNumber);
+    }
+
 
     public void OnTeleportCameraPressed() {
         if(int.TryParse(vertexInput.text,out int v)==false) {
@@ -429,7 +464,7 @@ public sealed class UIController : MonoBehaviour{
                 reader.Close();
                 reader.Dispose();
             }catch(Exception e){
-                Debug.Log($"catch {e} while open file {FileBrowser.Result[0]}");
+                Debug.LogError($"catch {e} while open file {FileBrowser.Result[0]}");
             }
         }
         else{

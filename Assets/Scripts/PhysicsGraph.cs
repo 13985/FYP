@@ -8,6 +8,7 @@ using Unity.Burst;
 using System.Runtime.CompilerServices;
 using Unity.Jobs;
 
+
 public sealed class PhysicsGraph:MonoBehaviour{
     private const byte BOTTOM=0b00,TOP=0b10,LEFT=0b00,RIGHT=0b01;
     private const byte BOTTOMLEFT=BOTTOM|LEFT,BOTTOMRIGHT=BOTTOM|RIGHT,TOPLEFT=TOP|LEFT,TOPRIGHT=TOP|RIGHT;
@@ -49,6 +50,8 @@ public sealed class PhysicsGraph:MonoBehaviour{
 
     private UnsafeList<Vertex> graph;
     private UnsafeHashMap<int2,float> edgesAttractions;
+
+
     private GameObject[] vertices;//the gameobject in world
 
     [BurstCompile]
@@ -148,6 +151,7 @@ public sealed class PhysicsGraph:MonoBehaviour{
     private UnsafeList<float2> resultPositions;
     private NativeArray<JobHandle> jobs;
     private UnsafeList<UnsafeList<int>> stacks;
+
 
     public enum DrawMode {
         Area,Node,Index,None,Count
@@ -333,8 +337,9 @@ public sealed class PhysicsGraph:MonoBehaviour{
     unsafe public PhysicsGraph LoadGraph(List<int>[] inputGraph,GameObject[] vertices) {
         ClearGraph();
         this.vertices=vertices;
+        int minLength=math.min(graph.Length,inputGraph.Length);
 
-        for(int i = 0;i<graph.Length;i++) {
+        for(int i = 0;i<minLength;i++) {
             (graph.Ptr+i)->neighbors.Length=inputGraph[i].Count;
         }
         if(inputGraph.Length>graph.Length) {
@@ -441,8 +446,7 @@ public sealed class PhysicsGraph:MonoBehaviour{
             
             float2 finalPosition=center+coolingFactor*force;
             Bound b = nodesAddr[treeHead].bound;
-            finalPosition.x=math.clamp(finalPosition.x,b.min.x+0.5f,b.max.x-0.5f);
-            finalPosition.y=math.clamp(finalPosition.y,b.min.y+0.5f,b.max.y-0.5f);
+            finalPosition=b.Clamp(finalPosition);
             *resultPosition=finalPosition;
 
             *Stack=stack;
@@ -468,23 +472,22 @@ public sealed class PhysicsGraph:MonoBehaviour{
                         }
                     }
                 }
-                else {
-                    TreeNode*n=node+nodesAddr;
-                    for(int i = n->vertexCount-1;i>=0;i--) {
-                        if(n->vertices[i]==vertex->id) {
-                            continue;
-                        }
-                        float2 forceVector=center-(n->vertices[i]+graph)->position;
-                        float sqrDist=forceVector.x*forceVector.x+forceVector.y*forceVector.y;
-                        if(sqrDist>sqrRadius) {
-                            continue;
-                        }
-                        //normalize the vector
-                        forceVector.x=forceVector.x/Unity.Mathematics.math.sqrt(sqrDist);
-                        forceVector.y=forceVector.y/Unity.Mathematics.math.sqrt(sqrDist);
-
-                        force+=((n->vertices[i]+graph)->repulse/sqrDist)*(forceVector);
+                
+                TreeNode*n=node+nodesAddr;
+                for(int i = n->vertexCount-1;i>=0;i--) {
+                    if(n->vertices[i]==vertex->id) {
+                        continue;
                     }
+                    float2 forceVector=center-(n->vertices[i]+graph)->position;
+                    float sqrDist=forceVector.x*forceVector.x+forceVector.y*forceVector.y;
+                    if(sqrDist>sqrRadius) {
+                        continue;
+                    }
+                    //normalize the vector
+                    forceVector.x=forceVector.x/Unity.Mathematics.math.sqrt(sqrDist);
+                    forceVector.y=forceVector.y/Unity.Mathematics.math.sqrt(sqrDist);
+
+                    force+=((n->vertices[i]+graph)->repulse/sqrDist)*(forceVector);
                 }
             }
 
@@ -573,61 +576,34 @@ public sealed class PhysicsGraph:MonoBehaviour{
     unsafe private void Insert(int parent,Vertex*vertex) {
         float2 position=vertex->position;
         TreeNode*current=nodes.Ptr+parent;
-        byte dir;
         int child;
 
         while(true) {
-            dir=(current->bound).GetDirection(position);
-            if((child=current->children[dir])<0) {
-                break;
+            if(current->vertexCount<TreeNode.Capacity) {//meet a treenode that can store this vertex while traversal
+                current->vertices[current->vertexCount]=vertex->id;
+                vertex->node=(int)(current-nodes.Ptr);
+                vertex->positionInNode=current->vertexCount;
+                current->vertexCount++;
+                goto _Return_;
+            }
+
+            byte dir=(current->bound).GetDirection(position);
+            if((child=current->children[dir])<0) {//no child, insert a child node in this direction to store the vertex
+                current->isLeaf=false;//not leaf node
+                parent=(int)(current-nodes.Ptr);
+
+                child = GetNode(parent,current->bound[dir],dir);
+                (nodes.Ptr+parent)->children[dir]=child;//attach the child to parent
+                (nodes.Ptr+child)->vertexCount=1;
+                (nodes.Ptr+child)->vertices[0]=vertex->id;//add the point to child node
+                vertex->node=child;//reference back to the node
+                vertex->positionInNode=0;//stored the index of points
+                goto _Return_;
             }
             current=(nodes.Ptr+child);
         }
-
-        if(current->isLeaf==false) {
-            parent=(int)(current-nodes.Ptr);
-            child = GetNode(parent,current->bound[dir],dir);
-            (nodes.Ptr+parent)->children[dir]=child;//attach the child to parent
-            (nodes.Ptr+child)->vertexCount=1;
-            (nodes.Ptr+child)->vertices[0]=vertex->id;//add the point to child node
-            vertex->node=child;//reference back to the node
-            vertex->positionInNode=0;//stored the index of points
-        }
-        else if(current->vertexCount<TreeNode.Capacity) {
-            current->vertices[current->vertexCount]=vertex->id;
-            vertex->node=(int)(current-nodes.Ptr);
-            vertex->positionInNode=current->vertexCount;
-            current->vertexCount++;
-        }
-        else {//split this tree node
-            current->vertexCount=0;//set parent node's vertex count to 0
-            current->isLeaf=false;//not leaf node
-
-            parent=(int)(current-nodes.Ptr);
-            child = GetNode(parent,current->bound[dir],dir);
-            (nodes.Ptr+parent)->children[dir]=child;//attach the child to parent
-            (nodes.Ptr+child)->vertexCount=1;
-            (nodes.Ptr+child)->vertices[0]=vertex->id;//add the point to child node
-            vertex->node=child;//reference back to the node
-            vertex->positionInNode=0;//stored the index of points
-
-            for(int i = 0;i<TreeNode.Capacity;i++) {
-                vertex=(nodes.Ptr+parent)->vertices[i]+graph.Ptr;//get the point stored in parent node
-                dir=((nodes.Ptr+parent)->bound).GetDirection(vertex->position);//find direction
-
-                if((child=(nodes.Ptr+parent)->children[dir])!=-1) {//check if there is node allocated at this direction
-                    Insert(child,vertex);
-                }
-                else {
-                    child=GetNode(parent,current->bound[dir],dir);
-                    (nodes.Ptr+parent)->children[dir]=child;
-                    (nodes.Ptr+child)->vertexCount=1;
-                    (nodes.Ptr+child)->vertices[0]=vertex->id;
-                    vertex->node=child;
-                    vertex->positionInNode=0;
-                }
-            }
-        }
+        _Return_:;
+        return;
     }
 
 
@@ -647,18 +623,14 @@ public sealed class PhysicsGraph:MonoBehaviour{
         }
         int parent=Remove(node,v);
 
-        int safeGuard=30;
         int x=parent;
-        while(parent>=0&&safeGuard-->0){
+        while(parent>=0){
             node=parent+nodes.Ptr;
             if((node->bound).IsOutside(v->position)==false) {
                 Insert(parent,v);
                 break;
             }
             parent=node->parent;
-        }
-        if(safeGuard<=0) {
-            Debug.LogError($"Fuck as {x}");
         }
         return moved;
     }
@@ -671,52 +643,41 @@ public sealed class PhysicsGraph:MonoBehaviour{
         v->node=-1;
     }
 
-    //remove the specific from tree, and return the parent's indes
+    //remove the specific vertex from tree, and return the parent's index, only remove the vertex if it is leaf and count<=0
     [BurstCompile]
     unsafe private int Remove(TreeNode*node,Vertex*v) {
         node->vertexCount--;
         (node->vertices[node->vertexCount]+graph.Ptr)->positionInNode=v->positionInNode;//set tht positionInNode of last point
         node->vertices[v->positionInNode]=node->vertices[node->vertexCount];//remove as swap back
 
-        int parent=node->parent;
-        if(parent>=0) {
+        int _parent=node->parent;
+        while(node->isLeaf){
+            int parent=node->parent;//get the parent of current node
+            if(parent<0) {//no parent node
+                goto _Return_;
+            }
+
             if(node->vertexCount<=0) {
                 (parent+nodes.Ptr)->children[node->direction]=-1;//null the pointer to that node in parent's children[]
                 ReleaseNode(node);
             }
-            node=parent+nodes.Ptr;
+            else{
+                goto _Return_;
+            }
             
-            int total=0;
+            node=parent+nodes.Ptr;//go to parent node, check if it be the leaf node now
+            
             for(int i = 0;i<4;i++) {//check the remaining point in children of parent node
                 if(node->children[i]<0) {continue;}
                 else if((nodes.Ptr+node->children[i])->isLeaf==false) {//one of the children not leaf node, return
                     goto _Return_;
                 }
-                total+=(nodes.Ptr+node->children[i])->vertexCount;
             }
-            if(total>TreeNode.Capacity) {
-                goto _Return_;
-            }
-
-            short count=0;
-            for(int i = 0;i<4;i++) {//put all the points stored in children to parent
-                if(node->children[i]<0) {continue;}
-                short*_vertices=(nodes.Ptr+node->children[i])->vertices;//temporarily stores the points of child node
-
-                for(int j = (nodes.Ptr+node->children[i])->vertexCount-1;j>=0;j--,count++) {
-                    node->vertices[count]=_vertices[j];//store the point to parent children
-                    (_vertices[j]+this.graph.Ptr)->node=parent;//change the reference to (tree's) node in point
-                    (_vertices[j]+this.graph.Ptr)->positionInNode=count;
-                }
-                ReleaseNode(node->children[i]);
-                node->children[i]=-1;
-            }
-            node->vertexCount=count;
             node->isLeaf=true;
         }
-        else {}
+
         _Return_:;
-        return parent;
+        return _parent;
     }
 
     [BurstCompile]

@@ -22,7 +22,6 @@ using DotNetGraph.Compilation;
 using DotNetGraph.Extensions;
 
 using Debug=UnityEngine.Debug;
-using static UnityEditor.PlayerSettings;
 
 public struct SparseSet{
     public int[] dense{get;private set;}
@@ -277,7 +276,7 @@ public sealed class GraphConstructor:MonoBehaviour{
 
     unsafe public void ProcessTextFile(string file){
         fixed(char* str = file) {
-            ProcessTextFile(str,inputFile.text.Length);
+            ProcessTextFile(str,file.Length);
         }
 
         if(reverseMapping!=null){
@@ -293,7 +292,7 @@ public sealed class GraphConstructor:MonoBehaviour{
             reverseMapping[i]=VertexPool.instance.Get();
             reverseMapping[i].transform.position=Vector3.zero;
             mapping[reverseMapping[i]]=i;
-            reverseMapping[i].transform.GetComponentInChildren<TMP_Text>().text=i.ToString();
+            //reverseMapping[i].transform.GetComponentInChildren<TMP_Text>().text=i.ToString();
         }
 
         physicsModel.LoadGraph(this.adjacencyList,reverseMapping);
@@ -335,6 +334,7 @@ public sealed class GraphConstructor:MonoBehaviour{
         }
 
         int num=max+1;
+        int edgeNumber=0;
         adjacencyList=new List<int>[num];
         adjacencyMatrix=new bool[num,num];
         for(int i = 0;i<num;i++) {
@@ -403,7 +403,10 @@ public sealed class GraphConstructor:MonoBehaviour{
                 adjacencyMatrix[child,parent] = true;
                 adjacencyList[child].Add(parent);
             }
+            edgeNumber++;
         }
+
+        UIController.instance.SetGraphData(AdjacencyList.Length,edgeNumber);
     }
 
 
@@ -677,7 +680,7 @@ public sealed class GraphConstructor:MonoBehaviour{
     public void RandomLayout() {
         physicsModel.ClearGeometric();
         new Layout_1(adjacencyList,0.5f,physicsModel).Place();
-        physicsModel.Refresh(20);
+        physicsModel.Refresh(0);
     }
 
     public void AssignChildren(){
