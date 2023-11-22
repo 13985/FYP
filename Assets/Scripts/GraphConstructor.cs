@@ -574,7 +574,7 @@ public sealed class GraphConstructor:MonoBehaviour{
 
             unsafe {
                 PhysicsGraph.Vertex* vertex = physicsGraph.GetVertex(start);
-                vertex->repulse=60f;
+                vertex->repulse=49f;
                 vertex->mass=1000f;
                 physicsGraph.SetVertex(0,start);
             }
@@ -590,18 +590,18 @@ public sealed class GraphConstructor:MonoBehaviour{
                         centerPosition=physicsGraph.GetVertex(v)->position;
                     }
                     Vector2 SeparationBound=new Vector2(
-                        (float)((count*2*vertexRadius+(count-1)*2.1*vertexRadius)/2f/Mathf.PI),
-                        (float)((count*2*vertexRadius+(count-1)*3.5*vertexRadius)/2f/Mathf.PI)
+                        (float)((count*2*vertexRadius+(count-1)*3.1*vertexRadius)/2f/Mathf.PI),
+                        (float)((count*2*vertexRadius+(count-1)*7.5*vertexRadius)/2f/Mathf.PI)
                     );
 
                     for(int i = 0;i<count;i++) {
                         if(visited[graph[v][i]]){ continue; }
                         visited[graph[v][i]]=true;
                         bfs.Enqueue(graph[v][i]);
-                        physicsGraph.SetAttraction(new int2(v,i),13f/(step+2));
+                        physicsGraph.SetAttraction(new int2(v,i),46f/(step+2));
                         unsafe {
                             PhysicsGraph.Vertex* vertex = physicsGraph.GetVertex(graph[v][i]);
-                            vertex->repulse=23f/(step+1);
+                            vertex->repulse=35f/(step+1);
                             vertex->mass=9f/(step+2);
                             physicsGraph.SetVertex(UnityEngine.Random.insideUnitCircle.normalized*UnityEngine.Random.Range(SeparationBound.x,SeparationBound.y)+centerPosition,graph[v][i]);
                         }
@@ -678,9 +678,15 @@ public sealed class GraphConstructor:MonoBehaviour{
     #pragma warning restore CS0162
 
     public void RandomLayout() {
+        if(adjacencyList==null||adjacencyList.Length<=0){return;}
         physicsModel.ClearGeometric();
         new Layout_1(adjacencyList,0.5f,physicsModel).Place();
-        physicsModel.Refresh(15);
+        RefreshLayout();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void RefreshLayout(){
+        physicsModel.Refresh(50);
     }
 
     public void AssignChildren(){
@@ -1020,7 +1026,7 @@ public sealed class GraphConstructor:MonoBehaviour{
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryGetVertexGO(int id,out GameObject go) {
-        if(id>=reverseMapping.Length) {
+        if(reverseMapping==null||id>=reverseMapping.Length) {
             go=null;
             return false;
         }

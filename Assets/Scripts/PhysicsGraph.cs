@@ -51,8 +51,8 @@ public sealed class PhysicsGraph:MonoBehaviour{
     private UnsafeList<Vertex> graph;
     private UnsafeHashMap<int2,float> edgesAttractions;
 
-
     private GameObject[] vertices;//the gameobject in world
+    private int vertexNumber;
 
     [BurstCompile]
     public struct Bound{
@@ -267,9 +267,6 @@ public sealed class PhysicsGraph:MonoBehaviour{
     }
 
     void OnDestroy() {
-        if(vertices==null) {
-            return;
-        }
         for(int i = 0;i<graph.Length;i++) {
             graph[i].neighbors.Dispose();
         }
@@ -292,21 +289,22 @@ public sealed class PhysicsGraph:MonoBehaviour{
         nodes.Length=nodes.Capacity;
 
         graph=new UnsafeList<Vertex>(reserveVertexNumber,Allocator.Persistent);
-
-        resultPositions=new UnsafeList<float2>(reserveVertexNumber,Allocator.Persistent);
         edgesAttractions=new UnsafeHashMap<int2,float>(reserveVertexNumber,Allocator.Persistent);
+        resultPositions=new UnsafeList<float2>(reserveVertexNumber,Allocator.Persistent);
 
         jobs=new NativeArray<JobHandle> (MaximumJob,Allocator.Persistent);
         stacks=new UnsafeList<UnsafeList<int>>(MaximumJob,Allocator.Persistent);
         for(int i = 0;i<MaximumJob;i++) {
             stacks.Add(new UnsafeList<int>(16,Allocator.Persistent));
         }
+
+        vertexNumber=0;
         return this;
     }
 
     [BurstCompile]
     unsafe public void ClearGeometric() {
-        for(short i = 0;i<graph.Length;i++) {
+        for(short i = 0;i<vertexNumber;i++) {
             Vertex*v=i+graph.Ptr;
             v->node=-1;
         }
@@ -321,7 +319,7 @@ public sealed class PhysicsGraph:MonoBehaviour{
     [BurstCompile]
     unsafe public void ClearGraph() {
         edgesAttractions.Clear();
-        for(short i = 0;i<graph.Length;i++) {
+        for(short i = 0;i<vertexNumber;i++) {
             Vertex*v=i+graph.Ptr;
             v->node=-1;
             v->neighbors.Length=0;
@@ -337,28 +335,26 @@ public sealed class PhysicsGraph:MonoBehaviour{
     unsafe public PhysicsGraph LoadGraph(List<int>[] inputGraph,GameObject[] vertices) {
         ClearGraph();
         this.vertices=vertices;
-        int minLength=math.min(graph.Length,inputGraph.Length);
+        vertexNumber=inputGraph.Length;
+        int minLength=math.min(graph.Length,vertexNumber);
 
         for(int i = 0;i<minLength;i++) {
             (graph.Ptr+i)->neighbors.Length=inputGraph[i].Count;
         }
-        if(inputGraph.Length>graph.Length) {
+        if(vertexNumber>graph.Length) {//increment graph.Length and allocate new unsafe lists
             int i=graph.Length;
-            graph.Length=inputGraph.Length;
+            graph.Length=vertexNumber;
 
-            for(;i<inputGraph.Length;i++) {
+            for(;i<vertexNumber;i++) {
                 (graph.Ptr+i)->neighbors=new UnsafeList<int>(inputGraph[i].Count,Allocator.Persistent);
                 (graph.Ptr+i)->neighbors.Length=inputGraph[i].Count;
             }
         }
-        else {
-            graph.Length=inputGraph.Length;
-        }
 
-        resultPositions.Length=inputGraph.Length;
-        edgesAttractions.Capacity=math.max(inputGraph.Length,edgesAttractions.Capacity);
+        resultPositions.Length=vertexNumber;
+        edgesAttractions.Capacity=math.max(vertexNumber,edgesAttractions.Capacity);
         
-        for(short i = 0;i<graph.Length;i++) {
+        for(short i = 0;i<vertexNumber;i++) {
             vertices[i].transform.localScale=new Vector3(vertexRadius*2,vertexRadius*2,0);
             Vertex*v=i+graph.Ptr;
             v->id=i;
@@ -383,14 +379,17 @@ public sealed class PhysicsGraph:MonoBehaviour{
         int t=iteration;
         float maximumMovedDistance;
         do {
+            await System.Threading.Tasks.Task.Delay(100);
+
             t--;
             float coolingFactor=1f/(iteration-t)*1f;
             unsafe {
-                for(int i = 0;i<this.graph.Length;i+=32) {
-                    int end=Mathf.Min(i+MaximumJob,graph.Length);
+                for(int i = 0;i<vertexNumber;i+=32) {
+                    int end=Mathf.Min(i+MaximumJob,vertexNumber);
                     for(int j = i;j<end;j++) {
-                        jobs[j%MaximumJob]=new FindForce() {
-                            Stack=stacks.Ptr+(j%MaximumJob),
+                        int mod=(j%MaximumJob);
+                        jobs[mod]=new FindForce() {
+                            Stack=stacks.Ptr+(mod),
                             graph=graph.Ptr,
                             vertex=graph.Ptr+j,
                             nodesAddr=nodes.Ptr,
@@ -399,9 +398,10 @@ public sealed class PhysicsGraph:MonoBehaviour{
                             treeHead=head,
                             coolingFactor=coolingFactor,
                         }.Schedule();
+                        
                         /*
                         new FindForce(){
-                            Stack=stacks.Ptr+(j%MaximumJob),
+                            Stack=stacks.Ptr+mod,
                             graph=graph.Ptr,
                             vertex=graph.Ptr+j,
                             nodesAddr=nodes.Ptr,
@@ -411,18 +411,18 @@ public sealed class PhysicsGraph:MonoBehaviour{
                             coolingFactor=coolingFactor,
                         }.Execute();
                         */
+                        
                     }
                     JobHandle.CompleteAll(jobs);
                 }
             }
-            await System.Threading.Tasks.Task.Delay(500);
 
             maximumMovedDistance=THRESHOLD;
-            for(short i = 0;i<this.graph.Length;i++) {
+            for(short i = 0;i<vertexNumber;i++) {
                 float ret=UpdateVertex(resultPositions[i],i);
                 maximumMovedDistance=ret>0?math.max(maximumMovedDistance,ret):maximumMovedDistance;
             }
-            Debug.Log($"max:{maximumMovedDistance}");
+            Debug.Log($"max:{maximumMovedDistance} with colling factor {coolingFactor}");
         }while(t>=0&&maximumMovedDistance>THRESHOLD);
     }
 
@@ -450,6 +450,14 @@ public sealed class PhysicsGraph:MonoBehaviour{
             *resultPosition=finalPosition;
 
             *Stack=stack;
+            //Check();
+        }
+
+        [BurstDiscard]
+        private void Check(){
+            if(float.IsNaN(resultPosition->x)){
+                Debug.Log($"WTF with {vertex->repulse*Repulsion()} {Attraction()}");
+            }
         }
 
         //Find Total Repulsion force
@@ -688,20 +696,16 @@ public sealed class PhysicsGraph:MonoBehaviour{
         TreeNode* node=head+nodes.Ptr;
         float sqrRadius=vertexRadius*vertexRadius;
         while(true){
-            if(node->isLeaf) {
-                for(int i = node->vertexCount-1;i>=0;i--) {
-                    Vertex* v = node->vertices[i]+graph.Ptr;
-                    if(((Vector2)v->position-_position).sqrMagnitude<=sqrRadius) {
-                        return v;
-                    }
+            for(int i = node->vertexCount-1;i>=0;i--) {
+                Vertex* v = node->vertices[i]+graph.Ptr;
+                if(((Vector2)v->position-_position).sqrMagnitude<=sqrRadius) {
+                    return v;
                 }
-                break;
             }
-            else {
-                node=node->children[node->bound.GetDirection(_position)]+nodes.Ptr;
-                if(node<nodes.Ptr) {//children is -1 so address is smaller then nodes.Ptr
-                    break;
-                }
+            
+            node=node->children[node->bound.GetDirection(_position)]+nodes.Ptr;
+            if(node<nodes.Ptr) {//children is -1 so address is smaller then nodes.Ptr
+                break;
             }
         }
         return null;

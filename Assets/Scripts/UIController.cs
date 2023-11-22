@@ -14,7 +14,7 @@ using System.Runtime.CompilerServices;
 using SimpleFileBrowser;
 
 public sealed class UIController : MonoBehaviour{
-    private const float MIN_ZOOM_SIZE=10,MAX_ZOOM_SIZE=80;
+    private const float MIN_ZOOM_SIZE=10,MAX_ZOOM_SIZE=120;
     private const float MIN_ANIMATION_SPEED=0.01f,MAX_ANIMATION_SPEED=3f;
 
     private static UIController _instance;
@@ -172,7 +172,7 @@ public sealed class UIController : MonoBehaviour{
         pauseRun.Init(true);
         openAnimationPanel.Init();
 
-        FileBrowser.SetExcludedExtensions( ".lnk", ".tmp", ".zip", ".rar", ".exe" );
+        FileBrowser.SetExcludedExtensions( ".lnk", ".tmp", ".zip", ".rar", ".exe",".meta",".cpp");
         FileBrowser.AddQuickLink( "current", Application.dataPath, null );
         SetGraphData(0,0);
     }
@@ -291,6 +291,11 @@ public sealed class UIController : MonoBehaviour{
 
     public void OnRandomLayoutPressed() {
         GraphConstructor.instance.RandomLayout();
+    }
+
+
+    public void OnRefreshLayout(){
+        GraphConstructor.instance.RefreshLayout();
     }
 
 

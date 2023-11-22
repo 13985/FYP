@@ -91,9 +91,7 @@ public sealed class KCore:MonoBehaviour{
 
     private const int MaximumDegree=7;
 
-    [Range(0.1f,10f)]public float showTime;
-    public TextMeshProUGUI messageText;
-    public GraphConstructor constructor;
+    [SerializeField]private TextMeshProUGUI messageText;
 
     private Coroutine runningKCore=null;
     private bool isRunning=false;
@@ -396,9 +394,9 @@ public sealed class KCore:MonoBehaviour{
     */
 
     private IEnumerator RunKCore_() {
-        Dictionary<GameObject,int> mapping=constructor.Mapping;
-        GameObject[] reverseMapping=constructor.ReverseMapping;
-        List<int>[] adjacencyList=constructor.AdjacencyList;
+        Dictionary<GameObject,int> mapping=GraphConstructor.instance.Mapping;
+        GameObject[] reverseMapping=GraphConstructor.instance.ReverseMapping;
+        List<int>[] adjacencyList=GraphConstructor.instance.AdjacencyList;
         int vertexNumber=adjacencyList.Length;
 
         int i,currentK;
@@ -565,7 +563,7 @@ public sealed class KCore:MonoBehaviour{
         for(int k = 0;k<coreDiffentComponents.Length;++k) {
             for(int c = 0;c<coreDiffentComponents[k].components.Count;++c) {
                 //find all convex hull of differen connected componet of differenk k value
-                coreDiffentComponents[k].components[c].bounds=ConvexHull.Solve(coreDiffentComponents[k].components[c],constructor.ReverseMapping);
+                coreDiffentComponents[k].components[c].bounds=ConvexHull.Solve(coreDiffentComponents[k].components[c],GraphConstructor.instance.ReverseMapping);
             }
         }
     }
