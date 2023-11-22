@@ -14,8 +14,8 @@ using System.Runtime.CompilerServices;
 using SimpleFileBrowser;
 
 public sealed class UIController : MonoBehaviour{
-    private const float MIN_ZOOM_SIZE=10,MAX_ZOOM_SIZE=50;
-    private const float MIN_ANIMATION_SPEED=0.05f,MAX_ANIMATION_SPEED=3f;
+    private const float MIN_ZOOM_SIZE=10,MAX_ZOOM_SIZE=80;
+    private const float MIN_ANIMATION_SPEED=0.01f,MAX_ANIMATION_SPEED=3f;
 
     private static UIController _instance;
     public static UIController instance{

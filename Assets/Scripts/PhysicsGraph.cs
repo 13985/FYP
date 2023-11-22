@@ -129,7 +129,7 @@ public sealed class PhysicsGraph:MonoBehaviour{
 
     //16+4*4+2+1+1+8*2=56 bytes
     unsafe public struct TreeNode{
-        public const int Capacity=4;
+        public const int Capacity=2;
         public Bound bound;
         public fixed int children[4];
         public int parent;
@@ -389,8 +389,7 @@ public sealed class PhysicsGraph:MonoBehaviour{
                 for(int i = 0;i<this.graph.Length;i+=32) {
                     int end=Mathf.Min(i+MaximumJob,graph.Length);
                     for(int j = i;j<end;j++) {
-                        /*
-                        jobs[i]=new FindForce() {
+                        jobs[j%MaximumJob]=new FindForce() {
                             Stack=stacks.Ptr+(j%MaximumJob),
                             graph=graph.Ptr,
                             vertex=graph.Ptr+j,
@@ -400,7 +399,7 @@ public sealed class PhysicsGraph:MonoBehaviour{
                             treeHead=head,
                             coolingFactor=coolingFactor,
                         }.Schedule();
-                        */
+                        /*
                         new FindForce(){
                             Stack=stacks.Ptr+(j%MaximumJob),
                             graph=graph.Ptr,
@@ -411,8 +410,9 @@ public sealed class PhysicsGraph:MonoBehaviour{
                             treeHead=head,
                             coolingFactor=coolingFactor,
                         }.Execute();
+                        */
                     }
-                    //JobHandle.CompleteAll(jobs);
+                    JobHandle.CompleteAll(jobs);
                 }
             }
             await System.Threading.Tasks.Task.Delay(500);
@@ -572,6 +572,7 @@ public sealed class PhysicsGraph:MonoBehaviour{
     }
 
 
+    //TODO: parent field of parent sometimes point to child, fix it
     [BurstCompile]
     unsafe private void Insert(int parent,Vertex*vertex) {
         float2 position=vertex->position;
@@ -623,14 +624,21 @@ public sealed class PhysicsGraph:MonoBehaviour{
         }
         int parent=Remove(node,v);
 
-        int x=parent;
-        while(parent>=0){
-            node=parent+nodes.Ptr;
-            if((node->bound).IsOutside(v->position)==false) {
-                Insert(parent,v);
-                break;
-            }
-            parent=node->parent;
+        if(parent>=0) {
+            //int iteration=1000;
+            do{
+                node=parent+nodes.Ptr;
+                if((node->bound).IsOutside(v->position)==false) {
+                    Insert(parent,v);
+                    break;
+                }
+                parent=node->parent;
+            //}while(parent>=0&&--iteration>0);
+            }while(parent>=0);
+            //if(iteration<=0) {Debug.LogError("Dead loop");}
+        }
+        else {//return the root node,the parent of root node is -1
+            Insert(head,v);
         }
         return moved;
     }
@@ -647,37 +655,32 @@ public sealed class PhysicsGraph:MonoBehaviour{
     [BurstCompile]
     unsafe private int Remove(TreeNode*node,Vertex*v) {
         node->vertexCount--;
-        (node->vertices[node->vertexCount]+graph.Ptr)->positionInNode=v->positionInNode;//set tht positionInNode of last point
+        (node->vertices[node->vertexCount]+graph.Ptr)->positionInNode=v->positionInNode;//set tht positionInNode of last vertex
         node->vertices[v->positionInNode]=node->vertices[node->vertexCount];//remove as swap back
 
-        int _parent=node->parent;
+        int parent=node->parent;
         while(node->isLeaf){
-            int parent=node->parent;//get the parent of current node
-            if(parent<0) {//no parent node
-                goto _Return_;
-            }
-
-            if(node->vertexCount<=0) {
+            if(parent>=0&&node->vertexCount<=0) {
                 (parent+nodes.Ptr)->children[node->direction]=-1;//null the pointer to that node in parent's children[]
                 ReleaseNode(node);
             }
-            else{
+            else{//root node or vertexs are stored
                 goto _Return_;
             }
             
             node=parent+nodes.Ptr;//go to parent node, check if it be the leaf node now
             
             for(int i = 0;i<4;i++) {//check the remaining point in children of parent node
-                if(node->children[i]<0) {continue;}
-                else if((nodes.Ptr+node->children[i])->isLeaf==false) {//one of the children not leaf node, return
+                if(node->children[i]>=0) {//one of the children is not null, parent is not leaf node
                     goto _Return_;
                 }
             }
-            node->isLeaf=true;
+            node->isLeaf=true;//parent is leaf node, continue loop
+            parent=node->parent;//get the parent of current node
         }
 
         _Return_:;
-        return _parent;
+        return parent;
     }
 
     [BurstCompile]

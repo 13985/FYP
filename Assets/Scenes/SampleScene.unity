@@ -11687,14 +11687,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6883b017098041449beff3b479c5cd1e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  showEdge: 1
+  showEdge: 0
   cam: {fileID: 519420031}
   parentInput: {fileID: 811212625}
   childrenInput: {fileID: 51632158}
   vertexNumber: 300
   input: {fileID: 0}
   physicsModel: {fileID: 519420036}
-  inputFile: {fileID: 4900000, guid: 7213485a900af304c98f405ae7ce0519, type: 3}
+  inputFile: {fileID: 4900000, guid: a1953e693e10b4e43b5332126ea10d58, type: 3}
   radiusDiff: 3
   vertexSeparation: 2
 --- !u!114 &519420034
@@ -11787,7 +11787,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   vertexRadius: 0.25
-  drawMode: 3
+  drawMode: 1
 --- !u!1 &532632984
 GameObject:
   m_ObjectHideFlags: 0

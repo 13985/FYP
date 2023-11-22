@@ -267,7 +267,7 @@ public sealed class GraphConstructor:MonoBehaviour{
 
         mapping=new Dictionary<GameObject, int>();
         reverseMapping=null;
-        physicsModel.Init().SetSize(100);
+        physicsModel.Init().SetSize(250);
         if(inputFile!=null) {
             ProcessTextFile(inputFile.text);
         }
@@ -680,7 +680,7 @@ public sealed class GraphConstructor:MonoBehaviour{
     public void RandomLayout() {
         physicsModel.ClearGeometric();
         new Layout_1(adjacencyList,0.5f,physicsModel).Place();
-        physicsModel.Refresh(0);
+        physicsModel.Refresh(15);
     }
 
     public void AssignChildren(){
