@@ -46,13 +46,22 @@ public sealed class PhysicsGraph:MonoBehaviour{
         }
     }
 
-    [SerializeField]private float vertexRadius;
+    [SerializeField]private float _vertexRadius;
+    public float vertexRadius{
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]get{return _vertexRadius;}
+    }
 
     private UnsafeList<Vertex> graph;
     private UnsafeHashMap<int2,float> edgesAttractions;
 
+    private UnsafeList<int> _showingVertex;
+    public UnsafeList<int> showingVertex{
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]get{return _showingVertex;}
+    }
+
     private GameObject[] vertices;//the gameobject in world
     private int vertexNumber;
+
 
     [BurstCompile]
     public struct Bound{
@@ -124,6 +133,31 @@ public sealed class PhysicsGraph:MonoBehaviour{
                 p.y=max.y-0.01f;
             }
             return p;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Overlap(Bound other){
+            return this.min.x<other.max.x&&this.max.x>other.min.x&&this.min.y<other.max.y&&this.max.y>other.min.y;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Overlap(float2 center,float sqrRadius){
+            float2 project=center;
+            if(project.x>max.x){
+                project.x=max.x;
+            }
+            else if(project.x<min.x){
+                project.x=min.x;
+            }
+            if(project.y>max.y){
+                project.y=max.y;
+            }
+            else if(project.y<min.y){
+                project.y=min.y;
+            }
+            float2 delta=center-project;
+            //if(log)Debug.Log($"length: {delta.x*delta.x+delta.y*delta.y} with center:{center} project:{project}");
+            return delta.x*delta.x+delta.y*delta.y<=sqrRadius;
         }
     }
 
@@ -279,6 +313,7 @@ public sealed class PhysicsGraph:MonoBehaviour{
             stacks[i].Dispose();
         }
         stacks.Dispose();
+        _showingVertex.Dispose();
     }
 
     public unsafe PhysicsGraph Init(int reserveVertexNumber=512) {
@@ -291,6 +326,7 @@ public sealed class PhysicsGraph:MonoBehaviour{
         graph=new UnsafeList<Vertex>(reserveVertexNumber,Allocator.Persistent);
         edgesAttractions=new UnsafeHashMap<int2,float>(reserveVertexNumber,Allocator.Persistent);
         resultPositions=new UnsafeList<float2>(reserveVertexNumber,Allocator.Persistent);
+        _showingVertex=new UnsafeList<int>(reserveVertexNumber>>2,Allocator.Persistent);
 
         jobs=new NativeArray<JobHandle> (MaximumJob,Allocator.Persistent);
         stacks=new UnsafeList<UnsafeList<int>>(MaximumJob,Allocator.Persistent);
@@ -355,7 +391,7 @@ public sealed class PhysicsGraph:MonoBehaviour{
         edgesAttractions.Capacity=math.max(vertexNumber,edgesAttractions.Capacity);
         
         for(short i = 0;i<vertexNumber;i++) {
-            vertices[i].transform.localScale=new Vector3(vertexRadius*2,vertexRadius*2,0);
+            vertices[i].transform.localScale=new Vector3(_vertexRadius*2,_vertexRadius*2,0);
             Vertex*v=i+graph.Ptr;
             v->id=i;
             v->node=-1;
@@ -475,7 +511,7 @@ public sealed class PhysicsGraph:MonoBehaviour{
                             continue;
                         }
                         TreeNode*child=(node+nodesAddr)->children[i]+nodesAddr;
-                        if(OverlapCircle(child->bound,sqrRadius)) {
+                        if(child->bound.Overlap(center,sqrRadius)) {
                             stack.Add((int)(child-nodesAddr));
                         }
                     }
@@ -529,24 +565,6 @@ public sealed class PhysicsGraph:MonoBehaviour{
                 force+=(forceFactor/dist)*forceVector;
             }
             return force;
-        }
-
-        private bool OverlapCircle(Bound b,float sqrRadius) {
-            float2 project=center;
-            if(project.x>b.min.x){
-                project.x=b.min.x;
-            }
-            else if(project.x<b.min.x){
-                project.x=b.min.x;
-            }
-            if(project.y>b.max.y){
-                project.y=b.max.y;
-            }
-            else if(project.y<b.max.y){
-                project.y=b.max.y;
-            }
-            float2 delta=center-project;
-            return delta.x*delta.x+delta.y*delta.y<=sqrRadius;
         }
     }
     
@@ -694,7 +712,7 @@ public sealed class PhysicsGraph:MonoBehaviour{
     [BurstCompile]
     unsafe public Vertex* GetVertex(Vector2 _position) {
         TreeNode* node=head+nodes.Ptr;
-        float sqrRadius=vertexRadius*vertexRadius;
+        float sqrRadius=_vertexRadius*_vertexRadius;
         while(true){
             for(int i = node->vertexCount-1;i>=0;i--) {
                 Vertex* v = node->vertices[i]+graph.Ptr;
@@ -709,6 +727,42 @@ public sealed class PhysicsGraph:MonoBehaviour{
             }
         }
         return null;
+    }
+
+
+    //[BurstCompile]
+    public unsafe void FindShowingVertices(Bound b){
+        _showingVertex.Clear();
+        UnsafeList<int>*_stack=stacks.Ptr+UnityEngine.Random.Range(0,MaximumJob);
+        UnsafeList<int> stack=*_stack;
+        stack.Add(head);
+        float sqrVertexRadius=_vertexRadius*_vertexRadius;
+        while(stack.Length>0){
+            int currentNode=stack[stack.Length-1];
+            TreeNode*node=currentNode+nodes.Ptr;
+            stack.Length--;
+            
+            if(node->isLeaf==false) {
+                for(int i = 0;i<4;i++) {
+                    if(node->children[i]<0) {//no child at this direction
+                        continue;
+                    }
+                    TreeNode*child=node->children[i]+nodes.Ptr;
+                    if(b.Overlap(child->bound)) {
+                        stack.Add(node->children[i]);
+                    }
+                }
+            }
+
+            for(int i=0;i<node->vertexCount;i++){
+                Debug.Log($"pos:{graph.Ptr[node->vertices[i]].position}");
+                if(b.Overlap(graph.Ptr[node->vertices[i]].position,sqrVertexRadius)){
+                    _showingVertex.Add(node->vertices[i]);
+                }
+            }
+        }
+
+        *_stack=stack;
     }
 
 

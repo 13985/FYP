@@ -24,6 +24,7 @@ public sealed class UIController : MonoBehaviour{
         }
     }
 
+    [SerializeField][Range(MIN_ZOOM_SIZE,MAX_ZOOM_SIZE)]private float hideEdgeSize;
     [SerializeField]private Camera cam;
     [SerializeField]private TMP_InputField vertexInput,colorInput,cameraZoomInput;
     [SerializeField]private ToggleButton cameraControl,vertexControl,clickToSelect;
@@ -228,6 +229,7 @@ public sealed class UIController : MonoBehaviour{
 
     void LateUpdate() {
         if(!vertexControl.isOn&&cameraControl.isOn) {
+            bool cameraMoved=false;
             switch(cameraMove) {
             case CameraMove.Stop: {
                 break;
@@ -247,6 +249,7 @@ public sealed class UIController : MonoBehaviour{
                 Vector3 different=(Vector3)dragOrigin-cam.ScreenToWorldPoint(Input.mousePosition);
                 different.z=0;
                 cam.transform.position+=different;
+                cameraMoved=true;
                 break;
             }
             }
@@ -258,6 +261,11 @@ public sealed class UIController : MonoBehaviour{
                 float different=Input.mousePosition.x-previousScreenPosition.x;
                 previousScreenPosition=Input.mousePosition;
                 cam.orthographicSize=Mathf.Clamp(cam.orthographicSize+different/75f,MIN_ZOOM_SIZE,MAX_ZOOM_SIZE);
+                cameraMoved=true;
+            }
+
+            if(cameraMoved){
+                GraphConstructor.instance.CheckEdges(cam.orthographicSize>hideEdgeSize);
             }
         }
     }
@@ -415,6 +423,7 @@ public sealed class UIController : MonoBehaviour{
         }
         else{
             cam.orthographicSize=Mathf.Clamp(zoom,MIN_ZOOM_SIZE,MAX_ZOOM_SIZE);
+            GraphConstructor.instance.CheckEdges(cam.orthographicSize>hideEdgeSize);
         }
     }
 

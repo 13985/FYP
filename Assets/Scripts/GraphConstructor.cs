@@ -247,14 +247,16 @@ public sealed class GraphConstructor:MonoBehaviour{
     [SerializeField]private GameObject input;
     [SerializeField]private PhysicsGraph physicsModel;
     [SerializeField]private TextAsset inputFile;
-
+    [SerializeField]private GameObjectPool vertexPool,edgePool;
 
     [SerializeField]private float radiusDiff,vertexSeparation;
     private List<List<int>> orbits=new List<List<int>>();
     private Dictionary<int,int> getOrbit=new Dictionary<int,int>(MaximumVertexNumber*2);//vertex->orbit locate at
+    private Dictionary<int2,GameObject> showedEdges;
     private MinHeap availableOrbits;
     
     private SparseSet vertice;
+    private PhysicsGraph.Bound oldViewPort;
 
     unsafe private void Awake(){
         instance=this;
@@ -266,11 +268,16 @@ public sealed class GraphConstructor:MonoBehaviour{
         }
 
         mapping=new Dictionary<GameObject, int>();
+        showedEdges=new Dictionary<int2,GameObject>();
         reverseMapping=null;
         physicsModel.Init().SetSize(250);
         if(inputFile!=null) {
             ProcessTextFile(inputFile.text);
         }
+
+
+        oldViewPort.min=(Vector2)cam.ViewportToWorldPoint(new Vector3(0,0,0));
+        oldViewPort.max=(Vector2)cam.ViewportToWorldPoint(new Vector3(1,1,0));
     }
 
 
@@ -281,7 +288,7 @@ public sealed class GraphConstructor:MonoBehaviour{
 
         if(reverseMapping!=null){
             for(int i=0;i<reverseMapping.Length;i++){
-                VertexPool.instance.Release(reverseMapping[i]);
+                vertexPool.Release(reverseMapping[i]);
             }
         }
 
@@ -289,7 +296,7 @@ public sealed class GraphConstructor:MonoBehaviour{
         mapping.Clear();
         mapping.EnsureCapacity(adjacencyList.Length*3/2);
         for(int i = 0;i<adjacencyList.Length;i++) {
-            reverseMapping[i]=VertexPool.instance.Get();
+            reverseMapping[i]=vertexPool.Get();
             reverseMapping[i].transform.position=Vector3.zero;
             mapping[reverseMapping[i]]=i;
             //reverseMapping[i].transform.GetComponentInChildren<TMP_Text>().text=i.ToString();
@@ -574,8 +581,8 @@ public sealed class GraphConstructor:MonoBehaviour{
 
             unsafe {
                 PhysicsGraph.Vertex* vertex = physicsGraph.GetVertex(start);
-                vertex->repulse=49f;
-                vertex->mass=1000f;
+                vertex->repulse=20f;
+                vertex->mass=100f;
                 physicsGraph.SetVertex(0,start);
             }
 
@@ -598,11 +605,11 @@ public sealed class GraphConstructor:MonoBehaviour{
                         if(visited[graph[v][i]]){ continue; }
                         visited[graph[v][i]]=true;
                         bfs.Enqueue(graph[v][i]);
-                        physicsGraph.SetAttraction(new int2(v,i),46f/(step+2));
+                        physicsGraph.SetAttraction(new int2(v,i),23f/(step+1));
                         unsafe {
                             PhysicsGraph.Vertex* vertex = physicsGraph.GetVertex(graph[v][i]);
-                            vertex->repulse=35f/(step+1);
-                            vertex->mass=9f/(step+2);
+                            vertex->repulse=6f/(step+1);
+                            vertex->mass=10f/(step+2);
                             physicsGraph.SetVertex(UnityEngine.Random.insideUnitCircle.normalized*UnityEngine.Random.Range(SeparationBound.x,SeparationBound.y)+centerPosition,graph[v][i]);
                         }
                     }
@@ -693,7 +700,7 @@ public sealed class GraphConstructor:MonoBehaviour{
         int parent=GetParentInText();
         Action<int> CheckVertexExists=(ID)=>{
             if(reverseMapping[ID]==null){
-                GameObject v=VertexPool.instance.Get();
+                GameObject v=vertexPool.Get();
                 reverseMapping[ID]=v;
 
                 mapping.Add(v,ID);
@@ -745,7 +752,7 @@ public sealed class GraphConstructor:MonoBehaviour{
             else{
                 RemoveVertexOnScene(v);
                 mapping.Remove(vertex);
-                VertexPool.instance.Release(vertex);
+                vertexPool.Release(vertex);
                 
                 for(int i=0;i<adjacencyList[v].Count;i++){
                     adjacencyMatrix[v,adjacencyList[v][i]]=false;
@@ -968,8 +975,53 @@ public sealed class GraphConstructor:MonoBehaviour{
                 radius=Quaternion.Euler(0,0,angularDiff)*radius;
             }
         }
-
     }
+
+
+    public void CheckEdges(bool hideAll){
+        if(hideAll){
+
+        }
+        else{
+            PhysicsGraph.Bound b;
+            b.min=(Vector2)cam.ViewportToWorldPoint(new Vector3(0,0,0));
+            b.max=(Vector2)cam.ViewportToWorldPoint(new Vector3(1,1,0));
+            //Debug.Log($"min:{b.min} max:{b.max}");
+
+            foreach(KeyValuePair<int2,GameObject> kvp in showedEdges){
+                edgePool.Release(kvp.Value);
+            }
+            showedEdges.Clear();
+            for(int i=0;i<physicsModel.showingVertex.Length;i++){
+                reverseMapping[physicsModel.showingVertex[i]].GetComponent<SpriteRenderer>().color=Color.cyan;
+            }
+            
+            physicsModel.FindShowingVertices(b);
+            //Debug.Log($"{physicsModel.showingVertex.Length} v are shown");
+
+            for(int i=0;i<physicsModel.showingVertex.Length;i++){
+                int from=physicsModel.showingVertex[i];
+                List<int> children=adjacencyList[from];
+                for(int j=0;j<children.Count;j++){
+                    if(showedEdges.ContainsKey(new int2(from,children[j]))){}
+                    else if(showedEdges.ContainsKey(new int2(children[j],from))){}
+                    else{
+                        GameObject e=edgePool.Get();
+                        showedEdges.Add(new int2(from,children[j]),e);
+                        Vector3 centerPosition=reverseMapping[from].transform.position+reverseMapping[children[j]].transform.position;
+                        Vector3 direction=reverseMapping[children[j]].transform.position-reverseMapping[from].transform.position;
+                        centerPosition/=2;
+                        e.transform.position=centerPosition;
+                        e.transform.localScale=new Vector3(physicsModel.vertexRadius/2,direction.magnitude);
+                        e.transform.up=direction;
+                    }
+                }
+                
+            }
+            oldViewPort=b;
+        }
+    }
+
 
     private const float RadiusOfSprite=0.5f;
     public void OnDrawGizmos(){
