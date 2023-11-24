@@ -14,7 +14,7 @@ using System.Runtime.CompilerServices;
 using SimpleFileBrowser;
 
 public sealed class UIController : MonoBehaviour{
-    private const float MIN_ZOOM_SIZE=10,MAX_ZOOM_SIZE=120;
+    private const float MIN_ZOOM_SIZE=7,MAX_ZOOM_SIZE=120;
     private const float MIN_ANIMATION_SPEED=0.01f,MAX_ANIMATION_SPEED=3f;
 
     private static UIController _instance;
@@ -155,6 +155,10 @@ public sealed class UIController : MonoBehaviour{
     private CameraMove cameraMove;
     private Vector2 dragOrigin;
     private GameObject selectedVertexGO;
+    private int _selectedVertexID;
+    public int selectedVertexID{
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]get{ return _selectedVertexID; }
+    }
 
     void Awake() {
         _instance=this;
@@ -176,6 +180,7 @@ public sealed class UIController : MonoBehaviour{
         FileBrowser.SetExcludedExtensions( ".lnk", ".tmp", ".zip", ".rar", ".exe",".meta",".cpp");
         FileBrowser.AddQuickLink( "current", Application.dataPath, null );
         SetGraphData(0,0);
+        _selectedVertexID=-1;
     }
 
     private void TestProcess() {
@@ -204,9 +209,9 @@ public sealed class UIController : MonoBehaviour{
     void Update() {
         if(clickToSelect.isOn) {
             if(Input.GetKeyDown(KeyCode.Mouse1)) {
-                int id=GraphConstructor.instance.TryGetVertexGO(cam.ScreenToWorldPoint(Input.mousePosition),out selectedVertexGO);
-                if(id>=0) {
-                    vertexInput.text=id.ToString();
+                _selectedVertexID=GraphConstructor.instance.TryGetVertexGO(cam.ScreenToWorldPoint(Input.mousePosition),out selectedVertexGO);
+                if(_selectedVertexID>=0) {
+                    vertexInput.text=_selectedVertexID.ToString();
                 }
             }
         }

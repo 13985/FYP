@@ -2410,7 +2410,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 90866633c9744bf4d94fd8147dcc4f3f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  hideEdgeSize: 20
+  hideEdgeSize: 17
   cam: {fileID: 519420031}
   vertexInput: {fileID: 1231733032}
   colorInput: {fileID: 89963930}
@@ -11832,7 +11832,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2dd5cee79efd8bd46976f097c0c86d58, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _vertexRadius: 0
+  _vertexRadius: 0.25
   drawMode: 1
 --- !u!1 &532632984
 GameObject:

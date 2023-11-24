@@ -253,10 +253,10 @@ public sealed class GraphConstructor:MonoBehaviour{
     private List<List<int>> orbits=new List<List<int>>();
     private Dictionary<int,int> getOrbit=new Dictionary<int,int>(MaximumVertexNumber*2);//vertex->orbit locate at
     private Dictionary<int2,GameObject> showedEdges;
+    private bool showingSelectedVertexEdge; 
     private MinHeap availableOrbits;
     
     private SparseSet vertice;
-    private PhysicsGraph.Bound oldViewPort;
 
     unsafe private void Awake(){
         instance=this;
@@ -275,9 +275,7 @@ public sealed class GraphConstructor:MonoBehaviour{
             ProcessTextFile(inputFile.text);
         }
 
-
-        oldViewPort.min=(Vector2)cam.ViewportToWorldPoint(new Vector3(0,0,0));
-        oldViewPort.max=(Vector2)cam.ViewportToWorldPoint(new Vector3(1,1,0));
+        showingSelectedVertexEdge=false;
     }
 
 
@@ -980,7 +978,18 @@ public sealed class GraphConstructor:MonoBehaviour{
 
     public void CheckEdges(bool hideAll){
         if(hideAll){
+            if(showingSelectedVertexEdge==false){
+                foreach(KeyValuePair<int2,GameObject> kvp in showedEdges){
+                    if(kvp.Key.x==UIController.instance.selectedVertexID||kvp.Key.y==UIController.instance.selectedVertexID){
+                        continue;
+                    }
+                    edgePool.Release(kvp.Value);
+                }
+                showingSelectedVertexEdge=true;
+            }
+            else{
 
+            }
         }
         else{
             PhysicsGraph.Bound b;
@@ -995,7 +1004,7 @@ public sealed class GraphConstructor:MonoBehaviour{
             for(int i=0;i<physicsModel.showingVertex.Length;i++){
                 reverseMapping[physicsModel.showingVertex[i]].GetComponent<SpriteRenderer>().color=Color.cyan;
             }
-            
+
             physicsModel.FindShowingVertices(b);
             //Debug.Log($"{physicsModel.showingVertex.Length} v are shown");
 
@@ -1012,13 +1021,12 @@ public sealed class GraphConstructor:MonoBehaviour{
                         Vector3 direction=reverseMapping[children[j]].transform.position-reverseMapping[from].transform.position;
                         centerPosition/=2;
                         e.transform.position=centerPosition;
-                        e.transform.localScale=new Vector3(physicsModel.vertexRadius/2,direction.magnitude);
+                        e.transform.localScale=new Vector3(physicsModel.vertexRadius/4,direction.magnitude);
                         e.transform.up=direction;
                     }
                 }
-                
             }
-            oldViewPort=b;
+            showingSelectedVertexEdge=false;
         }
     }
 
