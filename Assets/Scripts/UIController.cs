@@ -27,7 +27,7 @@ public sealed class UIController : MonoBehaviour{
     [SerializeField][Range(MIN_ZOOM_SIZE,MAX_ZOOM_SIZE)]private float hideEdgeSize;
     [SerializeField]private Camera cam;
     [SerializeField]private TMP_InputField vertexInput,colorInput,cameraZoomInput;
-    [SerializeField]private ToggleButton cameraControl,vertexControl,clickToSelect;
+    [SerializeField]private ToggleButton cameraControl,vertexControl,clickToSelect,showEdgeButton;
     [SerializeField]private Detail vertexDetail,graphDetail,screenDetail;
     [SerializeField]private GameObject selectedVertexIndicator;
 
@@ -45,6 +45,10 @@ public sealed class UIController : MonoBehaviour{
         [MethodImpl(MethodImplOptions.AggressiveInlining)]get{
             return _animationSpeed;
         }
+    }
+
+    public bool hideEdge{
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]get{return cam.orthographicSize>hideEdgeSize;}
     }
 
     [System.Serializable]
@@ -166,6 +170,8 @@ public sealed class UIController : MonoBehaviour{
         cameraControl.Init();
         vertexControl.Init();
         clickToSelect.Init();
+        showEdgeButton.Init();
+        showEdgeButton.Set(true);
 
         vertexDetail.Init();
         graphDetail.Init();
@@ -178,7 +184,7 @@ public sealed class UIController : MonoBehaviour{
         openAnimationPanel.Init();
 
         FileBrowser.SetExcludedExtensions( ".lnk", ".tmp", ".zip", ".rar", ".exe",".meta",".cpp");
-        FileBrowser.AddQuickLink( "current", Application.dataPath, null );
+        FileBrowser.AddQuickLink( "current", string.Format("{0}/Graph/",Application.dataPath), null );
         SetGraphData(0,0);
         _selectedVertexID=-1;
     }
@@ -221,6 +227,7 @@ public sealed class UIController : MonoBehaviour{
                     Vector3 pos=cam.ScreenToWorldPoint(Input.mousePosition);
                     pos.z=0;
                     selectedVertexGO.transform.position=pos;
+                    GraphConstructor.instance.MoveEdgePosition(_selectedVertexID,pos);
                     pos.z=0.5f;
                     selectedVertexIndicator.transform.position=pos;
                 }
@@ -270,7 +277,7 @@ public sealed class UIController : MonoBehaviour{
             }
 
             if(cameraMoved){
-                GraphConstructor.instance.CheckEdges(cam.orthographicSize>hideEdgeSize);
+                GraphConstructor.instance.CheckEdges(showEdgeButton.isOn==false||cam.orthographicSize>hideEdgeSize);
             }
         }
     }
@@ -378,6 +385,11 @@ public sealed class UIController : MonoBehaviour{
         }
     }
 
+
+    public void OnShowEdgePressed(){
+        showEdgeButton.Toggle();
+    }
+
     unsafe public void OnSetColorPressed() {
         Color c;
         if(int.TryParse(vertexInput.text,out int v)==false) {
@@ -428,7 +440,7 @@ public sealed class UIController : MonoBehaviour{
         }
         else{
             cam.orthographicSize=Mathf.Clamp(zoom,MIN_ZOOM_SIZE,MAX_ZOOM_SIZE);
-            GraphConstructor.instance.CheckEdges(cam.orthographicSize>hideEdgeSize);
+            GraphConstructor.instance.CheckEdges(hideEdge);
         }
     }
 
@@ -459,6 +471,11 @@ public sealed class UIController : MonoBehaviour{
         animatonControlPanel.SetActive(true);
         openAnimationPanel.Set(true);
         KCore.Instance.StartRunning();
+    }
+
+
+    public void OnNextStepAlgorithmPressed(){
+        KCore.Instance.ForceNextStep();
     }
 
 

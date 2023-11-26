@@ -447,7 +447,6 @@ public sealed class PhysicsGraph:MonoBehaviour{
                             coolingFactor=coolingFactor,
                         }.Execute();
                         */
-                        
                     }
                     JobHandle.CompleteAll(jobs);
                 }
@@ -460,10 +459,13 @@ public sealed class PhysicsGraph:MonoBehaviour{
             }
             Debug.Log($"max:{maximumMovedDistance} with colling factor {coolingFactor}");
         }while(t>=0&&maximumMovedDistance>THRESHOLD);
+
+        GraphConstructor.instance.CheckEdges(UIController.instance.hideEdge);
     }
 
     [BurstCompile]
     unsafe private struct FindForce:IJob{
+        private const float ZERO_DIST=0.1f;
         [NativeDisableUnsafePtrRestriction]public UnsafeList<int>*Stack;
         [NativeDisableUnsafePtrRestriction][ReadOnly]public Vertex* vertex,graph;
         [NativeDisableUnsafePtrRestriction][ReadOnly]public TreeNode* nodesAddr;
@@ -478,8 +480,8 @@ public sealed class PhysicsGraph:MonoBehaviour{
         public void Execute() {
             stack=*Stack;
             center=vertex->position;
-            float2 force=((vertex->repulse*Repulsion())+Attraction())/vertex->mass;
-            
+            float2 force=((vertex->repulse*Repulsion())+Attraction()+TowardCenter())/vertex->mass;
+
             float2 finalPosition=center+coolingFactor*force;
             Bound b = nodesAddr[treeHead].bound;
             finalPosition=b.Clamp(finalPosition);
@@ -496,8 +498,7 @@ public sealed class PhysicsGraph:MonoBehaviour{
             }
         }
 
-        //Find Total Repulsion force
-        public float2 Repulsion() {
+        private float2 Repulsion() {
             float sqrRadius=vertex->effectRadius*vertex->effectRadius;
             float2 force=0;
 
@@ -527,18 +528,20 @@ public sealed class PhysicsGraph:MonoBehaviour{
                     if(sqrDist>sqrRadius) {
                         continue;
                     }
+                    float dist=math.sqrt(sqrDist);
+                    dist=math.max(dist,ZERO_DIST);
+                    sqrDist=math.max(sqrDist,ZERO_DIST);
                     //normalize the vector
-                    forceVector.x=forceVector.x/Unity.Mathematics.math.sqrt(sqrDist);
-                    forceVector.y=forceVector.y/Unity.Mathematics.math.sqrt(sqrDist);
+                    forceVector.x=forceVector.x/dist;
+                    forceVector.y=forceVector.y/dist;
 
                     force+=((n->vertices[i]+graph)->repulse/sqrDist)*(forceVector);
                 }
             }
-
             return force;
         }
 
-        public float2 Attraction() {
+        private float2 Attraction() {
             int idx=(int)(vertex-graph);
             float2 force=0;
             int*i=vertex->neighbors.Ptr;
@@ -546,25 +549,43 @@ public sealed class PhysicsGraph:MonoBehaviour{
 
             for(;i<end;i++) {
                 int neighbor=*i;
-                //Debug.Log($"neighbor is {neighbor}");
                 if((neighbor+graph)->node<0) {
                     continue;
                 }
 
                 float forceFactor;
-                if(edgesAttraction.TryGetValue(new int2(idx,neighbor),out forceFactor)==false) {}
-                else if(edgesAttraction.TryGetValue(new int2(neighbor,idx),out forceFactor)==false) {}
+                if(edgesAttraction.TryGetValue(new int2(idx,neighbor),out forceFactor)) {}
+                else if(edgesAttraction.TryGetValue(new int2(neighbor,idx),out forceFactor)) {}
                 else{
                     forceFactor=1;
                 }
-                float2 forceVector=(neighbor+graph)->position-center;
+                float2 forceVector=(neighbor+graph)->position-center;//toward neighbor
                 float sqrDist=forceVector.x*forceVector.x+forceVector.y*forceVector.y;
                 float dist=Unity.Mathematics.math.sqrt(sqrDist);
+                dist=math.max(dist,ZERO_DIST);
                 forceVector.x=forceVector.x/dist;
                 forceVector.y=forceVector.y/dist;
-                force+=(forceFactor/dist)*forceVector;
+                force+=GetEdgeFactor(dist,forceFactor)*forceVector;
             }
             return force;
+        }
+    
+        private float2 TowardCenter(){
+            float2 forceVector=0-center;//toward center
+            float sqrDist=forceVector.x*forceVector.x+forceVector.y*forceVector.y;
+            float dist=Unity.Mathematics.math.sqrt(sqrDist);
+            dist=math.max(dist,ZERO_DIST);
+            forceVector.x=forceVector.x/dist;
+            forceVector.y=forceVector.y/dist;
+            float2 force=GetEdgeFactor(dist,10)*forceVector;
+            return force;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private float GetEdgeFactor(in float dist,in float factor){
+            const float SEPEARATION=4f;
+            return factor*dist*dist/SEPEARATION/1000f;
         }
     }
     
@@ -598,7 +619,6 @@ public sealed class PhysicsGraph:MonoBehaviour{
     }
 
 
-    //TODO: parent field of parent sometimes point to child, fix it
     [BurstCompile]
     unsafe private void Insert(int parent,Vertex*vertex) {
         float2 position=vertex->position;
@@ -755,7 +775,6 @@ public sealed class PhysicsGraph:MonoBehaviour{
             }
 
             for(int i=0;i<node->vertexCount;i++){
-                Debug.Log($"pos:{graph.Ptr[node->vertices[i]].position}");
                 if(b.Overlap(graph.Ptr[node->vertices[i]].position,sqrVertexRadius)){
                     _showingVertex.Add(node->vertices[i]);
                 }

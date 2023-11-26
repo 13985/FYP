@@ -261,6 +261,7 @@ public sealed class GraphConstructor:MonoBehaviour{
     unsafe private void Awake(){
         instance=this;
         Application.targetFrameRate=30;
+
         //return;
         if(vertexSeparation<=0||radiusDiff<=0){
             Debug.Log("vertexSeparation and radiusDiff require a positive float");
@@ -415,9 +416,8 @@ public sealed class GraphConstructor:MonoBehaviour{
     }
 
 
-    private class GetCoordinatesHelper {
+    private struct GetCoordinatesHelper {
         private int vertex,count;
-
         public Vector2[] results;
 
         public GetCoordinatesHelper(int vertexNum) {
@@ -439,12 +439,11 @@ public sealed class GraphConstructor:MonoBehaviour{
                 p.WaitForExit();
                 p.Close();
                 p.Dispose();
-                return this;
             }
             catch(Exception e) {
                 Debug.Log($"exception when starting process: {e.Data}");
-                return null;
             }
+            return this;
         }
 
 
@@ -519,16 +518,6 @@ public sealed class GraphConstructor:MonoBehaviour{
         }
     }
 
-
-    private async void GetCoordinates() {
-        await CreateDotFile();
-        Vector2[] results=new GetCoordinatesHelper(adjacencyList.Length).LayoutProcess().results;
-        for(int i = 0;i<results.Length;i++) {
-            physicsModel.SetVertex((Vector2)cam.ScreenToWorldPoint(results[i]),i);
-        }
-    }
-
-
     private async Task CreateDotFile() {
         DotGraph dotGraph = new DotGraph();
         dotGraph.Directed=false;
@@ -555,6 +544,15 @@ public sealed class GraphConstructor:MonoBehaviour{
             Debug.Log($"catch exception {e.Data}");
         }
     }
+
+    private async void GetCoordinates() {
+        await CreateDotFile();
+        Vector2[] results=new GetCoordinatesHelper(adjacencyList.Length).LayoutProcess().results;
+        for(int i = 0;i<results.Length;i++) {
+            physicsModel.SetVertex((Vector2)cam.ScreenToWorldPoint(results[i]),i);
+        }
+    }
+
 
     private struct Layout_1{
         private readonly List<int>[] graph;
@@ -603,11 +601,11 @@ public sealed class GraphConstructor:MonoBehaviour{
                         if(visited[graph[v][i]]){ continue; }
                         visited[graph[v][i]]=true;
                         bfs.Enqueue(graph[v][i]);
-                        physicsGraph.SetAttraction(new int2(v,i),23f/(step+1));
+                        physicsGraph.SetAttraction(new int2(v,i),22f/(step+1));
                         unsafe {
                             PhysicsGraph.Vertex* vertex = physicsGraph.GetVertex(graph[v][i]);
                             vertex->repulse=6f/(step+1);
-                            vertex->mass=10f/(step+2);
+                            vertex->mass=10f/(step+1);
                             physicsGraph.SetVertex(UnityEngine.Random.insideUnitCircle.normalized*UnityEngine.Random.Range(SeparationBound.x,SeparationBound.y)+centerPosition,graph[v][i]);
                         }
                     }
@@ -691,7 +689,7 @@ public sealed class GraphConstructor:MonoBehaviour{
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void RefreshLayout(){
-        physicsModel.Refresh(50);
+        physicsModel.Refresh(30);
     }
 
     public void AssignChildren(){
@@ -786,27 +784,6 @@ public sealed class GraphConstructor:MonoBehaviour{
         }
     }
 
-    private WaitForSeconds AAAA=new WaitForSeconds(0.025f);
-    public void MoveVertex(){
-        int v=GetParentInText();
-        if(v<0||reverseMapping[v]==null){
-            return;
-        }
-        StartCoroutine(FollowMouse(reverseMapping[v].transform));
-    }
-
-    IEnumerator FollowMouse(Transform v){
-        while(true){
-            if(Input.GetKey(KeyCode.Return)){
-                break;
-            }
-            Vector3 mousePos=Camera.main.ScreenToWorldPoint(Input.mousePosition);
-            mousePos.z=0;
-            v.position=mousePos;
-            yield return AAAA;
-        }
-    }
-
     public void ClearText(){
         parentInput.text="";
         childrenInput.text="";
@@ -837,7 +814,6 @@ public sealed class GraphConstructor:MonoBehaviour{
             return parent;
         }
     }
-
 
     IEnumerable<int> ProcessVertice(){
         if(childrenInput.text.Length==0){
@@ -883,7 +859,6 @@ public sealed class GraphConstructor:MonoBehaviour{
             
         }
     }
-
 
     private void ConstructGraph(){
         GameObject[] allVertice=GameObject.FindGameObjectsWithTag("Vertex");
@@ -958,7 +933,6 @@ public sealed class GraphConstructor:MonoBehaviour{
         }
     }
 
-
     private void RemoveVertexOnScene(int vertex){
         int orbitAt=getOrbit[vertex];
         getOrbit.Remove(vertex);
@@ -974,7 +948,6 @@ public sealed class GraphConstructor:MonoBehaviour{
             }
         }
     }
-
 
     public void CheckEdges(bool hideAll){
         if(hideAll){
@@ -1017,9 +990,9 @@ public sealed class GraphConstructor:MonoBehaviour{
                     else{
                         GameObject e=edgePool.Get();
                         showedEdges.Add(new int2(from,children[j]),e);
-                        Vector3 centerPosition=reverseMapping[from].transform.position+reverseMapping[children[j]].transform.position;
-                        Vector3 direction=reverseMapping[children[j]].transform.position-reverseMapping[from].transform.position;
-                        centerPosition/=2;
+                        Vector3 v0=reverseMapping[from].transform.position,v1=reverseMapping[children[j]].transform.position;
+                        Vector3 centerPosition=(v0+v1)/2;
+                        Vector3 direction=v0-v1;;
                         e.transform.position=centerPosition;
                         e.transform.localScale=new Vector3(physicsModel.vertexRadius/4,direction.magnitude);
                         e.transform.up=direction;
@@ -1032,41 +1005,7 @@ public sealed class GraphConstructor:MonoBehaviour{
 
 
     private const float RadiusOfSprite=0.5f;
-    public void OnDrawGizmos(){
-        if(!showEdge||!Application.isPlaying||adjacencyList==null||reverseMapping==null){
-            return;
-        }
-        int p,c,d;
-        //Gizmos.color=Color.blue;
-        Handles.color=Color.blue;
-        Handles.zTest=UnityEngine.Rendering.CompareFunction.Less;
 
-        for(p = 0;p<adjacencyList.Length;p++) {
-            Vector3 from=reverseMapping[p].transform.position,to;
-            for(c = 0;c<adjacencyList[p].Count;c++) {
-                to=reverseMapping[adjacencyList[p][c]].transform.position;
-                to.z=10;
-                Vector3 rotatedRadiusVector=Vector3.ClampMagnitude(to-from,RadiusOfSprite);
-                //Gizmos.DrawLine(from+rotatedRadiusVector,to-rotatedRadiusVector);
-                Handles.DrawLine(from+rotatedRadiusVector,to-rotatedRadiusVector);
-            }
-        }
-
-        return;
-        for(d=0;d<vertice.count;d++){
-            p=vertice.dense[d];
-            Vector3 from=reverseMapping[p].transform.position,to;
-            from.z=10;
-
-            for(c=0;c<adjacencyList[p].Count;c++){
-                to=reverseMapping[adjacencyList[p][c]].transform.position;
-                to.z=10;
-                Vector3 rotatedRadiusVector=Vector3.ClampMagnitude(to-from,RadiusOfSprite);
-                //Gizmos.DrawLine(from+rotatedRadiusVector,to-rotatedRadiusVector);
-                Handles.DrawLine(from+rotatedRadiusVector,to-rotatedRadiusVector);
-            }
-        }
-    }
 
     public void EnableInput(){
         input.SetActive(true);
@@ -1110,9 +1049,25 @@ public sealed class GraphConstructor:MonoBehaviour{
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SetVertexPosition(GameObject v) {
+    public void SetVertexPosition(in GameObject v) {
         if(mapping.TryGetValue(v,out int id)) {
             physicsModel.UpdateVertex((Vector2)v.transform.position,(short)id);
+        }
+    }
+
+
+    public void MoveEdgePosition(in int vertexID,in Vector3 pos){
+        List<int> neighbors=adjacencyList[vertexID];
+        for(int i=0;i<neighbors.Count;i++){
+            GameObject edge;
+            int n=neighbors[i];
+            bool x=showedEdges.TryGetValue(new int2(vertexID,n),out edge)||showedEdges.TryGetValue(new int2(n,vertexID),out edge);
+            Vector3 v0=reverseMapping[n].transform.position;
+            Vector3 centerPosition=(v0+pos)/2;
+            Vector3 direction=v0-pos;;
+            edge.transform.position=centerPosition;
+            edge.transform.localScale=new Vector3(physicsModel.vertexRadius/4,direction.magnitude);
+            edge.transform.up=direction;
         }
     }
 }
