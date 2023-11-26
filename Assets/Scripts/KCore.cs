@@ -91,6 +91,11 @@ public sealed class KCore:MonoBehaviour{
 
     [SerializeField]private TextMeshProUGUI messageText;
 
+    [Header("showing status")]
+    [SerializeField]private GameObject statusBoard;
+    [SerializeField]private Button closeStatusBoardButton;
+    [SerializeField]private TextMeshProUGUI ancestorText,descendantText,shellText;
+
     private Coroutine runningKCore=null;
     private bool isRunning=false;
     private bool stopRunning=false;
@@ -146,6 +151,7 @@ public sealed class KCore:MonoBehaviour{
     void Awake() {
         _instance=this;
         shellDiffentComponents=null;
+        statusBoard.SetActive(false);
     }
 
     void OnDrawGizmos() {
@@ -182,13 +188,14 @@ public sealed class KCore:MonoBehaviour{
 
     public void StartRunning(){
         if(isRunning){
-            StopCoroutine(runningKCore);
+            return;
+            //StopCoroutine(runningKCore);
         }
         else{
             isRunning=true;
         }
         shellDiffentComponents=null;
-        messageText.text="start running";
+        statusBoard.SetActive(true);
         runningKCore=StartCoroutine(RunKCore_());
     }
 
@@ -196,10 +203,9 @@ public sealed class KCore:MonoBehaviour{
         if(isRunning){
             StopCoroutine(runningKCore);
             isRunning=false;
-            messageText.text="";
+            statusBoard.SetActive(false);
         }
         else{
-            messageText.text="no algorithm is running";
         }
     }
 
@@ -273,6 +279,8 @@ public sealed class KCore:MonoBehaviour{
     */
 
     private IEnumerator RunKCore_() {
+        closeStatusBoardButton.gameObject.SetActive(false);
+
         Dictionary<GameObject,int> mapping=GraphConstructor.instance.Mapping;
         GameObject[] reverseMapping=GraphConstructor.instance.ReverseMapping;
         List<int>[] adjacencyList=GraphConstructor.instance.AdjacencyList;
@@ -306,10 +314,14 @@ public sealed class KCore:MonoBehaviour{
         minimumNextK=currentK+1;
 
         for(int unprocessed=vertexNumber;true;){
+            shellText.text=$"shell: {currentK}";
             forceNextStep=false;
             while(forceNextStep==false&&stopRunning==true){yield return null;}
+            forceNextStep=false;
 
             while(candiates[0].TryRemoveLast(out int vertex)){//get one vertex in first list
+                ancestorText.text=$"processing: {vertex}";
+
                 vertexKValue[vertex]=currentK;
                 degree[vertex]=-1;
 
@@ -319,6 +331,7 @@ public sealed class KCore:MonoBehaviour{
                     yield return new WaitForSeconds(UIController.instance.animationSpeed);
                     while(forceNextStep==false&&stopRunning==true){yield return null;}
                 }
+                forceNextStep=false;
 
                 for(i=0;i<adjacencyList[vertex].Count;i++){//process all its neighbor (decrement their degree)
                     int neighbor=adjacencyList[vertex][i];
@@ -329,6 +342,7 @@ public sealed class KCore:MonoBehaviour{
                         continue;
                     }
                     degree[neighbor]--;
+                    descendantText.text=$"neighbor: {neighbor}\ndegree:\n {degree[neighbor]}";
 
                     if(degree[neighbor]<=currentK){//getIndex[neighbor]<0 means its already in group0, no need to moveDown again
                         if(candiates[1].Remove(neighbor)){
@@ -344,8 +358,8 @@ public sealed class KCore:MonoBehaviour{
                         yield return new WaitForSeconds(UIController.instance.animationSpeed);
                         while(forceNextStep==false&&stopRunning==true){yield return null;}
                     }
+                    forceNextStep=false;
                     reverseMapping[neighbor].GetComponent<SpriteRenderer>().color=UnprocessedColor;
-
                 }
             }
 
@@ -387,6 +401,8 @@ public sealed class KCore:MonoBehaviour{
         degree=null;
         union=null;
         forceNextStep=false;
+
+        closeStatusBoardButton.gameObject.SetActive(true);
         System.GC.Collect();
     }
 
@@ -554,6 +570,9 @@ public sealed class KCore:MonoBehaviour{
             Debug.Log($"end with {m}");
             return result;
         }
-    
+    }
+
+    public void OnCloseStausBoardPressed(){
+        statusBoard.SetActive(false);
     }
 }

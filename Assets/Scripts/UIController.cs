@@ -28,8 +28,11 @@ public sealed class UIController : MonoBehaviour{
     [SerializeField]private Camera cam;
     [SerializeField]private TMP_InputField vertexInput,colorInput,cameraZoomInput;
     [SerializeField]private ToggleButton cameraControl,vertexControl,clickToSelect,showEdgeButton;
-    [SerializeField]private Detail vertexDetail,graphDetail,screenDetail;
+    [SerializeField]private Detail vertexDetail,graphDetail,screenDetail,edgeDetail;
     [SerializeField]private GameObject selectedVertexIndicator;
+
+    [Header("algorithm")]
+    [SerializeField]private Button stopButton;
 
     [Header("animation")]
     [SerializeField]private GameObject animatonControlPanel;
@@ -176,6 +179,7 @@ public sealed class UIController : MonoBehaviour{
         vertexDetail.Init();
         graphDetail.Init();
         screenDetail.Init();
+        edgeDetail.Init();
         selectedVertexGO=null;
 
         animatonControlPanel.SetActive(false);
@@ -186,6 +190,7 @@ public sealed class UIController : MonoBehaviour{
         FileBrowser.SetExcludedExtensions( ".lnk", ".tmp", ".zip", ".rar", ".exe",".meta",".cpp");
         FileBrowser.AddQuickLink( "current", string.Format("{0}/Graph/",Application.dataPath), null );
         SetGraphData(0,0);
+        stopButton.enabled=false;
         _selectedVertexID=-1;
     }
 
@@ -293,20 +298,30 @@ public sealed class UIController : MonoBehaviour{
     
     public void OnVertexPanelPressed() {
         vertexDetail.Toggle();
-        screenDetail.Set(false);
+        edgeDetail.Set(false);
         graphDetail.Set(false);
+        screenDetail.Set(false);
+    }
+
+    public void OnEdgePanelPressed(){
+        vertexDetail.Set(false);
+        edgeDetail.Toggle();
+        graphDetail.Set(false);
+        screenDetail.Set(false);
     }
 
     public void OnGraphDetailPressed() {
         vertexDetail.Set(false);
-        screenDetail.Set(false);
+        edgeDetail.Set(false);
         graphDetail.Toggle();
+        screenDetail.Set(false);
     }
 
     public void OnScreenPanelPressed(){
         vertexDetail.Set(false);
-        screenDetail.Toggle();
+        edgeDetail.Set(false);
         graphDetail.Set(false);
+        screenDetail.Toggle();
     }
 
     public void OnRandomLayoutPressed() {
@@ -388,6 +403,7 @@ public sealed class UIController : MonoBehaviour{
 
     public void OnShowEdgePressed(){
         showEdgeButton.Toggle();
+        GraphConstructor.instance.CheckEdges(showEdgeButton.isOn==false);
     }
 
     unsafe public void OnSetColorPressed() {
@@ -470,7 +486,15 @@ public sealed class UIController : MonoBehaviour{
     public void OnRunAlgorithmPressed(){
         animatonControlPanel.SetActive(true);
         openAnimationPanel.Set(true);
+        stopButton.enabled=true;
         KCore.Instance.StartRunning();
+    }
+
+    public void OnStopAlgorithmPressed(){
+        stopButton.enabled=false;
+        animatonControlPanel.SetActive(false);
+        openAnimationPanel.Set(false);
+        KCore.Instance.StopRunning();
     }
 
 
