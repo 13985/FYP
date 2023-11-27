@@ -341,8 +341,15 @@ public sealed class KCore:MonoBehaviour{
                         }
                         continue;
                     }
+
+                    if(forceNextStep==false){
+                        yield return new WaitForSeconds(UIController.instance.animationSpeed);
+                        while(forceNextStep==false&&stopRunning==true){yield return null;}
+                    }
+
+                    reverseMapping[neighbor].GetComponent<SpriteRenderer>().color=Color.white;
+                    descendantText.text=$"neighbor: {neighbor}\ndegree: {degree[neighbor]}";
                     degree[neighbor]--;
-                    descendantText.text=$"neighbor: {neighbor}\ndegree:\n {degree[neighbor]}";
 
                     if(degree[neighbor]<=currentK){//getIndex[neighbor]<0 means its already in group0, no need to moveDown again
                         if(candiates[1].Remove(neighbor)){
@@ -353,13 +360,13 @@ public sealed class KCore:MonoBehaviour{
                         minimumNextK=degree[neighbor]<minimumNextK?degree[neighbor]:minimumNextK;
                     }
 
-                    reverseMapping[neighbor].GetComponent<SpriteRenderer>().color=Color.white;
                     if(forceNextStep==false){
                         yield return new WaitForSeconds(UIController.instance.animationSpeed);
                         while(forceNextStep==false&&stopRunning==true){yield return null;}
                     }
                     forceNextStep=false;
                     reverseMapping[neighbor].GetComponent<SpriteRenderer>().color=UnprocessedColor;
+                    descendantText.text=$"neighbor: {neighbor}\ndegree: {degree[neighbor]}";
                 }
             }
 

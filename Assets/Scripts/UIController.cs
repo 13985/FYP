@@ -26,10 +26,11 @@ public sealed class UIController : MonoBehaviour{
 
     [SerializeField][Range(MIN_ZOOM_SIZE,MAX_ZOOM_SIZE)]private float hideEdgeSize;
     [SerializeField]private Camera cam;
-    [SerializeField]private TMP_InputField vertexInput,colorInput,cameraZoomInput;
+    [SerializeField]private TMP_InputField vertexInput,colorInput;
     [SerializeField]private ToggleButton cameraControl,vertexControl,clickToSelect,showEdgeButton;
     [SerializeField]private Detail vertexDetail,graphDetail,screenDetail,edgeDetail;
     [SerializeField]private GameObject selectedVertexIndicator;
+    [SerializeField]private Slider zoomSizeSlider;
 
     [Header("algorithm")]
     [SerializeField]private Button stopButton;
@@ -192,6 +193,13 @@ public sealed class UIController : MonoBehaviour{
         SetGraphData(0,0);
         stopButton.enabled=false;
         _selectedVertexID=-1;
+
+        zoomSizeSlider.minValue=MIN_ZOOM_SIZE;
+        zoomSizeSlider.maxValue=MAX_ZOOM_SIZE;
+        zoomSizeSlider.value=cam.orthographicSize;
+        zoomSizeSlider.onValueChanged.AddListener(OnZoomSliderChanged);
+
+        _animationSpeed=animationSpeedSlider.value;
     }
 
     private void TestProcess() {
@@ -450,14 +458,9 @@ public sealed class UIController : MonoBehaviour{
     }
 
 
-    public void OnZoomSizePressed(){
-        if(float.TryParse(cameraZoomInput.text, out float zoom)==false) {
-
-        }
-        else{
-            cam.orthographicSize=Mathf.Clamp(zoom,MIN_ZOOM_SIZE,MAX_ZOOM_SIZE);
-            GraphConstructor.instance.CheckEdges(hideEdge);
-        }
+    private void OnZoomSliderChanged(float x){
+        cam.orthographicSize=zoomSizeSlider.value;
+        GraphConstructor.instance.CheckEdges(hideEdge);
     }
 
 
