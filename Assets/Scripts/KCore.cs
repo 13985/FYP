@@ -97,7 +97,10 @@ public sealed class KCore:MonoBehaviour{
     [SerializeField]private TextMeshProUGUI ancestorText,descendantText,shellText;
 
     private Coroutine runningKCore=null;
-    private bool isRunning=false;
+    private bool _isRunning=false;
+    public bool isRunning{
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]get{return _isRunning;}
+    }
     private bool stopRunning=false;
     private bool forceNextStep=false;
 
@@ -187,22 +190,24 @@ public sealed class KCore:MonoBehaviour{
     }
 
     public void StartRunning(){
-        if(isRunning){
+        if(_isRunning){
             return;
             //StopCoroutine(runningKCore);
         }
         else{
-            isRunning=true;
+            _isRunning=true;
         }
         shellDiffentComponents=null;
         statusBoard.SetActive(true);
+        GraphConstructor.instance.UpdateAllEdges(true);
         runningKCore=StartCoroutine(RunKCore_());
     }
 
     public void StopRunning(){
-        if(isRunning){
+        if(_isRunning){
             StopCoroutine(runningKCore);
-            isRunning=false;
+            CleanUp();
+            _isRunning=false;
             statusBoard.SetActive(false);
         }
         else{
@@ -321,6 +326,7 @@ public sealed class KCore:MonoBehaviour{
 
             while(candiates[0].TryRemoveLast(out int vertex)){//get one vertex in first list
                 ancestorText.text=$"processing: {vertex}";
+                GraphConstructor.instance.ShowEdgesOfVertex(vertex);
 
                 vertexKValue[vertex]=currentK;
                 degree[vertex]=-1;
@@ -368,6 +374,7 @@ public sealed class KCore:MonoBehaviour{
                     reverseMapping[neighbor].GetComponent<SpriteRenderer>().color=UnprocessedColor;
                     descendantText.text=$"neighbor: {neighbor}\ndegree: {degree[neighbor]}";
                 }
+                GraphConstructor.instance.HideEdgesOfVertex(vertex);
             }
 
             if(unprocessed<=0){
@@ -401,7 +408,7 @@ public sealed class KCore:MonoBehaviour{
         ConnectedComponentsInDifferentKShell(union,vertexKValue,currentK+1);
 
         messageText.text="finish";
-        isRunning=false;
+        _isRunning=false;
         candiates[0].Dispose();
         candiates[1].Dispose();
         vertexKValue=null;
@@ -409,7 +416,7 @@ public sealed class KCore:MonoBehaviour{
         union=null;
         forceNextStep=false;
 
-        closeStatusBoardButton.gameObject.SetActive(true);
+        CleanUp();
         System.GC.Collect();
     }
 
@@ -479,6 +486,11 @@ public sealed class KCore:MonoBehaviour{
         }
     }
 
+    private void CleanUp(){
+        closeStatusBoardButton.gameObject.SetActive(true);
+        UIController.instance.OnAlgorithmEnd();
+        GraphConstructor.instance.UpdateAllEdges(UIController.instance.HideEdge());
+    }
 
     /*
      *reference:https://web.ntnu.edu.tw/~algo/ConvexHull.html
@@ -574,7 +586,7 @@ public sealed class KCore:MonoBehaviour{
             for(int i = 0;i<m;i++) {
                 result[i]=bounds[i];
             }
-            Debug.Log($"end with {m}");
+            //Debug.Log($"end with {m}");
             return result;
         }
     }

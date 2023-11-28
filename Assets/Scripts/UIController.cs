@@ -51,9 +51,13 @@ public sealed class UIController : MonoBehaviour{
         }
     }
 
-    public bool hideEdge{
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]get{return cam.orthographicSize>hideEdgeSize;}
+
+    //if true is passed it, showing of edge only is controlled by user
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool HideEdge(bool forceHideOnly=false){
+        return showEdgeButton.isOn==false||(forceHideOnly==false&&cam.orthographicSize>hideEdgeSize);
     }
+
 
     [System.Serializable]
     private struct Detail{
@@ -115,7 +119,7 @@ public sealed class UIController : MonoBehaviour{
             isOn=false;
         }
 
-
+        //return bool after toggle
         public bool Toggle(bool onlyColor=false) {
             if(isOn) {
                 button.GetComponent<Image>().color=Color.red;
@@ -289,8 +293,8 @@ public sealed class UIController : MonoBehaviour{
                 cameraMoved=true;
             }
 
-            if(cameraMoved){
-                GraphConstructor.instance.CheckEdges(showEdgeButton.isOn==false||cam.orthographicSize>hideEdgeSize);
+            if(cameraMoved){//only refresh the edge if there is no any algorithm running
+                GraphConstructor.instance.UpdateAllEdges(HideEdge());
             }
         }
     }
@@ -333,11 +337,13 @@ public sealed class UIController : MonoBehaviour{
     }
 
     public void OnRandomLayoutPressed() {
+        selectedVertexIndicator.SetActive(false);
         GraphConstructor.instance.RandomLayout();
     }
 
 
     public void OnRefreshLayout(){
+        selectedVertexIndicator.SetActive(false);
         GraphConstructor.instance.RefreshLayout();
     }
 
@@ -363,15 +369,16 @@ public sealed class UIController : MonoBehaviour{
 
     public void OnEnterVertex() {
         if(int.TryParse(vertexInput.text,out int v)==false) {
-
+            selectedVertexIndicator.SetActive(false);
         }
         else if(GraphConstructor.instance.TryGetVertexGO(v,out GameObject vertexGO)==false) {
-
+            selectedVertexIndicator.SetActive(false);
         }
         else {
             if(selectedVertexGO != null) {
                 GraphConstructor.instance.SetVertexPosition(selectedVertexGO);
             }
+            selectedVertexIndicator.SetActive(true);
             selectedVertexGO=vertexGO;
             selectedVertexIndicator.transform.localScale=vertexGO.transform.localScale+new Vector3(0.2f,0.2f);
             selectedVertexIndicator.transform.position=vertexGO.transform.position+new Vector3(0,0,0.5f);//slightly behind the vertex
@@ -400,18 +407,21 @@ public sealed class UIController : MonoBehaviour{
 
     public void OnClickToSelectPressed() {
         if(clickToSelect.Toggle()) {
-            //vertexControl.Set(false);
             if(selectedVertexGO!=null) {
                 GraphConstructor.instance.SetVertexPosition(selectedVertexGO);
                 selectedVertexGO=null;
             }
+            selectedVertexIndicator.SetActive(true);
+        }
+        else{
+            selectedVertexIndicator.SetActive(false);
         }
     }
 
 
     public void OnShowEdgePressed(){
         showEdgeButton.Toggle();
-        GraphConstructor.instance.CheckEdges(showEdgeButton.isOn==false);
+        GraphConstructor.instance.UpdateAllEdges(showEdgeButton.isOn==false);
     }
 
     unsafe public void OnSetColorPressed() {
@@ -460,7 +470,7 @@ public sealed class UIController : MonoBehaviour{
 
     private void OnZoomSliderChanged(float x){
         cam.orthographicSize=zoomSizeSlider.value;
-        GraphConstructor.instance.CheckEdges(hideEdge);
+        GraphConstructor.instance.UpdateAllEdges(HideEdge());
     }
 
 
@@ -490,13 +500,20 @@ public sealed class UIController : MonoBehaviour{
         animatonControlPanel.SetActive(true);
         openAnimationPanel.Set(true);
         stopButton.enabled=true;
+        resumeRun.Set(true,true);
+        selectedVertexIndicator.SetActive(false);
         KCore.Instance.StartRunning();
     }
 
-    public void OnStopAlgorithmPressed(){
+
+    public void OnAlgorithmEnd(){
         stopButton.enabled=false;
         animatonControlPanel.SetActive(false);
         openAnimationPanel.Set(false);
+    }
+
+    public void OnStopAlgorithmPressed(){
+        OnAlgorithmEnd();
         KCore.Instance.StopRunning();
     }
 

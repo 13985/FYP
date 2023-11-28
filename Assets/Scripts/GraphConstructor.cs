@@ -19,6 +19,7 @@ using Unity.Jobs;
 
 using DotNetGraph.Core;
 using DotNetGraph.Compilation;
+
 using DotNetGraph.Extensions;
 
 using Debug=UnityEngine.Debug;
@@ -224,7 +225,6 @@ public class MinHeap{
 public sealed class GraphConstructor:MonoBehaviour{
     public const int MaximumVertexNumber=10000;
     public static GraphConstructor instance {get;private set;}
-    public bool showEdge;
 
     [SerializeField]private Camera cam;
     [SerializeField]private TMP_InputField parentInput,childrenInput;
@@ -258,10 +258,42 @@ public sealed class GraphConstructor:MonoBehaviour{
     
     private SparseSet vertice;
 
+    public Transform folder;
+
+    private void CreateSample(){
+        Dictionary<GameObject,int> map = new Dictionary<GameObject,int>();
+        int sample=1;
+        foreach(Transform child in folder){
+            map.EnsureCapacity(child.transform.childCount);
+            int i=0;
+            Debug.Log(child.gameObject.name);
+            foreach(Transform v in child){
+                map.Add(v.gameObject,i++);
+            }
+            using(StreamWriter write=File.CreateText($"{Application.dataPath}/Graph/sample{sample}.txt")){
+                foreach(Transform _v in child){
+                    Debug.Log(_v.gameObject.name);
+                    Vertex v=_v.GetComponent<Vertex>();
+                    int from=map[v.gameObject];
+                    if(v.Neighbour.Length<=0){
+                        write.WriteLine($"{from} {from}");
+                    }
+                    else{
+                        foreach(GameObject n in v.Neighbour){
+                            write.WriteLine($"{from} {map[n]}");
+                        }
+                    }
+                }
+            }
+            sample++;
+            map.Clear();
+        }
+    }
+
     unsafe private void Awake(){
         instance=this;
         Application.targetFrameRate=30;
-
+        //CreateSample();
         //return;
         if(vertexSeparation<=0||radiusDiff<=0){
             Debug.Log("vertexSeparation and radiusDiff require a positive float");
@@ -286,6 +318,7 @@ public sealed class GraphConstructor:MonoBehaviour{
         }
 
         if(reverseMapping!=null){
+            UpdateAllEdges(true);
             for(int i=0;i<reverseMapping.Length;i++){
                 vertexPool.Release(reverseMapping[i]);
             }
@@ -296,6 +329,7 @@ public sealed class GraphConstructor:MonoBehaviour{
         mapping.EnsureCapacity(adjacencyList.Length*3/2);
         for(int i = 0;i<adjacencyList.Length;i++) {
             reverseMapping[i]=vertexPool.Get();
+            reverseMapping[i].GetComponent<SpriteRenderer>().color=Color.cyan;
             reverseMapping[i].transform.position=Vector3.zero;
             mapping[reverseMapping[i]]=i;
             //reverseMapping[i].transform.GetComponentInChildren<TMP_Text>().text=i.ToString();
@@ -337,6 +371,9 @@ public sealed class GraphConstructor:MonoBehaviour{
             else {
                 Debug.Log($"fail to parse string {s.ToString()}");
             }
+        }
+        if(max==int.MinValue) {
+            return;
         }
 
         int num=max+1;
@@ -401,6 +438,8 @@ public sealed class GraphConstructor:MonoBehaviour{
                     Debug.Log($"fail to parse string {s.ToString()}");
                 }
             }
+
+            if(parent==child){continue;}
             if(adjacencyMatrix[parent,child]==false) {
                 adjacencyMatrix[parent,child] = true;
                 adjacencyList[parent].Add(child);
@@ -611,6 +650,30 @@ public sealed class GraphConstructor:MonoBehaviour{
                     }
                     j--;
                 }while(j>0);
+            }
+
+            {
+                bfs.Clear();//reuse the queue
+                int count;
+                for(int i=0;i<graph.Length;i++){//check if there any isolated vertices
+                    if(visited[i]==false){
+                        bfs.Enqueue(i);
+                    }
+                }
+
+                count=bfs.Count;
+                while(bfs.TryDequeue(out int v)){
+                    Vector2 SeparationBound=new Vector2(
+                        (float)(step*(count*2*vertexRadius+(count-1)*5.1*vertexRadius)/2f/Mathf.PI),
+                        (float)(step*(count*2*vertexRadius+(count-1)*8.5*vertexRadius)/2f/Mathf.PI)
+                    );
+                    unsafe {
+                        PhysicsGraph.Vertex* vertex = physicsGraph.GetVertex(v);
+                        vertex->repulse=2.5f;
+                        vertex->mass=18f/(step+1);//make them heavier so that wont be pushed far away
+                        physicsGraph.SetVertex(UnityEngine.Random.insideUnitCircle.normalized*UnityEngine.Random.Range(SeparationBound.x,SeparationBound.y),v);
+                    }
+                }
             }
         }
 
@@ -949,22 +1012,21 @@ public sealed class GraphConstructor:MonoBehaviour{
         }
     }
 
-    public void CheckEdges(bool hideAll){
+    public void UpdateAllEdges(bool hideAll,bool changeVertexColor=false){
         if(hideAll){
             if(showingSelectedVertexEdge==false){
                 foreach(KeyValuePair<int2,GameObject> kvp in showedEdges){
-                    if(kvp.Key.x==UIController.instance.selectedVertexID||kvp.Key.y==UIController.instance.selectedVertexID){
-                        continue;
-                    }
+                    //if(kvp.Key.x==UIController.instance.selectedVertexID||kvp.Key.y==UIController.instance.selectedVertexID){continue;}
                     edgePool.Release(kvp.Value);
                 }
+                showedEdges.Clear();
                 showingSelectedVertexEdge=true;
             }
             else{
 
             }
         }
-        else{
+        else if(KCore.Instance.isRunning==false){
             PhysicsGraph.Bound b;
             b.min=(Vector2)cam.ViewportToWorldPoint(new Vector3(0,0,0));
             b.max=(Vector2)cam.ViewportToWorldPoint(new Vector3(1,1,0));
@@ -974,8 +1036,10 @@ public sealed class GraphConstructor:MonoBehaviour{
                 edgePool.Release(kvp.Value);
             }
             showedEdges.Clear();
-            for(int i=0;i<physicsModel.showingVertex.Length;i++){
-                reverseMapping[physicsModel.showingVertex[i]].GetComponent<SpriteRenderer>().color=Color.cyan;
+            if(changeVertexColor){
+                for(int i=0;i<physicsModel.showingVertex.Length;i++){
+                    reverseMapping[physicsModel.showingVertex[i]].GetComponent<SpriteRenderer>().color=Color.cyan;
+                }
             }
 
             physicsModel.FindShowingVertices(b);
@@ -1069,5 +1133,42 @@ public sealed class GraphConstructor:MonoBehaviour{
             edge.transform.localScale=new Vector3(physicsModel.vertexRadius/4,direction.magnitude);
             edge.transform.up=direction;
         }
+    }
+
+
+    public void ShowEdgesOfVertex(in int vertexID){
+        if(UIController.instance.HideEdge(true)){
+            if(showedEdges.Count>0){
+                UpdateAllEdges(true);
+            }
+            return;
+        }
+        List<int> neighbors=adjacencyList[vertexID];
+        for(int i=0;i<neighbors.Count;i++){
+            int n=neighbors[i];
+            GameObject e=edgePool.Get();
+            showedEdges.Add(new int2(vertexID,n),e);
+            Vector3 v0=reverseMapping[vertexID].transform.position,v1=reverseMapping[n].transform.position;
+            Vector3 centerPosition=(v0+v1)/2;
+            Vector3 direction=v0-v1;;
+            e.transform.position=centerPosition;
+            e.transform.localScale=new Vector3(physicsModel.vertexRadius/4,direction.magnitude);
+            e.transform.up=direction;
+        }
+    }
+
+
+    public void HideEdgesOfVertex(in int vertexID){
+        if(showedEdges.Count<=0){
+            return;
+        }
+        List<int> neighbors=adjacencyList[vertexID];
+        for(int i=0;i<neighbors.Count;i++){
+            int n=neighbors[i];
+            if(showedEdges.TryGetValue(new int2(vertexID,n),out GameObject e)){
+                edgePool.Release(e);
+            }
+        }
+        showedEdges.Clear();
     }
 }

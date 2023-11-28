@@ -460,7 +460,7 @@ public sealed class PhysicsGraph:MonoBehaviour{
             Debug.Log($"max:{maximumMovedDistance} with colling factor {coolingFactor}");
         }while(t>=0&&maximumMovedDistance>THRESHOLD);
 
-        GraphConstructor.instance.CheckEdges(UIController.instance.hideEdge);
+        GraphConstructor.instance.UpdateAllEdges(UIController.instance.HideEdge());
     }
 
     [BurstCompile]
