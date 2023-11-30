@@ -334,8 +334,69 @@ public sealed class GraphConstructor:MonoBehaviour{
             mapping[reverseMapping[i]]=i;
             //reverseMapping[i].transform.GetComponentInChildren<TMP_Text>().text=i.ToString();
         }
-
         physicsModel.LoadGraph(this.adjacencyList,reverseMapping);
+        
+        return;
+        {
+            int[] vertexKValue;
+            KCore.CoreComponents[] components=KCore.Instance.RunKCore(out vertexKValue);
+            HashSet<int> sameComponent=new HashSet<int>();
+            float radius=0;
+            for(int shell=components.Length-1;shell>=0;shell--){
+                float total=0;
+                int count=0;
+                foreach(KCore.ConnectedComponent cc in components[shell].components){
+                    total+=cc.Count;
+                }
+                //random put the vertex in donut shape
+                const float MinAreaMultiplier=7;
+                const float MinRadiusIncrement=4;
+                float newRadius=Mathf.Max(Mathf.Sqrt((MinAreaMultiplier*physicsModel.vertexRadius*2+radius)/Mathf.PI)-radius,MinRadiusIncrement*physicsModel.vertexRadius*2);
+                
+                float startAngle=0;
+                foreach(KCore.ConnectedComponent cc in components[shell].components){//iterate all connected component in this shell
+                    count+=cc.Count;
+                    float endAngle=count/total;
+                    sameComponent.Clear();
+
+                    foreach(int id in cc.vertice){
+                        sameComponent.Add(id);
+                    }
+
+                    foreach(int id in cc.vertice){//iterate all vertex inside this component
+                        Vector2 pos=Quaternion.Euler(0,0,UnityEngine.Random.Range(startAngle,endAngle))*new Vector2(UnityEngine.Random.Range(radius,newRadius),0);
+                        PhysicsGraph.Vertex* v=physicsModel.GetVertex(id);
+                        //some random function for setting mass and repulse, then pray
+                        if(shell==0){
+                            v->mass=components.Length*1.5f;
+                            v->repulse=9;//constant
+                        }
+                        else{
+                            v->mass=shell*2f;
+                            v->repulse=shell*shell/total;
+
+                            foreach(int neighbor in adjacencyList[id]){
+                                float attraction;
+                                if(sameComponent.Contains(neighbor)){
+                                    attraction=v->repulse*3;
+                                }
+                                else{
+                                    attraction=components.Length/(Mathf.Abs(vertexKValue[neighbor]-shell)+2);
+                                }
+                                physicsModel.TrySetAttraction(new int2(id,neighbor),attraction);
+                            }
+                        }
+                        physicsModel.SetVertex(pos,id);
+                    }
+                    startAngle=endAngle;
+                }
+                radius=newRadius;
+            }
+
+            sameComponent=null;
+            vertexKValue=null;
+        }
+    
         //GetCoordinates();
         System.GC.Collect();
     }
@@ -450,7 +511,6 @@ public sealed class GraphConstructor:MonoBehaviour{
             }
             edgeNumber++;
         }
-
         UIController.instance.SetGraphData(AdjacencyList.Length,edgeNumber);
     }
 

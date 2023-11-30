@@ -112,7 +112,7 @@ public sealed class KCore:MonoBehaviour{
         }
     }
 
-    private class ConnectedComponent{
+    public class ConnectedComponent{
         public List<int> vertice;
         public Vector2[] bounds;
         public int kValue;
@@ -137,7 +137,7 @@ public sealed class KCore:MonoBehaviour{
         }
     }
 
-    private class CoreComponents{
+    public class CoreComponents{
         public List<ConnectedComponent> components;
         public readonly int k;
         public CoreComponents(int k){
@@ -200,7 +200,7 @@ public sealed class KCore:MonoBehaviour{
         shellDiffentComponents=null;
         statusBoard.SetActive(true);
         GraphConstructor.instance.UpdateAllEdges(true);
-        runningKCore=StartCoroutine(RunKCore_());
+        runningKCore=StartCoroutine(RunKCore());
     }
 
     public void StopRunning(){
@@ -219,71 +219,98 @@ public sealed class KCore:MonoBehaviour{
         forceNextStep=true;
     }
 
-    /*
-    #if NAIVE
-    public IEnumerator RunKCore(){
-        Dictionary<GameObject,int> mapping=constructor.Mapping;
-        GameObject[] reverseMapping=constructor.ReverseMapping;
-        int vertexNumber=constructor.VertexNumber;
-        List<int>[] adjacencyList=constructor.AdjacencyList;
 
-        MinHeap pq=new MinHeap(vertexNumber);
-        int i,k=0;
+    //return the k-shell of each vertex and each connected component in each shell
+    public CoreComponents[] RunKCore(out int[] vertexKValue){
+        List<int>[] adjacencyList=GraphConstructor.instance.AdjacencyList;
+        int vertexNumber=adjacencyList.Length;
 
-        for(i=0;i<vertexNumber;i++){
-            pq.Enqueue(i,adjacencyList[i].Count);
-            reverseMapping[i].GetComponent<SpriteRenderer>().color=UnprocessedColor;
-        }
-        /*
-        Debug.Log(pq.Values[0]);
-        for(i=1;i<pq.Count;i++){
-            Debug.Log(pq.Values[i]+$" is larger than or equal to parent {pq.Values[i]>=pq.Values[(i-1)/2]}");
-        }Debug.Log("start");
-        //pq.Show();
-        yield return new WaitForSeconds(showTime);
+        int currentK,minimumNextK;
+        SparseSet[] candiates=new SparseSet[2];
+        candiates[0]=new SparseSet(vertexNumber);
+        candiates[1]=new SparseSet(vertexNumber);
+        //candiates[0] for storing the vertex which have degree<=k
+        //candiates[1] for storing the vertex which have degree>k
 
-        while(true){
-            while(stopRunning==true){yield return null;}
-            if(pq.Count>0&&pq.MinValue>=MaximumDegree){
-                messageText.text="degree is too high...";
-                break;
+        int[] degree=new int[vertexNumber];
+        vertexKValue=new int[vertexNumber];
+        UnionFind union=new UnionFind(vertexNumber);
+
+        currentK=0;
+        for(int vertex=0;vertex<vertexNumber;vertex++){
+            degree[vertex]=adjacencyList[vertex].Count;//find the degree of each vertex
+            currentK=degree[vertex]<currentK?degree[vertex]:currentK;
+            if(degree[vertex]<=currentK){
+                //at first, no vertex can affect those vertice have zero degree
+                candiates[0].Add(vertex);
             }
             else{
-                if(pq.Count<=0){
-                    messageText.text="finish";
-                    break;
-                }
-                else{
-                    for(;pq.MinValue>k;k++){}//set current k value
+                candiates[1].Add(vertex);
+            }
+        }
+        minimumNextK=currentK+1;
+
+        for(int unprocessed=vertexNumber;true;){
+            while(candiates[0].TryRemoveLast(out int vertex)){//get one vertex in first list
+                vertexKValue[vertex]=currentK;
+                degree[vertex]=-1;
+                unprocessed--;
+
+                for(int i=0;i<adjacencyList[vertex].Count;i++){//process all its neighbor (decrement their degree)
+                    int neighbor=adjacencyList[vertex][i];
+                    if(degree[neighbor]<=0){//an already processed vertex
+                        if(vertexKValue[neighbor]==currentK) {//check if the k value same as vertex itself, if yes, union
+                            union.Union(neighbor,vertex);
+                        }
+                        continue;
+                    }
+                    degree[neighbor]--;
+
+                    if(degree[neighbor]<=currentK){//getIndex[neighbor]<0 means its already in group0, no need to moveDown again
+                        if(candiates[1].Remove(neighbor)){
+                            candiates[0].Add(neighbor);
+                        }
+                    }
+                    else{
+                        minimumNextK=degree[neighbor]<minimumNextK?degree[neighbor]:minimumNextK;
+                    }
                 }
             }
-            
-            //Debug.Log(pq.Items[0]+" "+pq.Values[0]);
-            int vertex=pq.Dequeue();//get the vertex of lowest degree
 
-            //Debug.Log("parent="+reverseMapping[vertex].name);
-            reverseMapping[vertex].GetComponent<SpriteRenderer>().color=CoreColor[k];//set color
-            yield return new WaitForSeconds(showTime);
+            if(unprocessed<=0){
+                break;
+            }
 
-            for(i=0;i<adjacencyList[vertex].Count;i++){
-                int neighbour=adjacencyList[vertex][i];
-                //Debug.Log(reverseMapping[neighbour].name);
-                if(!pq.DecreaseValueOfItem(neighbour,1)){continue;}
+            currentK=minimumNextK;
+            minimumNextK=currentK+1;
+            if(currentK>=MaximumDegree){
+                break;
+            }
 
-                reverseMapping[neighbour].GetComponent<SpriteRenderer>().color=Color.white;
-                yield return new WaitForSeconds(showTime);
-                reverseMapping[neighbour].GetComponent<SpriteRenderer>().color=UnprocessedColor;
-                while(stopRunning==true){yield return null;}
-
-            }//decrease all unprocessed neighbours' degree by one
-            yield return new WaitForSeconds(showTime/2);
+            //find those vertex in group1 has degree<=k
+            for(int i=0;i<candiates[1].count;){
+                int vertex = candiates[1].dense[i];
+                if(degree[vertex]>=0&&degree[vertex]<=currentK){
+                    candiates[1].Remove(vertex);
+                    candiates[0].Add(vertex);
+                }
+                else{
+                    i++;
+                }
+            }
         }
-        isRunning=false;
-    }
-    #else
-    */
+        candiates[0].Dispose();
+        candiates[1].Dispose();
+        degree=null;
 
-    private IEnumerator RunKCore_() {
+        ConnectedComponentsInDifferentKShell(union,vertexKValue,currentK+1);
+        union=null;
+        System.GC.Collect();
+        return shellDiffentComponents;
+    }
+
+
+    private IEnumerator RunKCore() {
         closeStatusBoardButton.gameObject.SetActive(false);
 
         Dictionary<GameObject,int> mapping=GraphConstructor.instance.Mapping;
@@ -291,8 +318,7 @@ public sealed class KCore:MonoBehaviour{
         List<int>[] adjacencyList=GraphConstructor.instance.AdjacencyList;
         int vertexNumber=adjacencyList.Length;
 
-        int i,currentK;
-        int minimumNextK;
+        int currentK,minimumNextK;
         SparseSet[] candiates=new SparseSet[2];
         candiates[0]=new SparseSet(vertexNumber);
         candiates[1]=new SparseSet(vertexNumber);
@@ -320,7 +346,6 @@ public sealed class KCore:MonoBehaviour{
 
         for(int unprocessed=vertexNumber;true;){
             shellText.text=$"shell: {currentK}";
-            forceNextStep=false;
             while(forceNextStep==false&&stopRunning==true){yield return null;}
             forceNextStep=false;
 
@@ -339,7 +364,7 @@ public sealed class KCore:MonoBehaviour{
                 }
                 forceNextStep=false;
 
-                for(i=0;i<adjacencyList[vertex].Count;i++){//process all its neighbor (decrement their degree)
+                for(int i=0;i<adjacencyList[vertex].Count;i++){//process all its neighbor (decrement their degree)
                     int neighbor=adjacencyList[vertex][i];
                     if(degree[neighbor]<=0){//an already processed vertex
                         if(vertexKValue[neighbor]==currentK) {//check if the k value same as vertex itself, if yes, union
@@ -354,6 +379,7 @@ public sealed class KCore:MonoBehaviour{
                         yield return new WaitForSeconds(UIController.instance.animationSpeed);
                         while(forceNextStep==false&&stopRunning==true){yield return null;}
                     }
+                    forceNextStep=false;
 
                     degree[neighbor]--;
 
@@ -389,7 +415,7 @@ public sealed class KCore:MonoBehaviour{
             }
 
             //find those vertex in group1 has degree<=k
-            for(i=0;i<candiates[1].count;){
+            for(int i=0;i<candiates[1].count;){
                 int vertex = candiates[1].dense[i];
                 if(degree[vertex]>=0&&degree[vertex]<=currentK){
                     candiates[1].Remove(vertex);
@@ -403,18 +429,19 @@ public sealed class KCore:MonoBehaviour{
             if(forceNextStep==false){
                 yield return new WaitForSeconds(UIController.instance.animationSpeed);
             }
+            forceNextStep=false;
         }
 
-        ConnectedComponentsInDifferentKShell(union,vertexKValue,currentK+1);
-
-        messageText.text="finish";
-        _isRunning=false;
         candiates[0].Dispose();
         candiates[1].Dispose();
-        vertexKValue=null;
         degree=null;
+
+        ConnectedComponentsInDifferentKShell(union,vertexKValue,currentK+1);
+        vertexKValue=null;
         union=null;
+        _isRunning=false;
         forceNextStep=false;
+        messageText.text="finish";
 
         CleanUp();
         System.GC.Collect();

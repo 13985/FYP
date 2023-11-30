@@ -52,7 +52,7 @@ public sealed class PhysicsGraph:MonoBehaviour{
     }
 
     private UnsafeList<Vertex> graph;
-    private UnsafeHashMap<int2,float> edgesAttractions;
+    private UnsafeHashMap<int2,float> edgesAttractions;//Key.x always <= Key.y
 
     private UnsafeList<int> _showingVertex;
     public UnsafeList<int> showingVertex{
@@ -554,8 +554,15 @@ public sealed class PhysicsGraph:MonoBehaviour{
                 }
 
                 float forceFactor;
-                if(edgesAttraction.TryGetValue(new int2(idx,neighbor),out forceFactor)) {}
-                else if(edgesAttraction.TryGetValue(new int2(neighbor,idx),out forceFactor)) {}
+                int2 pair;
+                if(idx>neighbor){
+                    pair=new int2(neighbor,idx);
+                }
+                else{
+                    pair=new int2(idx,neighbor);
+                }
+
+                if(edgesAttraction.TryGetValue(pair,out forceFactor)) {}
                 else{
                     forceFactor=1;
                 }
@@ -592,7 +599,22 @@ public sealed class PhysicsGraph:MonoBehaviour{
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void SetAttraction(int2 pair,float value) {
-        edgesAttractions[pair]=value;
+        if(pair.x>pair.y){
+            int temp=pair.x;
+            pair.x=pair.y;
+            pair.y=temp;
+        }
+        edgesAttractions.Add(pair,value);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void TrySetAttraction(int2 pair,float value) {
+        if(pair.x>pair.y){
+            int temp=pair.x;
+            pair.x=pair.y;
+            pair.y=temp;
+        }
+        edgesAttractions.TryAdd(pair,value);
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
