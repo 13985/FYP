@@ -15,7 +15,7 @@ using SimpleFileBrowser;
 
 public sealed class UIController : MonoBehaviour{
     private const float MIN_ZOOM_SIZE=7,MAX_ZOOM_SIZE=120;
-    private const float MIN_ANIMATION_SPEED=0.01f,MAX_ANIMATION_SPEED=3f;
+    private const float MIN_ANIMATION_SPEED=0.005f,MAX_ANIMATION_SPEED=3f;
 
     private static UIController _instance;
     public static UIController instance{
@@ -502,6 +502,7 @@ public sealed class UIController : MonoBehaviour{
         stopButton.enabled=true;
         resumeRun.Set(true,true);
         selectedVertexIndicator.SetActive(false);
+        GraphConstructor.instance.SetAllEdgeThinness(true);
         KCore.Instance.StartRunning();
     }
 
@@ -541,6 +542,7 @@ public sealed class UIController : MonoBehaviour{
                 StreamReader reader=new StreamReader(FileBrowser.Result[0]);
                 string text=reader.ReadToEnd();
                 GraphConstructor.instance.ProcessTextFile(text);
+                KCore.Instance.StopRunning();
                 reader.Close();
                 reader.Dispose();
             }catch(Exception e){
@@ -550,5 +552,11 @@ public sealed class UIController : MonoBehaviour{
         else{
             Debug.Log("fail to get file");
         }
+    }
+
+    public void OnFinishDirectlyPressed(){
+        KCore.Instance.StopRunning(true);
+        GraphConstructor.instance.SetAllVerticesColor(false);
+        GraphConstructor.instance.SetAllEdgeThinness(false);
     }
 }

@@ -84,38 +84,34 @@ public sealed class KCore:MonoBehaviour{
             return _instance;
         }
     }
-    private static Color UnprocessedColor;
-    private static Color[] CoreColor;
-
-    private const int MaximumDegree=17;
 
     [SerializeField]private TextMeshProUGUI messageText;
-
     [Header("showing status")]
     [SerializeField]private GameObject statusBoard;
     [SerializeField]private Button closeStatusBoardButton;
     [SerializeField]private TextMeshProUGUI ancestorText,descendantText,shellText;
 
+    private Color UnprocessedColor;
+    private Color[] _shellColor;
+    public Color[] shellColor{
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]get{return _shellColor;}
+    }
+    private int maximumDegree;
     private Coroutine runningKCore=null;
-    private bool _isRunning=false;
+    private bool _isRunning=false,stopRunning=false,forceNextStep=false,_hasRan=false;
     public bool isRunning{
         [MethodImpl(MethodImplOptions.AggressiveInlining)]get{return _isRunning;}
     }
-    private bool stopRunning=false;
-    private bool forceNextStep=false;
 
-    static KCore(){
-        UnprocessedColor=new Color(1,1,1,0.2f);
-        CoreColor=new Color[MaximumDegree];
-        for(int i=0;i<MaximumDegree;i++){
-            CoreColor[i]=Color.HSVToRGB(i/(float)MaximumDegree,1,1);
-        }
+    public bool hasRan{
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]get{return _hasRan;}
     }
+
 
     public class ConnectedComponent{
         public List<int> vertice;
         public Vector2[] bounds;
-        public int kValue;
+        public readonly int kValue;
         public int Count{get{return vertice.Count;}}
 
         public int this[int idx]{
@@ -137,6 +133,7 @@ public sealed class KCore:MonoBehaviour{
         }
     }
 
+
     public class CoreComponents{
         public List<ConnectedComponent> components;
         public readonly int k;
@@ -149,14 +146,19 @@ public sealed class KCore:MonoBehaviour{
         }
     }
 
-    private CoreComponents[] shellDiffentComponents;
+    private CoreComponents[] _shellDiffentComponents;
+    public CoreComponents[] shellDiffentComponents{
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]get{return _shellDiffentComponents;}
+    }
 
     void Awake() {
         _instance=this;
-        shellDiffentComponents=null;
+        _shellDiffentComponents=null;
         statusBoard.SetActive(false);
+        UnprocessedColor=new Color(1,1,1,0.2f);
     }
 
+    /*
     void OnDrawGizmos() {
         if(Application.isPlaying==true&&shellDiffentComponents!=null) {
             Gizmos.color=Color.yellow;
@@ -173,6 +175,7 @@ public sealed class KCore:MonoBehaviour{
             }
         }
     }
+    */
 
 
     public void PauseRunning(){
@@ -192,27 +195,26 @@ public sealed class KCore:MonoBehaviour{
     public void StartRunning(){
         if(_isRunning){
             return;
-            //StopCoroutine(runningKCore);
         }
-        else{
-            _isRunning=true;
-        }
-        shellDiffentComponents=null;
+        _hasRan=false;
+        _isRunning=true;
+        _shellDiffentComponents=null;
         statusBoard.SetActive(true);
         GraphConstructor.instance.UpdateAllEdges(true);
         runningKCore=StartCoroutine(RunKCore());
     }
 
-    public void StopRunning(){
+    public void StopRunning(bool forceFinish=false){
         if(_isRunning){
             StopCoroutine(runningKCore);
             CleanUp();
             _isRunning=false;
             statusBoard.SetActive(false);
         }
-        else{
-        }
+        else{}
+        _hasRan=forceFinish;
     }
+
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ForceNextStep(){
@@ -221,16 +223,14 @@ public sealed class KCore:MonoBehaviour{
 
 
     //return the k-shell of each vertex and each connected component in each shell
-    public CoreComponents[] RunKCore(out int[] vertexKValue){
+    public void RunKCore(out int[] vertexKValue){
         List<int>[] adjacencyList=GraphConstructor.instance.AdjacencyList;
         int vertexNumber=adjacencyList.Length;
 
-        int currentK,minimumNextK;
+        int currentK;
         SparseSet[] candiates=new SparseSet[2];
         candiates[0]=new SparseSet(vertexNumber);
         candiates[1]=new SparseSet(vertexNumber);
-        //candiates[0] for storing the vertex which have degree<=k
-        //candiates[1] for storing the vertex which have degree>k
 
         int[] degree=new int[vertexNumber];
         vertexKValue=new int[vertexNumber];
@@ -248,10 +248,11 @@ public sealed class KCore:MonoBehaviour{
                 candiates[1].Add(vertex);
             }
         }
-        minimumNextK=currentK+1;
 
         for(int unprocessed=vertexNumber;true;){
+            int number=0;
             while(candiates[0].TryRemoveLast(out int vertex)){//get one vertex in first list
+                number++;
                 vertexKValue[vertex]=currentK;
                 degree[vertex]=-1;
                 unprocessed--;
@@ -266,25 +267,23 @@ public sealed class KCore:MonoBehaviour{
                     }
                     degree[neighbor]--;
 
-                    if(degree[neighbor]<=currentK){//getIndex[neighbor]<0 means its already in group0, no need to moveDown again
-                        if(candiates[1].Remove(neighbor)){
-                            candiates[0].Add(neighbor);
-                        }
-                    }
-                    else{
-                        minimumNextK=degree[neighbor]<minimumNextK?degree[neighbor]:minimumNextK;
+                    if(degree[neighbor]<=currentK&&candiates[1].Remove(neighbor)){//getIndex[neighbor]<0 means its already in group0, no need to moveDown again
+                        candiates[0].Add(neighbor);
                     }
                 }
             }
 
+            Debug.Log($"{number} vertices at {currentK}-shell");
             if(unprocessed<=0){
                 break;
             }
 
-            currentK=minimumNextK;
-            minimumNextK=currentK+1;
-            if(currentK>=MaximumDegree){
-                break;
+            currentK=int.MaxValue;
+            for(int i=0;i<candiates[1].dense.Length;i++){
+                int vertex=candiates[1].dense[i];
+                if(degree[vertex]>=0&&degree[vertex]<currentK){
+                    currentK=degree[vertex];
+                }
             }
 
             //find those vertex in group1 has degree<=k
@@ -299,14 +298,20 @@ public sealed class KCore:MonoBehaviour{
                 }
             }
         }
+        maximumDegree=currentK+1;
         candiates[0].Dispose();
         candiates[1].Dispose();
         degree=null;
 
-        ConnectedComponentsInDifferentKShell(union,vertexKValue,currentK+1);
+        ConnectedComponentsInDifferentKShell(union,vertexKValue,maximumDegree);
         union=null;
+
+        _shellColor=new Color[maximumDegree];
+        for(int i=0;i<maximumDegree;i++){
+            _shellColor[i]=Color.HSVToRGB(i/(float)maximumDegree,1,1);
+        }
+
         System.GC.Collect();
-        return shellDiffentComponents;
     }
 
 
@@ -327,7 +332,6 @@ public sealed class KCore:MonoBehaviour{
 
         int[] degree=new int[vertexNumber];
         int[] vertexKValue=new int[vertexNumber];
-        UnionFind union=new UnionFind(vertexNumber);
 
         currentK=0;
         for(int vertex=0;vertex<vertexNumber;vertex++){
@@ -357,7 +361,7 @@ public sealed class KCore:MonoBehaviour{
                 degree[vertex]=-1;
 
                 unprocessed--;
-                reverseMapping[vertex].GetComponent<SpriteRenderer>().color=CoreColor[currentK];
+                reverseMapping[vertex].GetComponent<SpriteRenderer>().color=_shellColor[currentK];
                 if(forceNextStep==false){
                     yield return new WaitForSeconds(UIController.instance.animationSpeed);
                     while(forceNextStep==false&&stopRunning==true){yield return null;}
@@ -367,9 +371,6 @@ public sealed class KCore:MonoBehaviour{
                 for(int i=0;i<adjacencyList[vertex].Count;i++){//process all its neighbor (decrement their degree)
                     int neighbor=adjacencyList[vertex][i];
                     if(degree[neighbor]<=0){//an already processed vertex
-                        if(vertexKValue[neighbor]==currentK) {//check if the k value same as vertex itself, if yes, union
-                            union.Union(neighbor,vertex);
-                        }
                         continue;
                     }
 
@@ -409,10 +410,6 @@ public sealed class KCore:MonoBehaviour{
 
             currentK=minimumNextK;
             minimumNextK=currentK+1;
-            if(currentK>=MaximumDegree){
-                messageText.text="degree is too high...";
-                break;
-            }
 
             //find those vertex in group1 has degree<=k
             for(int i=0;i<candiates[1].count;){
@@ -435,25 +432,19 @@ public sealed class KCore:MonoBehaviour{
         candiates[0].Dispose();
         candiates[1].Dispose();
         degree=null;
-
-        ConnectedComponentsInDifferentKShell(union,vertexKValue,currentK+1);
         vertexKValue=null;
-        union=null;
         _isRunning=false;
         forceNextStep=false;
-        messageText.text="finish";
-
         CleanUp();
+
+        _hasRan=true;
+        messageText.text="finish";
+        GraphConstructor.instance.SetAllEdgeThinness(false);
         System.GC.Collect();
     }
 
+
     private void ConnectedComponentsInDifferentKShell(UnionFind union,int[] vertexKValue,in int MaxK){
-        /*
-        Debug.Log("Before:");
-        for(int i = 0;i<union.parent.Length;i++) {
-            Debug.Log($"V:{i}  its p:{union.parent[i]}");
-        }
-        */
         union.Flatten();
         int[] parent=union.parent;
         int[] depth=union.depth;
@@ -461,18 +452,11 @@ public sealed class KCore:MonoBehaviour{
         int differentComponent=1;
         int kValue;
 
-        shellDiffentComponents=new CoreComponents[MaxK];
+        _shellDiffentComponents=new CoreComponents[MaxK];
         for(int k=0;k<MaxK;k++){
-            shellDiffentComponents[k]=new CoreComponents(k);
+            _shellDiffentComponents[k]=new CoreComponents(k);
         }
-        shellDiffentComponents[0].Add(new ConnectedComponent(0,0));
-
-        /*
-        Debug.Log("After:");
-        for(int i = 0;i<parent.Length;i++) {
-            Debug.Log($"V:{i}  its p:{parent[i]}  k value:{vertexKValue[i]}");
-        }
-        */
+        _shellDiffentComponents[0].Add(new ConnectedComponent(0,0));
         
         for(int vertex=0;vertex<parent.Length;vertex++){
             if(depth[vertex]==0){//not parent
@@ -480,14 +464,13 @@ public sealed class KCore:MonoBehaviour{
             }
             else{//parent, create a new connected component for it 
                 kValue=vertexKValue[vertex];
-                if(kValue==0) {
-                }
+                if(kValue==0) {}
                 else {
                     ConnectedComponent connectedComponent=new ConnectedComponent(kValue,differentComponent);
                     connectedComponent.Add(vertex);//add the parent in to this connected component
                     
-                    parentToIndexInCoreComponents[vertex]=shellDiffentComponents[kValue].components.Count;//find the index of that connected component in all connected component with k value same as this parent
-                    shellDiffentComponents[kValue].Add(connectedComponent);
+                    parentToIndexInCoreComponents[vertex]=_shellDiffentComponents[kValue].components.Count;//find the index of that connected component in all connected component with k value same as this parent
+                    _shellDiffentComponents[kValue].Add(connectedComponent);
                     differentComponent++;
                 }
             }
@@ -496,21 +479,23 @@ public sealed class KCore:MonoBehaviour{
         for(int vertex=0;vertex<parent.Length;vertex++){
             if(depth[vertex]==0){//either node has parent or isolated node
                 int index=parentToIndexInCoreComponents[parent[vertex]];
-                shellDiffentComponents[vertexKValue[vertex]].components[index].Add(vertex);//find the connected component of its parent 
+                _shellDiffentComponents[vertexKValue[vertex]].components[index].Add(vertex);//find the connected component of its parent 
             }
             else{//depth[vertex]==1, parent node, ignore, all parent nodes have already added to connected component array
                 if(vertexKValue[vertex]==0){//isolated node
-                    shellDiffentComponents[0].components[0].Add(vertex);
+                    _shellDiffentComponents[0].components[0].Add(vertex);
                 }
             }
         }
 
+        /*
         for(int k = 0;k<shellDiffentComponents.Length;++k) {
             for(int c = 0;c<shellDiffentComponents[k].components.Count;++c) {
                 //find all convex hull of differen connected componet of differenk k value
                 shellDiffentComponents[k].components[c].bounds=ConvexHull.Solve(shellDiffentComponents[k].components[c],GraphConstructor.instance.ReverseMapping);
             }
         }
+        */
     }
 
     private void CleanUp(){
@@ -522,7 +507,6 @@ public sealed class KCore:MonoBehaviour{
     /*
      *reference:https://web.ntnu.edu.tw/~algo/ConvexHull.html
      *Andrew's Monotone Chain
-     */
     private static class ConvexHull {
         private static List<Transform> vertice=new List<Transform>();
         private static List<Vector2> bounds=new List<Vector2>();
@@ -563,11 +547,6 @@ public sealed class KCore:MonoBehaviour{
                 vertice.Add(mapping[component[i]].transform);
             }
             vertice.Sort(new Comparator());
-            /*
-            for(int i = 0;i<component.Count;i++) {
-                Debug.Log(vertice[i].position);
-            }
-            */
 
             if(component.Count<4) {
                 for(int i = 0;i<component.Count;i++) {
@@ -617,6 +596,7 @@ public sealed class KCore:MonoBehaviour{
             return result;
         }
     }
+    */
 
     public void OnCloseStausBoardPressed(){
         statusBoard.SetActive(false);

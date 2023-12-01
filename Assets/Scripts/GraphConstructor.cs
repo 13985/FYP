@@ -225,22 +225,19 @@ public class MinHeap{
 public sealed class GraphConstructor:MonoBehaviour{
     public const int MaximumVertexNumber=10000;
     public static GraphConstructor instance {get;private set;}
+    private static readonly Color VertexInitialColor=Color.cyan;
 
     [SerializeField]private Camera cam;
     [SerializeField]private TMP_InputField parentInput,childrenInput;
-
     private Dictionary<GameObject,int> mapping;//GameObject->vertex index in matrix
     public Dictionary<GameObject,int> Mapping{get{return mapping;}}
-
     private GameObject[] reverseMapping;//vertex index in this array->GameObject;
     public GameObject[] ReverseMapping{get{return reverseMapping;}}
-
     private bool[,] adjacencyMatrix;
     public bool[,] AdjacencyMatrix{get{return adjacencyMatrix;}}
-
     private List<int>[] adjacencyList;
     public List<int>[] AdjacencyList{get{return adjacencyList;}}
-
+    private int[] shells;
     [SerializeField]private int vertexNumber;
     public int VertexNumber{get{return vertexNumber;}}
 
@@ -248,16 +245,13 @@ public sealed class GraphConstructor:MonoBehaviour{
     [SerializeField]private PhysicsGraph physicsModel;
     [SerializeField]private TextAsset inputFile;
     [SerializeField]private GameObjectPool vertexPool,edgePool;
-
     [SerializeField]private float radiusDiff,vertexSeparation;
     private List<List<int>> orbits=new List<List<int>>();
     private Dictionary<int,int> getOrbit=new Dictionary<int,int>(MaximumVertexNumber*2);//vertex->orbit locate at
     private Dictionary<int2,GameObject> showedEdges;
-    private bool showingSelectedVertexEdge; 
+    private bool showingSelectedVertexEdge;
     private MinHeap availableOrbits;
-    
     private SparseSet vertice;
-
     public Transform folder;
 
     private void CreateSample(){
@@ -303,6 +297,7 @@ public sealed class GraphConstructor:MonoBehaviour{
         mapping=new Dictionary<GameObject, int>();
         showedEdges=new Dictionary<int2,GameObject>();
         reverseMapping=null;
+        shells=null;
         physicsModel.Init().SetSize(250);
         if(inputFile!=null) {
             ProcessTextFile(inputFile.text);
@@ -329,76 +324,17 @@ public sealed class GraphConstructor:MonoBehaviour{
         mapping.EnsureCapacity(adjacencyList.Length*3/2);
         for(int i = 0;i<adjacencyList.Length;i++) {
             reverseMapping[i]=vertexPool.Get();
-            reverseMapping[i].GetComponent<SpriteRenderer>().color=Color.cyan;
+            reverseMapping[i].GetComponent<SpriteRenderer>().color=VertexInitialColor;
             reverseMapping[i].transform.position=Vector3.zero;
             mapping[reverseMapping[i]]=i;
             //reverseMapping[i].transform.GetComponentInChildren<TMP_Text>().text=i.ToString();
         }
         physicsModel.LoadGraph(this.adjacencyList,reverseMapping);
-        
-        return;
-        {
-            int[] vertexKValue;
-            KCore.CoreComponents[] components=KCore.Instance.RunKCore(out vertexKValue);
-            HashSet<int> sameComponent=new HashSet<int>();
-            float radius=0;
-            for(int shell=components.Length-1;shell>=0;shell--){
-                float total=0;
-                int count=0;
-                foreach(KCore.ConnectedComponent cc in components[shell].components){
-                    total+=cc.Count;
-                }
-                //random put the vertex in donut shape
-                const float MinAreaMultiplier=7;
-                const float MinRadiusIncrement=4;
-                float newRadius=Mathf.Max(Mathf.Sqrt((MinAreaMultiplier*physicsModel.vertexRadius*2+radius)/Mathf.PI)-radius,MinRadiusIncrement*physicsModel.vertexRadius*2);
-                
-                float startAngle=0;
-                foreach(KCore.ConnectedComponent cc in components[shell].components){//iterate all connected component in this shell
-                    count+=cc.Count;
-                    float endAngle=count/total;
-                    sameComponent.Clear();
 
-                    foreach(int id in cc.vertice){
-                        sameComponent.Add(id);
-                    }
-
-                    foreach(int id in cc.vertice){//iterate all vertex inside this component
-                        Vector2 pos=Quaternion.Euler(0,0,UnityEngine.Random.Range(startAngle,endAngle))*new Vector2(UnityEngine.Random.Range(radius,newRadius),0);
-                        PhysicsGraph.Vertex* v=physicsModel.GetVertex(id);
-                        //some random function for setting mass and repulse, then pray
-                        if(shell==0){
-                            v->mass=components.Length*1.5f;
-                            v->repulse=9;//constant
-                        }
-                        else{
-                            v->mass=shell*2f;
-                            v->repulse=shell*shell/total;
-
-                            foreach(int neighbor in adjacencyList[id]){
-                                float attraction;
-                                if(sameComponent.Contains(neighbor)){
-                                    attraction=v->repulse*3;
-                                }
-                                else{
-                                    attraction=components.Length/(Mathf.Abs(vertexKValue[neighbor]-shell)+2);
-                                }
-                                physicsModel.TrySetAttraction(new int2(id,neighbor),attraction);
-                            }
-                        }
-                        physicsModel.SetVertex(pos,id);
-                    }
-                    startAngle=endAngle;
-                }
-                radius=newRadius;
-            }
-
-            sameComponent=null;
-            vertexKValue=null;
+        if(KCore.Instance!=null){
+            KCore.Instance.RunKCore(out shells);
+            Layout1();
         }
-    
-        //GetCoordinates();
-        System.GC.Collect();
     }
 
 
@@ -653,118 +589,12 @@ public sealed class GraphConstructor:MonoBehaviour{
     }
 
 
-    private struct Layout_1{
-        private readonly List<int>[] graph;
-        private readonly BitArray visited;
-        private readonly float vertexRadius;
-        private readonly PhysicsGraph physicsGraph;
-
-        public Layout_1(List<int>[] graph,float radius,PhysicsGraph physicsGraph) {
-            this.graph=graph;
-            this.visited=new BitArray(graph.Length);
-            this.vertexRadius=radius;
-            this.physicsGraph=physicsGraph;
-        }
-
-
-        public void Place() {
-            Queue<int> bfs=new Queue<int>();
-            int start=RandomStart();
-            int step=0;
-            bfs.Enqueue(start);
-            visited[start]=true;
-
-            unsafe {
-                PhysicsGraph.Vertex* vertex = physicsGraph.GetVertex(start);
-                vertex->repulse=20f;
-                vertex->mass=100f;
-                physicsGraph.SetVertex(0,start);
-            }
-
-            while(bfs.Count>0) {
-                int j=bfs.Count;
-                step++;
-                do {
-                    int v=bfs.Dequeue();
-                    int count=graph[v].Count;
-                    Vector2 centerPosition;
-                    unsafe {
-                        centerPosition=physicsGraph.GetVertex(v)->position;
-                    }
-                    Vector2 SeparationBound=new Vector2(
-                        (float)((count*2*vertexRadius+(count-1)*3.1*vertexRadius)/2f/Mathf.PI),
-                        (float)((count*2*vertexRadius+(count-1)*7.5*vertexRadius)/2f/Mathf.PI)
-                    );
-
-                    for(int i = 0;i<count;i++) {
-                        if(visited[graph[v][i]]){ continue; }
-                        visited[graph[v][i]]=true;
-                        bfs.Enqueue(graph[v][i]);
-                        physicsGraph.SetAttraction(new int2(v,i),22f/(step+1));
-                        unsafe {
-                            PhysicsGraph.Vertex* vertex = physicsGraph.GetVertex(graph[v][i]);
-                            vertex->repulse=6f/(step+1);
-                            vertex->mass=10f/(step+1);
-                            physicsGraph.SetVertex(UnityEngine.Random.insideUnitCircle.normalized*UnityEngine.Random.Range(SeparationBound.x,SeparationBound.y)+centerPosition,graph[v][i]);
-                        }
-                    }
-                    j--;
-                }while(j>0);
-            }
-
-            {
-                bfs.Clear();//reuse the queue
-                int count;
-                for(int i=0;i<graph.Length;i++){//check if there any isolated vertices
-                    if(visited[i]==false){
-                        bfs.Enqueue(i);
-                    }
-                }
-
-                count=bfs.Count;
-                while(bfs.TryDequeue(out int v)){
-                    Vector2 SeparationBound=new Vector2(
-                        (float)(step*(count*2*vertexRadius+(count-1)*5.1*vertexRadius)/2f/Mathf.PI),
-                        (float)(step*(count*2*vertexRadius+(count-1)*8.5*vertexRadius)/2f/Mathf.PI)
-                    );
-                    unsafe {
-                        PhysicsGraph.Vertex* vertex = physicsGraph.GetVertex(v);
-                        vertex->repulse=2.5f;
-                        vertex->mass=18f/(step+1);//make them heavier so that wont be pushed far away
-                        physicsGraph.SetVertex(UnityEngine.Random.insideUnitCircle.normalized*UnityEngine.Random.Range(SeparationBound.x,SeparationBound.y),v);
-                    }
-                }
-            }
-        }
-
-        //pick a random vertex with maximum degree
-        private int RandomStart() {
-            int max=-1,count=0;
-            for(int i = 0;i<graph.Length;i++) {
-                max=Mathf.Max(max,graph[i].Count);
-            }
-
-            for(int i = 0;i<graph.Length;i++) {
-                count+=graph[i].Count==max?1:0;
-            }
-
-            int idx=UnityEngine.Random.Range(0,count);
-            count=0;
-            for(int i = 0;i<graph.Length;i++) {
-                if(graph[i].Count==max) {
-                    if(count>=idx) {
-                        return i;
-                    }
-                    count++;
-                }
-            }
-            return 0;
-        }
-    }
-
-
     #pragma warning disable CS0162
     private void Start(){
+        if(shells==null){
+            KCore.Instance.RunKCore(out shells);
+            Layout1();
+        }
         return;
         ConstructGraph();return;
 
@@ -806,14 +636,80 @@ public sealed class GraphConstructor:MonoBehaviour{
     public void RandomLayout() {
         if(adjacencyList==null||adjacencyList.Length<=0){return;}
         physicsModel.ClearGeometric();
-        new Layout_1(adjacencyList,0.5f,physicsModel).Place();
-        RefreshLayout();
+        UpdateAllEdges(true);
+        Layout1();
     }
+
+
+    unsafe private void Layout1(){
+        KCore.CoreComponents[] components=KCore.Instance.shellDiffentComponents;
+        HashSet<int> sameComponent=new HashSet<int>();
+        float radius=0;
+
+        for(int shell=components.Length-1;shell>=0;shell--){
+            float total=0;
+            int count=0;
+            foreach(KCore.ConnectedComponent cc in components[shell].components){
+                total+=cc.Count;
+            }
+            //random put the vertex in donut shape
+            const float MinAreaMultiplier=10;
+            const float MinRadiusIncrement=5f;
+            //(new_r^2)*pi=A+(r^2)*pi
+            float newRadius=Mathf.Max(Mathf.Sqrt(MinAreaMultiplier*physicsModel.vertexRadius*2/Mathf.PI+radius*radius)-radius,MinRadiusIncrement*physicsModel.vertexRadius*2)+radius;
+            float startAngle=0;
+
+            foreach(KCore.ConnectedComponent cc in components[shell].components){//iterate all connected component in this shell
+                count+=cc.Count;
+                float endAngle=count/total*360f;
+                sameComponent.Clear();
+
+                foreach(int id in cc.vertice){
+                    sameComponent.Add(id);
+                }
+
+                foreach(int id in cc.vertice){//iterate all vertex inside this component
+                    Vector2 pos=Quaternion.Euler(0,0,UnityEngine.Random.Range(startAngle,endAngle))*new Vector2(UnityEngine.Random.Range(radius,newRadius),0);
+                    PhysicsGraph.Vertex* v=physicsModel.GetVertex(id);
+                    //some random function for setting mass and repulse, then pray
+                    if(shell==0){
+                        v->mass=12;
+                        v->repulse=16;//constant
+                    }
+                    else{
+                        v->mass=shell*shell;
+                        v->repulse=4*math.sqrt(shell);
+                        foreach(int neighbor in adjacencyList[id]){
+                            float attraction;
+                            if(sameComponent.Contains(neighbor)){
+                                attraction=v->mass*100f/components.Length;
+                            }
+                            else{
+                                attraction=v->mass/(Mathf.Abs(shells[neighbor]-shell)+2);
+                            }
+                            physicsModel.TrySetAttraction(new int2(id,neighbor),attraction);
+                        }
+                    }
+                    physicsModel.SetVertex(pos,id);
+                }
+                startAngle=endAngle;
+            }
+
+            if(total>0){
+                radius=newRadius+physicsModel.vertexRadius;
+            }
+        }
+
+        sameComponent=null;
+        //RefreshLayout();
+    }
+
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void RefreshLayout(){
         physicsModel.Refresh(30);
     }
+
 
     public void AssignChildren(){
         int parent=GetParentInText();
@@ -1098,7 +994,7 @@ public sealed class GraphConstructor:MonoBehaviour{
             showedEdges.Clear();
             if(changeVertexColor){
                 for(int i=0;i<physicsModel.showingVertex.Length;i++){
-                    reverseMapping[physicsModel.showingVertex[i]].GetComponent<SpriteRenderer>().color=Color.cyan;
+                    reverseMapping[physicsModel.showingVertex[i]].GetComponent<SpriteRenderer>().color=VertexInitialColor;
                 }
             }
 
@@ -1109,27 +1005,24 @@ public sealed class GraphConstructor:MonoBehaviour{
                 int from=physicsModel.showingVertex[i];
                 List<int> children=adjacencyList[from];
                 for(int j=0;j<children.Count;j++){
-                    if(showedEdges.ContainsKey(new int2(from,children[j]))){}
-                    else if(showedEdges.ContainsKey(new int2(children[j],from))){}
+                    if(showedEdges.ContainsKey(new int2(from,children[j]))||showedEdges.ContainsKey(new int2(children[j],from))){}
                     else{
                         GameObject e=edgePool.Get();
                         showedEdges.Add(new int2(from,children[j]),e);
                         Vector3 v0=reverseMapping[from].transform.position,v1=reverseMapping[children[j]].transform.position;
                         Vector3 centerPosition=(v0+v1)/2;
-                        Vector3 direction=v0-v1;;
+                        Vector3 direction=v0-v1;
                         e.transform.position=centerPosition;
-                        e.transform.localScale=new Vector3(physicsModel.vertexRadius/4,direction.magnitude);
+                        e.transform.localScale=new Vector3(1,direction.magnitude);
                         e.transform.up=direction;
                     }
                 }
             }
+
+            SetAllEdgeThinness(KCore.Instance.hasRan==false);
             showingSelectedVertexEdge=false;
         }
     }
-
-
-    private const float RadiusOfSprite=0.5f;
-
 
     public void EnableInput(){
         input.SetActive(true);
@@ -1230,5 +1123,53 @@ public sealed class GraphConstructor:MonoBehaviour{
             }
         }
         showedEdges.Clear();
+    }
+
+
+    public void SetAllVerticesColor(bool initial){
+        if(initial){
+            foreach(GameObject v in reverseMapping){
+                v.GetComponent<SpriteRenderer>().color=VertexInitialColor;
+            }
+        }
+        else{
+            Color[] colors=KCore.Instance.shellColor;
+            int i=0;
+            foreach(GameObject v in reverseMapping){
+                v.GetComponent<SpriteRenderer>().color=colors[shells[i]];
+                i++;
+            }
+        }
+    }
+
+
+    public void SetAllEdgeThinness(bool initial){
+        float MaxWidth=physicsModel.vertexRadius/4;
+        if(initial){
+            foreach(KeyValuePair<int2,GameObject> kvp in showedEdges){
+                Vector3 scale=kvp.Value.transform.localScale;
+                scale.x=MaxWidth;
+                kvp.Value.transform.localScale=scale;
+            }
+        }
+        else{
+            int maximumShell=KCore.Instance.shellColor.Length;
+
+            float Width(int value){
+                return math.pow((float)value/maximumShell,3)*MaxWidth;
+            }
+
+            foreach(KeyValuePair<int2,GameObject> kvp in showedEdges){
+                int s0=shells[kvp.Key.x],s1=shells[kvp.Key.y];
+                Vector3 scale=kvp.Value.transform.localScale;
+                if(s0==s1){
+                    scale.x=Width(s0);
+                }
+                else{
+                    scale.x=0;
+                }
+                kvp.Value.transform.localScale=scale;
+            }
+        }
     }
 }

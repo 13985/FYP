@@ -412,13 +412,11 @@ public sealed class PhysicsGraph:MonoBehaviour{
     //[BurstCompile]
     public async void Refresh(int iteration=15) {
         const float THRESHOLD=0.1f;
-        int t=iteration;
         float maximumMovedDistance;
-        do {
+        for(float t=0;t<iteration;t++){
             await System.Threading.Tasks.Task.Delay(100);
 
-            t--;
-            float coolingFactor=1f/(iteration-t)*1f;
+            float coolingFactor=1-(t/iteration);
             unsafe {
                 for(int i = 0;i<vertexNumber;i+=32) {
                     int end=Mathf.Min(i+MaximumJob,vertexNumber);
@@ -458,8 +456,10 @@ public sealed class PhysicsGraph:MonoBehaviour{
                 maximumMovedDistance=ret>0?math.max(maximumMovedDistance,ret):maximumMovedDistance;
             }
             Debug.Log($"max:{maximumMovedDistance} with colling factor {coolingFactor}");
-        }while(t>=0&&maximumMovedDistance>THRESHOLD);
-
+            if(maximumMovedDistance<=THRESHOLD){
+                break;
+            }
+        }
         GraphConstructor.instance.UpdateAllEdges(UIController.instance.HideEdge());
     }
 
@@ -591,7 +591,7 @@ public sealed class PhysicsGraph:MonoBehaviour{
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private float GetEdgeFactor(in float dist,in float factor){
-            const float SEPEARATION=4f;
+            const float SEPEARATION=3.5f;
             return factor*dist*dist/SEPEARATION/1000f;
         }
     }
