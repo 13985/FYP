@@ -204,7 +204,7 @@ public sealed class KCore:MonoBehaviour{
         _shellDiffentComponents=null;
         statusBoard.SetActive(true);
         GraphConstructor.instance.UpdateAllEdges(true);
-        runningKCore=StartCoroutine(Animate());
+        runningKCore=StartCoroutine(Animate(true));
     }
 
     public void StopRunning(bool forceFinish=false){
@@ -297,10 +297,7 @@ public sealed class KCore:MonoBehaviour{
 
             currentK=int.MaxValue;
             for(int i=0;i<candiates[1].count;i++){
-                int vertex=candiates[1].dense[i];
-                if(degree[vertex]<currentK){
-                    currentK=degree[vertex];
-                }
+                currentK=math.min(degree[candiates[1].dense[i]],currentK);
             }
 
             //find those vertex in group1 has degree<=k
@@ -350,14 +347,21 @@ public sealed class KCore:MonoBehaviour{
         for(int vertex=0;vertex<vertexNumber;vertex++){
             degree[vertex]=adjacencyList[vertex].Count;//find the degree of each vertex
             currentK=degree[vertex]<currentK?degree[vertex]:currentK;
-            if(degree[vertex]<=currentK){
-                //at first, no vertex can affect those vertice have zero degree
+            if(degree[vertex]<=currentK){//at first, no vertex can affect those vertice have zero degree
                 candiates[0].Add(vertex);
             }
             else{
                 candiates[1].Add(vertex);
             }
             reverseMapping[vertex].GetComponent<SpriteRenderer>().color=unprocessedColor;
+        }
+
+        IEnumerator Wait(){
+            if(forceNextStep==false){
+                yield return new WaitForSeconds(UIController.instance.animationSpeed);
+                while(forceNextStep==false&&stopRunning==true){yield return null;}
+            }
+            forceNextStep=false;
         }
 
         while(true){
@@ -370,11 +374,8 @@ public sealed class KCore:MonoBehaviour{
                 vertexKValue[vertex]=currentK;
                 degree[vertex]=-1;
                 reverseMapping[vertex].GetComponent<SpriteRenderer>().color=_shellColor[currentK];
-                if(forceNextStep==false){
-                    yield return new WaitForSeconds(UIController.instance.animationSpeed);
-                    while(forceNextStep==false&&stopRunning==true){yield return null;}
-                }
-                forceNextStep=false;
+                yield return Wait();
+
                 for(int i=0;i<adjacencyList[vertex].Count;i++){//process all its neighbor (decrement their degree)
                     int neighbor=adjacencyList[vertex][i];
                     if(degree[neighbor]<=0){//an already processed vertex
@@ -382,22 +383,15 @@ public sealed class KCore:MonoBehaviour{
                     }
                     reverseMapping[neighbor].GetComponent<SpriteRenderer>().color=Color.white;
                     descendantText.text=$"neighbor: {neighbor}\ndegree: {degree[neighbor]}";
-                    if(forceNextStep==false){
-                        yield return new WaitForSeconds(UIController.instance.animationSpeed);
-                        while(forceNextStep==false&&stopRunning==true){yield return null;}
-                    }
-                    forceNextStep=false;
+                    yield return Wait();
+
                     degree[neighbor]--;
                     if(degree[neighbor]<=currentK&&candiates[1].Remove(neighbor)){//getIndex[neighbor]<0 means its already in group0, no need to moveDown again
                         candiates[0].Add(neighbor);
                     }
                     reverseMapping[neighbor].GetComponent<SpriteRenderer>().color=unprocessedColor;
                     descendantText.text=$"neighbor: {neighbor}\ndegree: {degree[neighbor]}";
-                    if(forceNextStep==false){
-                        yield return new WaitForSeconds(UIController.instance.animationSpeed);
-                        while(forceNextStep==false&&stopRunning==true){yield return null;}
-                    }
-                    forceNextStep=false;
+                    yield return Wait();
                 }
                 GraphConstructor.instance.HideEdgesOfVertex(vertex);
             }
@@ -408,10 +402,7 @@ public sealed class KCore:MonoBehaviour{
 
             currentK=int.MaxValue;
             for(int i=0;i<candiates[1].count;i++){
-                int vertex=candiates[1].dense[i];
-                if(degree[vertex]<currentK){
-                    currentK=degree[vertex];
-                }
+                currentK=math.min(degree[candiates[1].dense[i]],currentK);
             }
 
             //find those vertex in group1 has degree<=k
