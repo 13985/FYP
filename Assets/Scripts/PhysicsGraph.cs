@@ -348,6 +348,7 @@ public sealed class PhysicsGraph:MonoBehaviour{
             nodeAllocator.freed=0;
             nodeAllocator.start=1;
             UnsafeUtility.MemSet((head+nodes.Ptr)->children,0xFF,16);
+            nodes.Ptr[head].vertexCount=0;
         }
     }
 
@@ -364,6 +365,7 @@ public sealed class PhysicsGraph:MonoBehaviour{
             nodeAllocator.freed=0;
             nodeAllocator.start=1;
             UnsafeUtility.MemSet((head+nodes.Ptr)->children,0xFF,16);
+            nodes.Ptr[head].vertexCount=0;
         }
     }
 
@@ -380,11 +382,13 @@ public sealed class PhysicsGraph:MonoBehaviour{
         if(vertexNumber>graph.Length) {//increment graph.Length and allocate new unsafe lists
             int i=graph.Length;
             graph.Length=vertexNumber;
-
             for(;i<vertexNumber;i++) {
                 (graph.Ptr+i)->neighbors=new UnsafeList<int>(inputGraph[i].Count,Allocator.Persistent);
                 (graph.Ptr+i)->neighbors.Length=inputGraph[i].Count;
             }
+        }
+        else{
+            graph.Length=vertexNumber;
         }
 
         resultPositions.Length=vertexNumber;
@@ -409,14 +413,16 @@ public sealed class PhysicsGraph:MonoBehaviour{
         head=GetNode(-1,b,0);
     }
 
-    //[BurstCompile]
+
     public async void Refresh(int iteration=15) {
         const float THRESHOLD=0.1f;
         float maximumMovedDistance;
-        for(float t=0;t<iteration;t++){
-            await System.Threading.Tasks.Task.Delay(100);
+        for(int t=0;t<iteration;t++){
+            if((t&3)==0){
+                await System.Threading.Tasks.Task.Delay(100);
+            }
 
-            float coolingFactor=1-(t/iteration);
+            float coolingFactor=1-(t/(float)iteration);
             unsafe {
                 for(int i = 0;i<vertexNumber;i+=32) {
                     int end=Mathf.Min(i+MaximumJob,vertexNumber);
@@ -455,7 +461,7 @@ public sealed class PhysicsGraph:MonoBehaviour{
                 float ret=UpdateVertex(resultPositions[i],i);
                 maximumMovedDistance=ret>0?math.max(maximumMovedDistance,ret):maximumMovedDistance;
             }
-            Debug.Log($"max:{maximumMovedDistance} with colling factor {coolingFactor}");
+            //Debug.Log($"max:{maximumMovedDistance} with colling factor {coolingFactor}");
             if(maximumMovedDistance<=THRESHOLD){
                 break;
             }
@@ -712,6 +718,7 @@ public sealed class PhysicsGraph:MonoBehaviour{
     }
     #pragma warning restore UNT0006
 
+
     unsafe public void RemoveVertex(short id) {
         Vertex* v=id+graph.Ptr;
         TreeNode*node=v->node+nodes.Ptr;
@@ -797,6 +804,10 @@ public sealed class PhysicsGraph:MonoBehaviour{
             }
 
             for(int i=0;i<node->vertexCount;i++){
+                if(node->vertices[i]>=vertexNumber){
+                    Debug.Log($"out-of-range:{node->vertices[i]}");
+                    continue;
+                }
                 if(b.Overlap(graph.Ptr[node->vertices[i]].position,sqrVertexRadius)){
                     _showingVertex.Add(node->vertices[i]);
                 }

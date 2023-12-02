@@ -238,6 +238,7 @@ public sealed class GraphConstructor:MonoBehaviour{
     private List<int>[] adjacencyList;
     public List<int>[] AdjacencyList{get{return adjacencyList;}}
     private int[] shells;
+    public int[] Shells{get{return shells;}}
     [SerializeField]private int vertexNumber;
     public int VertexNumber{get{return vertexNumber;}}
 
@@ -332,7 +333,7 @@ public sealed class GraphConstructor:MonoBehaviour{
         physicsModel.LoadGraph(this.adjacencyList,reverseMapping);
 
         if(KCore.Instance!=null){
-            KCore.Instance.RunKCore(out shells);
+            KCore.Instance.PreProcess(out shells);
             Layout1();
         }
     }
@@ -592,7 +593,7 @@ public sealed class GraphConstructor:MonoBehaviour{
     #pragma warning disable CS0162
     private void Start(){
         if(shells==null){
-            KCore.Instance.RunKCore(out shells);
+            KCore.Instance.PreProcess(out shells);
             Layout1();
         }
         return;
@@ -654,7 +655,7 @@ public sealed class GraphConstructor:MonoBehaviour{
             }
             //random put the vertex in donut shape
             const float MinAreaMultiplier=10;
-            const float MinRadiusIncrement=5f;
+            const float MinRadiusIncrement=2.5f;
             //(new_r^2)*pi=A+(r^2)*pi
             float newRadius=Mathf.Max(Mathf.Sqrt(MinAreaMultiplier*physicsModel.vertexRadius*2/Mathf.PI+radius*radius)-radius,MinRadiusIncrement*physicsModel.vertexRadius*2)+radius;
             float startAngle=0;
@@ -674,18 +675,18 @@ public sealed class GraphConstructor:MonoBehaviour{
                     //some random function for setting mass and repulse, then pray
                     if(shell==0){
                         v->mass=12;
-                        v->repulse=16;//constant
+                        v->repulse=12;//constant
                     }
                     else{
-                        v->mass=shell*shell;
+                        v->mass=10*shell*shell;
                         v->repulse=4*math.sqrt(shell);
                         foreach(int neighbor in adjacencyList[id]){
                             float attraction;
                             if(sameComponent.Contains(neighbor)){
-                                attraction=v->mass*100f/components.Length;
+                                attraction=v->mass*10f/components.Length;
                             }
                             else{
-                                attraction=v->mass/(Mathf.Abs(shells[neighbor]-shell)+2);
+                                attraction=v->mass*shell/(Mathf.Abs(shells[neighbor]-shell)+0.75f);
                             }
                             physicsModel.TrySetAttraction(new int2(id,neighbor),attraction);
                         }
@@ -699,15 +700,13 @@ public sealed class GraphConstructor:MonoBehaviour{
                 radius=newRadius+physicsModel.vertexRadius;
             }
         }
-
         sameComponent=null;
-        //RefreshLayout();
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void RefreshLayout(){
-        physicsModel.Refresh(30);
+        physicsModel.Refresh(100);
     }
 
 
@@ -1018,7 +1017,6 @@ public sealed class GraphConstructor:MonoBehaviour{
                     }
                 }
             }
-
             SetAllEdgeThinness(KCore.Instance.hasRan==false);
             showingSelectedVertexEdge=false;
         }
@@ -1171,5 +1169,13 @@ public sealed class GraphConstructor:MonoBehaviour{
                 kvp.Value.transform.localScale=scale;
             }
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int GetShellOfVertex(int v){
+        if(shells==null){
+            return -1;
+        }
+        return shells[v];
     }
 }

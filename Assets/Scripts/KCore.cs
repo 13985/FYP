@@ -7,6 +7,8 @@ using UnityEngine.UI;
 using TMPro;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Unity.VisualScripting;
+using Unity.Mathematics;
 
 public sealed class UnionFind{
     public int[] parent;
@@ -85,20 +87,22 @@ public sealed class KCore:MonoBehaviour{
         }
     }
 
-    [SerializeField]private TextMeshProUGUI messageText;
     [Header("showing status")]
     [SerializeField]private GameObject statusBoard;
     [SerializeField]private Button closeStatusBoardButton;
     [SerializeField]private TextMeshProUGUI ancestorText,descendantText,shellText;
+    [SerializeField]private GameObject progressPanel;
+    [SerializeField]private Slider vertexProgress,subStepSlider;
 
-    private Color UnprocessedColor;
+
+    private Color unprocessedColor;
     private Color[] _shellColor;
     public Color[] shellColor{
         [MethodImpl(MethodImplOptions.AggressiveInlining)]get{return _shellColor;}
     }
     private int maximumDegree;
     private Coroutine runningKCore=null;
-    private bool _isRunning=false,stopRunning=false,forceNextStep=false,_hasRan=false;
+    private bool _isRunning=false,stopRunning=false,forceNextStep=false,_hasRan=false,forcePreviousStep;
     public bool isRunning{
         [MethodImpl(MethodImplOptions.AggressiveInlining)]get{return _isRunning;}
     }
@@ -107,6 +111,12 @@ public sealed class KCore:MonoBehaviour{
         [MethodImpl(MethodImplOptions.AggressiveInlining)]get{return _hasRan;}
     }
 
+    private struct Steps{
+        public int mainStep,substep;
+    }
+
+    private Steps[] toSteps;//provides mapping from vertex->step
+    private int[] toVertex;//provides mapping from step->vertex
 
     public class ConnectedComponent{
         public List<int> vertice;
@@ -133,7 +143,6 @@ public sealed class KCore:MonoBehaviour{
         }
     }
 
-
     public class CoreComponents{
         public List<ConnectedComponent> components;
         public readonly int k;
@@ -155,7 +164,8 @@ public sealed class KCore:MonoBehaviour{
         _instance=this;
         _shellDiffentComponents=null;
         statusBoard.SetActive(false);
-        UnprocessedColor=new Color(1,1,1,0.2f);
+        unprocessedColor=new Color(1,1,1,0.2f);
+        vertexProgress.wholeNumbers=true;
     }
 
     /*
@@ -177,15 +187,8 @@ public sealed class KCore:MonoBehaviour{
     }
     */
 
-
     public void PauseRunning(){
         stopRunning=true;
-        if(stopRunning){
-            messageText.text="pause";
-        }
-        else{
-            messageText.text="start running";
-        }
     }
 
     public void ResumeRunning(){
@@ -201,14 +204,13 @@ public sealed class KCore:MonoBehaviour{
         _shellDiffentComponents=null;
         statusBoard.SetActive(true);
         GraphConstructor.instance.UpdateAllEdges(true);
-        runningKCore=StartCoroutine(RunKCore());
+        runningKCore=StartCoroutine(Animate());
     }
 
     public void StopRunning(bool forceFinish=false){
         if(_isRunning){
             StopCoroutine(runningKCore);
             CleanUp();
-            _isRunning=false;
             statusBoard.SetActive(false);
         }
         else{}
@@ -217,13 +219,18 @@ public sealed class KCore:MonoBehaviour{
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ForceNextStep(){
+    public void NextStep(){
         forceNextStep=true;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void PreviousStep(){
+        forcePreviousStep=true;
     }
 
 
     //return the k-shell of each vertex and each connected component in each shell
-    public void RunKCore(out int[] vertexKValue){
+    public void PreProcess(out int[] vertexKValue){
         List<int>[] adjacencyList=GraphConstructor.instance.AdjacencyList;
         int vertexNumber=adjacencyList.Length;
 
@@ -235,6 +242,11 @@ public sealed class KCore:MonoBehaviour{
         int[] degree=new int[vertexNumber];
         vertexKValue=new int[vertexNumber];
         UnionFind union=new UnionFind(vertexNumber);
+
+        toSteps=new Steps[vertexNumber];
+        toVertex=new int[vertexNumber];
+        vertexProgress.minValue=1;
+        vertexProgress.maxValue=vertexNumber;
 
         currentK=0;
         for(int vertex=0;vertex<vertexNumber;vertex++){
@@ -249,13 +261,17 @@ public sealed class KCore:MonoBehaviour{
             }
         }
 
-        for(int unprocessed=vertexNumber;true;){
+        for(int step=0;true;){
             int number=0;
             while(candiates[0].TryRemoveLast(out int vertex)){//get one vertex in first list
                 number++;
                 vertexKValue[vertex]=currentK;
                 degree[vertex]=-1;
-                unprocessed--;
+
+                toSteps[vertex].mainStep=step;
+                toSteps[vertex].substep=0;
+                toVertex[step]=vertex;
+                step++;
 
                 for(int i=0;i<adjacencyList[vertex].Count;i++){//process all its neighbor (decrement their degree)
                     int neighbor=adjacencyList[vertex][i];
@@ -265,6 +281,7 @@ public sealed class KCore:MonoBehaviour{
                         }
                         continue;
                     }
+                    toSteps[vertex].substep++;
                     degree[neighbor]--;
 
                     if(degree[neighbor]<=currentK&&candiates[1].Remove(neighbor)){//getIndex[neighbor]<0 means its already in group0, no need to moveDown again
@@ -274,14 +291,14 @@ public sealed class KCore:MonoBehaviour{
             }
 
             Debug.Log($"{number} vertices at {currentK}-shell");
-            if(unprocessed<=0){
+            if(candiates[1].count<=0){
                 break;
             }
 
             currentK=int.MaxValue;
-            for(int i=0;i<candiates[1].dense.Length;i++){
+            for(int i=0;i<candiates[1].count;i++){
                 int vertex=candiates[1].dense[i];
-                if(degree[vertex]>=0&&degree[vertex]<currentK){
+                if(degree[vertex]<currentK){
                     currentK=degree[vertex];
                 }
             }
@@ -289,7 +306,7 @@ public sealed class KCore:MonoBehaviour{
             //find those vertex in group1 has degree<=k
             for(int i=0;i<candiates[1].count;){
                 int vertex = candiates[1].dense[i];
-                if(degree[vertex]>=0&&degree[vertex]<=currentK){
+                if(degree[vertex]<=currentK){
                     candiates[1].Remove(vertex);
                     candiates[0].Add(vertex);
                 }
@@ -307,32 +324,28 @@ public sealed class KCore:MonoBehaviour{
         union=null;
 
         _shellColor=new Color[maximumDegree];
-        for(int i=0;i<maximumDegree;i++){
-            _shellColor[i]=Color.HSVToRGB(i/(float)maximumDegree,1,1);
+        for(int i=1;i<=maximumDegree;i++){
+            _shellColor[maximumDegree-i]=Color.HSVToRGB(i*0.75f/maximumDegree,1,1);
         }
 
         System.GC.Collect();
     }
 
 
-    private IEnumerator RunKCore() {
+    private IEnumerator Animate(bool old){
         closeStatusBoardButton.gameObject.SetActive(false);
-
-        Dictionary<GameObject,int> mapping=GraphConstructor.instance.Mapping;
         GameObject[] reverseMapping=GraphConstructor.instance.ReverseMapping;
         List<int>[] adjacencyList=GraphConstructor.instance.AdjacencyList;
         int vertexNumber=adjacencyList.Length;
-
-        int currentK,minimumNextK;
+        int currentK;
         SparseSet[] candiates=new SparseSet[2];
         candiates[0]=new SparseSet(vertexNumber);
         candiates[1]=new SparseSet(vertexNumber);
         //candiates[0] for storing the vertex which have degree<=k
         //candiates[1] for storing the vertex which have degree>k
-
         int[] degree=new int[vertexNumber];
         int[] vertexKValue=new int[vertexNumber];
-
+        
         currentK=0;
         for(int vertex=0;vertex<vertexNumber;vertex++){
             degree[vertex]=adjacencyList[vertex].Count;//find the degree of each vertex
@@ -344,36 +357,29 @@ public sealed class KCore:MonoBehaviour{
             else{
                 candiates[1].Add(vertex);
             }
-            reverseMapping[vertex].GetComponent<SpriteRenderer>().color=UnprocessedColor;
+            reverseMapping[vertex].GetComponent<SpriteRenderer>().color=unprocessedColor;
         }
-        minimumNextK=currentK+1;
 
-        for(int unprocessed=vertexNumber;true;){
+        while(true){
             shellText.text=$"shell: {currentK}";
             while(forceNextStep==false&&stopRunning==true){yield return null;}
             forceNextStep=false;
-
             while(candiates[0].TryRemoveLast(out int vertex)){//get one vertex in first list
                 ancestorText.text=$"processing: {vertex}";
                 GraphConstructor.instance.ShowEdgesOfVertex(vertex);
-
                 vertexKValue[vertex]=currentK;
                 degree[vertex]=-1;
-
-                unprocessed--;
                 reverseMapping[vertex].GetComponent<SpriteRenderer>().color=_shellColor[currentK];
                 if(forceNextStep==false){
                     yield return new WaitForSeconds(UIController.instance.animationSpeed);
                     while(forceNextStep==false&&stopRunning==true){yield return null;}
                 }
                 forceNextStep=false;
-
                 for(int i=0;i<adjacencyList[vertex].Count;i++){//process all its neighbor (decrement their degree)
                     int neighbor=adjacencyList[vertex][i];
                     if(degree[neighbor]<=0){//an already processed vertex
                         continue;
                     }
-
                     reverseMapping[neighbor].GetComponent<SpriteRenderer>().color=Color.white;
                     descendantText.text=$"neighbor: {neighbor}\ndegree: {degree[neighbor]}";
                     if(forceNextStep==false){
@@ -381,19 +387,11 @@ public sealed class KCore:MonoBehaviour{
                         while(forceNextStep==false&&stopRunning==true){yield return null;}
                     }
                     forceNextStep=false;
-
                     degree[neighbor]--;
-
-                    if(degree[neighbor]<=currentK){//getIndex[neighbor]<0 means its already in group0, no need to moveDown again
-                        if(candiates[1].Remove(neighbor)){
-                            candiates[0].Add(neighbor);
-                        }
+                    if(degree[neighbor]<=currentK&&candiates[1].Remove(neighbor)){//getIndex[neighbor]<0 means its already in group0, no need to moveDown again
+                        candiates[0].Add(neighbor);
                     }
-                    else{
-                        minimumNextK=degree[neighbor]<minimumNextK?degree[neighbor]:minimumNextK;
-                    }
-
-                    reverseMapping[neighbor].GetComponent<SpriteRenderer>().color=UnprocessedColor;
+                    reverseMapping[neighbor].GetComponent<SpriteRenderer>().color=unprocessedColor;
                     descendantText.text=$"neighbor: {neighbor}\ndegree: {degree[neighbor]}";
                     if(forceNextStep==false){
                         yield return new WaitForSeconds(UIController.instance.animationSpeed);
@@ -404,17 +402,22 @@ public sealed class KCore:MonoBehaviour{
                 GraphConstructor.instance.HideEdgesOfVertex(vertex);
             }
 
-            if(unprocessed<=0){
+            if(candiates[1].count<=0){
                 break;
             }
 
-            currentK=minimumNextK;
-            minimumNextK=currentK+1;
+            currentK=int.MaxValue;
+            for(int i=0;i<candiates[1].count;i++){
+                int vertex=candiates[1].dense[i];
+                if(degree[vertex]<currentK){
+                    currentK=degree[vertex];
+                }
+            }
 
             //find those vertex in group1 has degree<=k
             for(int i=0;i<candiates[1].count;){
                 int vertex = candiates[1].dense[i];
-                if(degree[vertex]>=0&&degree[vertex]<=currentK){
+                if(degree[vertex]<=currentK){
                     candiates[1].Remove(vertex);
                     candiates[0].Add(vertex);
                 }
@@ -422,23 +425,313 @@ public sealed class KCore:MonoBehaviour{
                     i++;
                 }
             }
-
             if(forceNextStep==false){
                 yield return new WaitForSeconds(UIController.instance.animationSpeed);
             }
             forceNextStep=false;
         }
-
         candiates[0].Dispose();
         candiates[1].Dispose();
         degree=null;
         vertexKValue=null;
-        _isRunning=false;
-        forceNextStep=false;
         CleanUp();
-
         _hasRan=true;
-        messageText.text="finish";
+        GraphConstructor.instance.SetAllEdgeThinness(false);
+        System.GC.Collect();
+    }
+
+
+    private IEnumerator Animate() {
+        closeStatusBoardButton.gameObject.SetActive(false);
+
+        GameObject[] reverseMapping=GraphConstructor.instance.ReverseMapping;
+        List<int>[] adjacencyList=GraphConstructor.instance.AdjacencyList;
+        int[] shells=GraphConstructor.instance.Shells;
+        int vertexNumber=adjacencyList.Length;
+        int[] degree=new int[vertexNumber];
+
+        int programCounter=0;
+        int step=0;
+        int currentVertex=0;
+        int shell=0;
+        int substep=0;
+        int neighborIndex=0;
+
+        for(int i=0;i<vertexNumber;i++){
+            degree[i]=adjacencyList[i].Count;
+        }
+
+        IEnumerator Wait(){
+            if(forceNextStep==false){
+                yield return new WaitForSeconds(UIController.instance.animationSpeed);
+                while(forceNextStep==false&&stopRunning==true){yield return null;}
+            }
+            forceNextStep=false;
+            yield break;
+        }
+
+        void SetVisual(int v,Color c){
+            reverseMapping[v].GetComponent<SpriteRenderer>().color=c;
+            descendantText.text=$"neighbor: {v}\ndegree: {degree[v]}";
+            substep++;
+            subStepSlider.value=substep;
+        }
+
+        void SetAncestor(){
+            currentVertex=toVertex[step];
+            shell=shells[currentVertex];
+            shellText.text=$"shell: {shell}";
+            ancestorText.text=$"processing: {currentVertex}";
+            reverseMapping[currentVertex].GetComponent<SpriteRenderer>().color=shellColor[shell];
+            GraphConstructor.instance.ShowEdgesOfVertex(currentVertex);
+
+            subStepSlider.minValue=1;
+            subStepSlider.maxValue=(toSteps[currentVertex].substep<<1)+1;
+            subStepSlider.value=1;
+            substep=1;
+            vertexProgress.value=step+1;
+        }
+
+        //note that case 2*n+1 is the reverse operation of case 2*n
+        while(step<vertexNumber){
+            switch(programCounter){
+            case 0:{
+                SetAncestor();
+                yield return Wait();
+
+                if(forcePreviousStep){
+                    forcePreviousStep=false;
+                    if(step<=0){//doesnt have previous step
+                        programCounter=0;
+                    }else{
+                        programCounter=9;
+                    }
+                }else if(toSteps[currentVertex].substep==0){
+                    programCounter=8;
+                }else{
+                    neighborIndex=-1;//set the for loop variable here
+                    programCounter=2;
+                }
+                break;
+            }
+            case 1:{//reverse operation of above
+                SetAncestor();
+                yield return Wait();
+                neighborIndex=adjacencyList[currentVertex].Count;//set the for loop variable here
+                programCounter=3;
+                break;
+            }
+            case 2:{//iterate only
+                neighborIndex++;
+                List<int> neighbors=adjacencyList[currentVertex];
+                while(true){
+                    if(neighborIndex>=neighbors.Count){
+                        programCounter=8;
+                        break;
+                    }else if(toSteps[neighbors[neighborIndex]].mainStep<step){
+                        neighborIndex++;
+                    }else{
+                        programCounter=4;
+                        break;
+                    }   
+                }break;
+            }
+            case 3:{//reverse operation of above
+                neighborIndex--;
+                List<int> neighbors=adjacencyList[currentVertex];
+                while(true){
+                    if(neighborIndex<0){
+                        programCounter=9;
+                        break;
+                    }else if(toSteps[neighbors[neighborIndex]].mainStep<step){
+                        neighborIndex--;
+                    }else{
+                        programCounter=6;
+                        break;
+                    }
+                }break;
+            }
+            case 4:{
+                SetVisual(adjacencyList[currentVertex][neighborIndex],Color.white);
+                degree[adjacencyList[currentVertex][neighborIndex]]--;
+                yield return Wait();
+
+                if(forcePreviousStep){
+                    forcePreviousStep=false;
+                    programCounter=5;
+                }else{
+                    programCounter=6;
+                }
+                break;
+            }
+            case 5:{
+                degree[adjacencyList[currentVertex][neighborIndex]]++;
+                reverseMapping[adjacencyList[currentVertex][neighborIndex]].GetComponent<SpriteRenderer>().color=unprocessedColor;
+                substep--;
+                subStepSlider.value=substep;
+                programCounter=3;
+                break;
+            }
+            case 6:{
+                SetVisual(adjacencyList[currentVertex][neighborIndex],unprocessedColor);
+                yield return Wait();
+
+                if(forcePreviousStep){
+                    forcePreviousStep=false;
+                    programCounter=7;
+                }else{
+                    programCounter=2;
+                }
+                break;
+            }
+            case 7:{
+                substep--;
+                subStepSlider.value=substep;
+                programCounter=4;
+                break;
+            }
+            case 8:{
+                step++;
+                programCounter=0;
+                break;
+            }
+            case 9:{
+                step--;
+                programCounter=1;
+                break;
+            }
+            case 10:{
+                break;
+            }
+            case 11:{
+                break;
+            }
+            }
+
+            if((programCounter&1)==1){}
+            //handle vertexProgess and subStepSlider Change only when no reversed operation
+            else if(vertexProgress.value-1!=step){
+                int val=(int)vertexProgress.value;
+
+                void Iterate(int _step,int change){
+                    int v=toVertex[_step];
+                    reverseMapping[v].GetComponent<SpriteRenderer>().color=shellColor[shells[v]];
+                    List<int> neighbors=adjacencyList[v];
+                    for(;neighborIndex<neighbors.Count;neighborIndex++){
+                        int neighbor=neighbors[neighborIndex];
+                        if(toSteps[neighbor].mainStep<_step){continue;}
+                        degree[neighbor]+=change;
+                    }
+                    neighborIndex=0;
+                }
+
+                if(step<val){
+                    for(int i=step;i<val;i++){
+                        Iterate(i,-1);
+                    }
+                }else if(step>val){
+                    int v=toVertex[step];
+                    reverseMapping[v].GetComponent<SpriteRenderer>().color=unprocessedColor;
+                    List<int> neighbors=adjacencyList[v];
+                    for(;neighborIndex>=0;neighborIndex--){
+                        int neighbor=neighbors[neighborIndex];
+                        if(toSteps[neighbor].mainStep<step){continue;}
+                        degree[neighbor]++;
+                    }
+                    for(int i=step-1;i>val;i--){
+                        Iterate(i,1);
+                    }
+                }
+
+                programCounter=0;
+                step=val;
+            }else if(subStepSlider.value!=substep){
+                int val=(int)subStepSlider.value;
+                List<int> neighbors=adjacencyList[currentVertex];
+                
+                if(substep<val){
+                    do{
+                        if(programCounter==4){
+                            programCounter=6;
+                        }else if(programCounter==6){
+                            degree[neighbors[neighborIndex]]--;
+                            neighborIndex++;
+                            while(neighborIndex<neighbors.Count){
+                                if(toSteps[neighbors[neighborIndex]].mainStep<step){
+                                    neighborIndex++;
+                                }else{
+                                    break;
+                                }
+                            }
+                            programCounter=4;
+                        }
+                        substep++;
+                    }while(substep<val);
+
+                    if(val==(toSteps[currentVertex].substep<<1)+1){
+                        programCounter=6;
+                    }
+                }
+                else if(substep>val){
+                    do{
+                        if(programCounter==4){
+                            programCounter=6;
+                        }else if(programCounter==6){
+                            degree[neighbors[neighborIndex]]++;
+
+                            neighborIndex--;
+                            while(neighborIndex>=0){
+                                if(toSteps[neighbors[neighborIndex]].mainStep<step){
+                                    neighborIndex--;
+                                }else{
+                                    break;
+                                }
+                            }
+                            programCounter=4;
+                        }
+                        substep--;
+                    }while(substep>val);
+
+                    if(val==1){
+                        programCounter=0;
+                    }
+                }
+            }
+        }
+
+        /*
+        for(step=0;step<vertexNumber;step++){
+            vertexProgress.value=step+1;
+
+            currentVertex=toVertex[step];
+            shell=shells[currentVertex];
+
+            shellText.text=$"shell: {shell}";
+            ancestorText.text=$"processing: {currentVertex}";
+            reverseMapping[currentVertex].GetComponent<SpriteRenderer>().color=shellColor[shell];
+
+            subStepSlider.minValue=1;
+            subStepSlider.maxValue=(toSteps[currentVertex].substep<<1)+1;
+            subStepSlider.value=1;
+            yield return Wait();
+            if(toSteps[currentVertex].substep==0){continue;}
+
+            substep=1;
+            for(neighborIndex=0;neighborIndex<adjacencyList[currentVertex].Count;neighborIndex++){
+                int neighbor=adjacencyList[currentVertex][neighborIndex];
+                if(toSteps[neighbor].mainStep<step){continue;}
+                SetVisual(neighbor,Color.white);
+                degree[neighbor]--;
+                yield return Wait();
+                SetVisual(neighbor,unprocessedColor);
+                yield return Wait();
+            }
+        }
+        */
+
+        degree=null;
+        _hasRan=true;
+        CleanUp();
         GraphConstructor.instance.SetAllEdgeThinness(false);
         System.GC.Collect();
     }
@@ -499,8 +792,10 @@ public sealed class KCore:MonoBehaviour{
     }
 
     private void CleanUp(){
+        _isRunning=false;
+        forceNextStep=false;
         closeStatusBoardButton.gameObject.SetActive(true);
-        UIController.instance.OnAlgorithmEnd();
+        UIController.instance.OnAlgoEnd();
         GraphConstructor.instance.UpdateAllEdges(UIController.instance.HideEdge());
     }
 

@@ -31,6 +31,7 @@ public sealed class UIController : MonoBehaviour{
     [SerializeField]private Detail vertexDetail,graphDetail,screenDetail,edgeDetail;
     [SerializeField]private GameObject selectedVertexIndicator;
     [SerializeField]private Slider zoomSizeSlider;
+    [SerializeField]private TextMeshProUGUI shellText;
 
     [Header("algorithm")]
     [SerializeField]private Button stopButton;
@@ -235,6 +236,13 @@ public sealed class UIController : MonoBehaviour{
                 _selectedVertexID=GraphConstructor.instance.TryGetVertexGO(cam.ScreenToWorldPoint(Input.mousePosition),out selectedVertexGO);
                 if(_selectedVertexID>=0) {
                     vertexInput.text=_selectedVertexID.ToString();
+                    int shell=GraphConstructor.instance.GetShellOfVertex(_selectedVertexID);
+                    if(shell<0){
+                        shellText.text=$"Shell:--";
+                    }
+                    else{
+                        shellText.text=$"Shell:{shell}";
+                    }
                 }
             }
         }
@@ -290,6 +298,7 @@ public sealed class UIController : MonoBehaviour{
                 float different=Input.mousePosition.x-previousScreenPosition.x;
                 previousScreenPosition=Input.mousePosition;
                 cam.orthographicSize=Mathf.Clamp(cam.orthographicSize+different/75f,MIN_ZOOM_SIZE,MAX_ZOOM_SIZE);
+                zoomSizeSlider.value=cam.orthographicSize;
                 cameraMoved=true;
             }
 
@@ -368,15 +377,24 @@ public sealed class UIController : MonoBehaviour{
     }
 
     public void OnEnterVertex() {
-        if(int.TryParse(vertexInput.text,out int v)==false) {
+        if(int.TryParse(vertexInput.text,out _selectedVertexID)==false) {
             selectedVertexIndicator.SetActive(false);
+            _selectedVertexID=-1;
         }
-        else if(GraphConstructor.instance.TryGetVertexGO(v,out GameObject vertexGO)==false) {
+        else if(GraphConstructor.instance.TryGetVertexGO(_selectedVertexID,out GameObject vertexGO)==false) {
             selectedVertexIndicator.SetActive(false);
+            _selectedVertexID=-1;
         }
         else {
             if(selectedVertexGO != null) {
                 GraphConstructor.instance.SetVertexPosition(selectedVertexGO);
+            }
+            int shell=GraphConstructor.instance.GetShellOfVertex(_selectedVertexID);
+            if(shell<0){
+                shellText.text=$"Shell:--";
+            }
+            else{
+                shellText.text=$"Shell:{shell}";
             }
             selectedVertexIndicator.SetActive(true);
             selectedVertexGO=vertexGO;
@@ -484,19 +502,19 @@ public sealed class UIController : MonoBehaviour{
     }
 
 
-    public void OnResumeAlgorithmPressed(){
+    public void OnResumeAlgoPressed(){
         pauseRun.Set(false,true);
         resumeRun.Set(true,true);
         KCore.Instance.ResumeRunning();
     }
 
-    public void OnPauseAlgorithmPressed(){
+    public void OnPauseAlgoPressed(){
         resumeRun.Set(false,true);
         pauseRun.Set(true,true);
         KCore.Instance.PauseRunning();
     }
 
-    public void OnRunAlgorithmPressed(){
+    public void OnStartAlgoPressed(){
         animatonControlPanel.SetActive(true);
         openAnimationPanel.Set(true);
         stopButton.enabled=true;
@@ -507,20 +525,25 @@ public sealed class UIController : MonoBehaviour{
     }
 
 
-    public void OnAlgorithmEnd(){
+    public void OnAlgoEnd(){
         stopButton.enabled=false;
         animatonControlPanel.SetActive(false);
         openAnimationPanel.Set(false);
     }
 
-    public void OnStopAlgorithmPressed(){
-        OnAlgorithmEnd();
+    public void OnStopAlgoPressed(){
+        OnAlgoEnd();
         KCore.Instance.StopRunning();
     }
 
 
-    public void OnNextStepAlgorithmPressed(){
-        KCore.Instance.ForceNextStep();
+    public void OnNextStepAlgoPressed(){
+        KCore.Instance.NextStep();
+    }
+
+
+    public void OnPreviousStepAlgoPressed(){
+        KCore.Instance.NextStep();
     }
 
 
