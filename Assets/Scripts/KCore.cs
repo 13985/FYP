@@ -89,10 +89,13 @@ public sealed class KCore:MonoBehaviour{
 
     [Header("showing status")]
     [SerializeField]private GameObject statusBoard;
-    [SerializeField]private Button closeStatusBoardButton;
     [SerializeField]private TextMeshProUGUI ancestorText,descendantText,shellText;
     [SerializeField]private GameObject progressPanel;
-    [SerializeField]private Slider vertexProgress,subStepSlider;
+    [SerializeField]private Slider mainStepSlider,subStepSlider;
+    [Header("On/Off floating panel")]
+    [SerializeField]private UIController.ToggleButton statusPanelButton;
+    [SerializeField]private UIController.ToggleButton progressPanelButton;
+    [SerializeField]private UIController.Detail algoDetail;
 
 
     private Color unprocessedColor;
@@ -165,7 +168,13 @@ public sealed class KCore:MonoBehaviour{
         _shellDiffentComponents=null;
         statusBoard.SetActive(false);
         unprocessedColor=new Color(1,1,1,0.2f);
-        vertexProgress.wholeNumbers=true;
+        mainStepSlider.wholeNumbers=true;
+        
+        statusBoard.SetActive(false);
+        progressPanel.SetActive(false);
+        statusPanelButton.Init();
+        progressPanelButton.Init();
+        algoDetail.Init();
     }
 
     /*
@@ -203,6 +212,7 @@ public sealed class KCore:MonoBehaviour{
         _isRunning=true;
         _shellDiffentComponents=null;
         statusBoard.SetActive(true);
+        progressPanel.SetActive(true);
         GraphConstructor.instance.UpdateAllEdges(true);
         runningKCore=StartCoroutine(Animate(true));
     }
@@ -245,8 +255,8 @@ public sealed class KCore:MonoBehaviour{
 
         toSteps=new Steps[vertexNumber];
         toVertex=new int[vertexNumber];
-        vertexProgress.minValue=1;
-        vertexProgress.maxValue=vertexNumber;
+        mainStepSlider.minValue=1;
+        mainStepSlider.maxValue=vertexNumber;
 
         currentK=0;
         for(int vertex=0;vertex<vertexNumber;vertex++){
@@ -330,7 +340,6 @@ public sealed class KCore:MonoBehaviour{
 
 
     private IEnumerator Animate(bool old){
-        closeStatusBoardButton.gameObject.SetActive(false);
         GameObject[] reverseMapping=GraphConstructor.instance.ReverseMapping;
         List<int>[] adjacencyList=GraphConstructor.instance.AdjacencyList;
         int vertexNumber=adjacencyList.Length;
@@ -433,8 +442,6 @@ public sealed class KCore:MonoBehaviour{
 
 
     private IEnumerator Animate() {
-        closeStatusBoardButton.gameObject.SetActive(false);
-
         GameObject[] reverseMapping=GraphConstructor.instance.ReverseMapping;
         List<int>[] adjacencyList=GraphConstructor.instance.AdjacencyList;
         int[] shells=GraphConstructor.instance.Shells;
@@ -480,7 +487,7 @@ public sealed class KCore:MonoBehaviour{
             subStepSlider.maxValue=(toSteps[currentVertex].substep<<1)+1;
             subStepSlider.value=1;
             substep=1;
-            vertexProgress.value=step+1;
+            mainStepSlider.value=step+1;
         }
 
         //note that case 2*n+1 is the reverse operation of case 2*n
@@ -601,8 +608,8 @@ public sealed class KCore:MonoBehaviour{
 
             if((programCounter&1)==1){}
             //handle vertexProgess and subStepSlider Change only when no reversed operation
-            else if(vertexProgress.value-1!=step){
-                int val=(int)vertexProgress.value;
+            else if(mainStepSlider.value-1!=step){
+                int val=(int)mainStepSlider.value;
 
                 void Iterate(int _step,int change){
                     int v=toVertex[_step];
@@ -785,7 +792,6 @@ public sealed class KCore:MonoBehaviour{
     private void CleanUp(){
         _isRunning=false;
         forceNextStep=false;
-        closeStatusBoardButton.gameObject.SetActive(true);
         UIController.instance.OnAlgoEnd();
         GraphConstructor.instance.UpdateAllEdges(UIController.instance.HideEdge());
     }
@@ -884,7 +890,20 @@ public sealed class KCore:MonoBehaviour{
     }
     */
 
-    public void OnCloseStausBoardPressed(){
-        statusBoard.SetActive(false);
+    public void CloseAlgoDetail(){
+        algoDetail.Set(false);
+    }
+
+    public void OnToggleProgessPanel(){
+        progressPanel.SetActive(progressPanelButton.Toggle());
+    }
+
+    public void OnToggleStatusPanel(){
+        statusBoard.SetActive(statusPanelButton.Toggle());
+    }
+
+    public void OnAlgoDetail(){
+        algoDetail.Toggle();
+        UIController.instance.CloseAllDetails();
     }
 }

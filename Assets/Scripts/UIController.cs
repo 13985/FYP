@@ -12,6 +12,7 @@ using UnityEditor;
 using UnityEditorInternal;
 using System.Runtime.CompilerServices;
 using SimpleFileBrowser;
+using Unity.VisualScripting;
 
 public sealed class UIController : MonoBehaviour{
     private const float MIN_ZOOM_SIZE=7,MAX_ZOOM_SIZE=120;
@@ -28,7 +29,7 @@ public sealed class UIController : MonoBehaviour{
     [SerializeField]private Camera cam;
     [SerializeField]private TMP_InputField vertexInput,colorInput;
     [SerializeField]private ToggleButton cameraControl,vertexControl,clickToSelect,showEdgeButton;
-    [SerializeField]private Detail vertexDetail,graphDetail,screenDetail,edgeDetail;
+    [SerializeField]private Detail vertexDetail,graphDetail,inputDetail,edgeDetail;
     [SerializeField]private GameObject selectedVertexIndicator;
     [SerializeField]private Slider zoomSizeSlider;
     [SerializeField]private TextMeshProUGUI shellText;
@@ -59,9 +60,8 @@ public sealed class UIController : MonoBehaviour{
         return showEdgeButton.isOn==false||(forceHideOnly==false&&cam.orthographicSize>hideEdgeSize);
     }
 
-
     [System.Serializable]
-    private struct Detail{
+    public struct Detail{
         [SerializeField]private Button openButton;
         [SerializeField]private TextMeshProUGUI triangle;
         [SerializeField]private GameObject panel;
@@ -108,7 +108,7 @@ public sealed class UIController : MonoBehaviour{
 
 
     [System.Serializable]
-    private struct ToggleButton {
+    public struct ToggleButton {
         public Button button;
         public bool isOn {get;private set;}
 
@@ -184,7 +184,7 @@ public sealed class UIController : MonoBehaviour{
 
         vertexDetail.Init();
         graphDetail.Init();
-        screenDetail.Init();
+        inputDetail.Init();
         edgeDetail.Init();
         selectedVertexGO=null;
 
@@ -321,29 +321,41 @@ public sealed class UIController : MonoBehaviour{
         vertexDetail.Toggle();
         edgeDetail.Set(false);
         graphDetail.Set(false);
-        screenDetail.Set(false);
+        inputDetail.Set(false);
+        KCore.Instance.CloseAlgoDetail();
     }
 
     public void OnEdgePanelPressed(){
         vertexDetail.Set(false);
         edgeDetail.Toggle();
         graphDetail.Set(false);
-        screenDetail.Set(false);
+        inputDetail.Set(false);
+        KCore.Instance.CloseAlgoDetail();
     }
 
     public void OnGraphDetailPressed() {
         vertexDetail.Set(false);
         edgeDetail.Set(false);
         graphDetail.Toggle();
-        screenDetail.Set(false);
+        inputDetail.Set(false);
+        KCore.Instance.CloseAlgoDetail();
     }
 
     public void OnScreenPanelPressed(){
         vertexDetail.Set(false);
         edgeDetail.Set(false);
         graphDetail.Set(false);
-        screenDetail.Toggle();
+        inputDetail.Toggle();
+        KCore.Instance.CloseAlgoDetail();
     }
+
+    public void CloseAllDetails(){
+        vertexDetail.Set(false);
+        edgeDetail.Set(false);
+        graphDetail.Set(false);
+        inputDetail.Set(false);
+    }
+
 
     public void OnRandomLayoutPressed() {
         selectedVertexIndicator.SetActive(false);
