@@ -590,7 +590,7 @@ public sealed class PhysicsGraph:MonoBehaviour{
             dist=math.max(dist,ZERO_DIST);
             forceVector.x=forceVector.x/dist;
             forceVector.y=forceVector.y/dist;
-            float2 force=GetEdgeFactor(dist,10)*forceVector;
+            float2 force=GetEdgeFactor(dist,25)*forceVector;
             return force;
         }
 

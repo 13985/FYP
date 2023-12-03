@@ -210,10 +210,10 @@ public sealed class KCore:MonoBehaviour{
         }
         _hasRan=false;
         _isRunning=true;
-        _shellDiffentComponents=null;
         statusBoard.SetActive(true);
         progressPanel.SetActive(true);
         GraphConstructor.instance.UpdateAllEdges(true);
+        Debug.Log("hi");
         runningKCore=StartCoroutine(Animate(true));
     }
 
@@ -242,31 +242,26 @@ public sealed class KCore:MonoBehaviour{
     //return the k-shell of each vertex and each connected component in each shell
     public void PreProcess(out int[] vertexKValue){
         List<int>[] adjacencyList=GraphConstructor.instance.AdjacencyList;
-        int vertexNumber=adjacencyList.Length;
-
-        int currentK;
+        int vertexNumber=adjacencyList.Length,currentShell;
         SparseSet[] candiates=new SparseSet[2];
+        int[] degree=new int[vertexNumber];
+        UnionFind union=new UnionFind(vertexNumber);
         candiates[0]=new SparseSet(vertexNumber);
         candiates[1]=new SparseSet(vertexNumber);
-
-        int[] degree=new int[vertexNumber];
         vertexKValue=new int[vertexNumber];
-        UnionFind union=new UnionFind(vertexNumber);
 
         toSteps=new Steps[vertexNumber];
         toVertex=new int[vertexNumber];
         mainStepSlider.minValue=1;
         mainStepSlider.maxValue=vertexNumber;
 
-        currentK=0;
+        currentShell=0;
         for(int vertex=0;vertex<vertexNumber;vertex++){
             degree[vertex]=adjacencyList[vertex].Count;//find the degree of each vertex
-            currentK=degree[vertex]<currentK?degree[vertex]:currentK;
-            if(degree[vertex]<=currentK){
-                //at first, no vertex can affect those vertice have zero degree
+            currentShell=degree[vertex]<currentShell?degree[vertex]:currentShell;
+            if(degree[vertex]<=currentShell){//at first, no vertex can affect those vertice have zero degree
                 candiates[0].Add(vertex);
-            }
-            else{
+            }else{
                 candiates[1].Add(vertex);
             }
         }
@@ -275,7 +270,7 @@ public sealed class KCore:MonoBehaviour{
             int number=0;
             while(candiates[0].TryRemoveLast(out int vertex)){//get one vertex in first list
                 number++;
-                vertexKValue[vertex]=currentK;
+                vertexKValue[vertex]=currentShell;
                 degree[vertex]=-1;
 
                 toSteps[vertex].mainStep=step;
@@ -286,7 +281,7 @@ public sealed class KCore:MonoBehaviour{
                 for(int i=0;i<adjacencyList[vertex].Count;i++){//process all its neighbor (decrement their degree)
                     int neighbor=adjacencyList[vertex][i];
                     if(degree[neighbor]<=0){//an already processed vertex
-                        if(vertexKValue[neighbor]==currentK) {//check if the k value same as vertex itself, if yes, union
+                        if(vertexKValue[neighbor]==currentShell) {//check if the k value same as vertex itself, if yes, union
                             union.Union(neighbor,vertex);
                         }
                         continue;
@@ -294,35 +289,34 @@ public sealed class KCore:MonoBehaviour{
                     toSteps[vertex].substep++;
                     degree[neighbor]--;
 
-                    if(degree[neighbor]<=currentK&&candiates[1].Remove(neighbor)){//getIndex[neighbor]<0 means its already in group0, no need to moveDown again
+                    if(degree[neighbor]<=currentShell&&candiates[1].Remove(neighbor)){//getIndex[neighbor]<0 means its already in group0, no need to moveDown again
                         candiates[0].Add(neighbor);
                     }
                 }
             }
 
-            Debug.Log($"{number} vertices at {currentK}-shell");
+            Debug.Log($"{number} vertices at {currentShell}-shell");
             if(candiates[1].count<=0){
                 break;
             }
 
-            currentK=int.MaxValue;
+            currentShell=int.MaxValue;
             for(int i=0;i<candiates[1].count;i++){
-                currentK=math.min(degree[candiates[1].dense[i]],currentK);
+                currentShell=math.min(degree[candiates[1].dense[i]],currentShell);
             }
 
             //find those vertex in group1 has degree<=k
             for(int i=0;i<candiates[1].count;){
                 int vertex = candiates[1].dense[i];
-                if(degree[vertex]<=currentK){
+                if(degree[vertex]<=currentShell){
                     candiates[1].Remove(vertex);
                     candiates[0].Add(vertex);
-                }
-                else{
+                }else{
                     i++;
                 }
             }
         }
-        maximumDegree=currentK+1;
+        maximumDegree=currentShell+1;
         candiates[0].Dispose();
         candiates[1].Dispose();
         degree=null;
@@ -342,24 +336,20 @@ public sealed class KCore:MonoBehaviour{
     private IEnumerator Animate(bool old){
         GameObject[] reverseMapping=GraphConstructor.instance.ReverseMapping;
         List<int>[] adjacencyList=GraphConstructor.instance.AdjacencyList;
-        int vertexNumber=adjacencyList.Length;
-        int currentK;
+        int vertexNumber=adjacencyList.Length,currentShell;
         SparseSet[] candiates=new SparseSet[2];
-        candiates[0]=new SparseSet(vertexNumber);
-        candiates[1]=new SparseSet(vertexNumber);
-        //candiates[0] for storing the vertex which have degree<=k
-        //candiates[1] for storing the vertex which have degree>k
+        candiates[0]=new SparseSet(vertexNumber);//candiates[0] for storing the vertex which have degree<=k
+        candiates[1]=new SparseSet(vertexNumber);//candiates[1] for storing the vertex which have degree>k
         int[] degree=new int[vertexNumber];
         int[] vertexKValue=new int[vertexNumber];
         
-        currentK=0;
+        currentShell=0;
         for(int vertex=0;vertex<vertexNumber;vertex++){
             degree[vertex]=adjacencyList[vertex].Count;//find the degree of each vertex
-            currentK=degree[vertex]<currentK?degree[vertex]:currentK;
-            if(degree[vertex]<=currentK){//at first, no vertex can affect those vertice have zero degree
+            currentShell=degree[vertex]<currentShell?degree[vertex]:currentShell;
+            if(degree[vertex]<=currentShell){//at first, no vertex can affect those vertice have zero degree
                 candiates[0].Add(vertex);
-            }
-            else{
+            }else{
                 candiates[1].Add(vertex);
             }
             reverseMapping[vertex].GetComponent<SpriteRenderer>().color=unprocessedColor;
@@ -367,22 +357,23 @@ public sealed class KCore:MonoBehaviour{
 
         IEnumerator Wait(){
             if(forceNextStep==false){
-                yield return new WaitForSeconds(UIController.instance.animationSpeed);
+                for(float passedTime=0;passedTime<UIController.instance.animationSpeed;passedTime+=Time.deltaTime){
+                    yield return null;
+                }
                 while(forceNextStep==false&&stopRunning==true){yield return null;}
             }
             forceNextStep=false;
         }
 
         while(true){
-            shellText.text=$"shell: {currentK}";
-            while(forceNextStep==false&&stopRunning==true){yield return null;}
-            forceNextStep=false;
+            shellText.text=$"shell: {currentShell}";
+            yield return Wait();
             while(candiates[0].TryRemoveLast(out int vertex)){//get one vertex in first list
                 ancestorText.text=$"processing: {vertex}";
                 GraphConstructor.instance.ShowEdgesOfVertex(vertex);
-                vertexKValue[vertex]=currentK;
+                vertexKValue[vertex]=currentShell;
                 degree[vertex]=-1;
-                reverseMapping[vertex].GetComponent<SpriteRenderer>().color=_shellColor[currentK];
+                reverseMapping[vertex].GetComponent<SpriteRenderer>().color=_shellColor[currentShell];
                 yield return Wait();
 
                 for(int i=0;i<adjacencyList[vertex].Count;i++){//process all its neighbor (decrement their degree)
@@ -395,7 +386,7 @@ public sealed class KCore:MonoBehaviour{
                     yield return Wait();
 
                     degree[neighbor]--;
-                    if(degree[neighbor]<=currentK&&candiates[1].Remove(neighbor)){//getIndex[neighbor]<0 means its already in group0, no need to moveDown again
+                    if(degree[neighbor]<=currentShell&&candiates[1].Remove(neighbor)){//getIndex[neighbor]<0 means its already in group0, no need to moveDown again
                         candiates[0].Add(neighbor);
                     }
                     reverseMapping[neighbor].GetComponent<SpriteRenderer>().color=unprocessedColor;
@@ -409,26 +400,21 @@ public sealed class KCore:MonoBehaviour{
                 break;
             }
 
-            currentK=int.MaxValue;
+            currentShell=int.MaxValue;
             for(int i=0;i<candiates[1].count;i++){
-                currentK=math.min(degree[candiates[1].dense[i]],currentK);
+                currentShell=math.min(degree[candiates[1].dense[i]],currentShell);
             }
 
             //find those vertex in group1 has degree<=k
             for(int i=0;i<candiates[1].count;){
                 int vertex = candiates[1].dense[i];
-                if(degree[vertex]<=currentK){
+                if(degree[vertex]<=currentShell){
                     candiates[1].Remove(vertex);
                     candiates[0].Add(vertex);
-                }
-                else{
+                }else{
                     i++;
                 }
             }
-            if(forceNextStep==false){
-                yield return new WaitForSeconds(UIController.instance.animationSpeed);
-            }
-            forceNextStep=false;
         }
         candiates[0].Dispose();
         candiates[1].Dispose();
@@ -461,7 +447,9 @@ public sealed class KCore:MonoBehaviour{
 
         IEnumerator Wait(){
             if(forceNextStep==false){
-                yield return new WaitForSeconds(UIController.instance.animationSpeed);
+                for(float passedTime=0;passedTime<UIController.instance.animationSpeed;passedTime+=Time.deltaTime){
+                    yield return null;
+                }
                 while(forceNextStep==false&&stopRunning==true){yield return null;}
             }
             forceNextStep=false;

@@ -209,7 +209,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 77916223}
         m_TargetAssemblyTypeName: UIController, Assembly-CSharp
-        m_MethodName: OnRunAlgorithmPressed
+        m_MethodName: OnStartAlgoPressed
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -14678,7 +14678,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 77916223}
         m_TargetAssemblyTypeName: UIController, Assembly-CSharp
-        m_MethodName: OnPauseAlgorithmPressed
+        m_MethodName: OnPauseAlgoPressed
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -31415,7 +31415,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 117, y: 33}
-  m_SizeDelta: {x: 300, y: 200}
+  m_SizeDelta: {x: 300, y: 180}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1254992905
 MonoBehaviour:
@@ -35091,7 +35091,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 77916223}
         m_TargetAssemblyTypeName: UIController, Assembly-CSharp
-        m_MethodName: OnNextStepAlgorithmPressed
+        m_MethodName: OnNextStepAlgoPressed
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -36622,7 +36622,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 77916223}
         m_TargetAssemblyTypeName: UIController, Assembly-CSharp
-        m_MethodName: OnStopAlgorithmPressed
+        m_MethodName: OnStopAlgoPressed
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -39613,7 +39613,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 77916223}
         m_TargetAssemblyTypeName: UIController, Assembly-CSharp
-        m_MethodName: OnResumeAlgorithmPressed
+        m_MethodName: OnResumeAlgoPressed
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}

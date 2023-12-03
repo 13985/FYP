@@ -635,7 +635,7 @@ public sealed class GraphConstructor:MonoBehaviour{
     #pragma warning restore CS0162
 
     public void RandomLayout() {
-        if(adjacencyList==null||adjacencyList.Length<=0){return;}
+        if(adjacencyList==null||adjacencyList.Length<=0||KCore.Instance.isRunning){return;}
         physicsModel.ClearGeometric();
         UpdateAllEdges(true);
         Layout1();
@@ -706,6 +706,7 @@ public sealed class GraphConstructor:MonoBehaviour{
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void RefreshLayout(){
+        if(KCore.Instance.isRunning){return;}
         physicsModel.Refresh(100);
     }
 
