@@ -674,12 +674,12 @@ public sealed class GraphConstructor:MonoBehaviour{
                     PhysicsGraph.Vertex* v=physicsModel.GetVertex(id);
                     //some random function for setting mass and repulse, then pray
                     if(shell==0){
-                        v->mass=12;
-                        v->repulse=12;//constant
+                        v->mass=16;
+                        v->repulse=7;//constant
                     }
                     else{
-                        v->mass=10*shell*shell;
-                        v->repulse=4*math.sqrt(shell);
+                        v->mass=13*shell*shell;
+                        v->repulse=2.5f*math.sqrt(shell);
                         foreach(int neighbor in adjacencyList[id]){
                             float attraction;
                             if(sameComponent.Contains(neighbor)){
@@ -707,7 +707,7 @@ public sealed class GraphConstructor:MonoBehaviour{
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void RefreshLayout(){
         if(KCore.Instance.isRunning){return;}
-        physicsModel.Refresh(100);
+        physicsModel.Refresh(50);
     }
 
 

@@ -1,5 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
+
 using UnityEngine;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
@@ -7,6 +9,7 @@ using Unity.Mathematics;
 using Unity.Burst;
 using System.Runtime.CompilerServices;
 using Unity.Jobs;
+using UnityEngine.PlayerLoop;
 
 
 public sealed class PhysicsGraph:MonoBehaviour{
@@ -182,7 +185,30 @@ public sealed class PhysicsGraph:MonoBehaviour{
     private int head;
 
     private Allocate nodeAllocator;
-    private UnsafeList<float2> resultPositions;
+
+    [BurstCompile]
+    private struct Result{
+        private const int Locked=1,Freed=0;
+        private int _lock;
+        public float2 change;
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Init(){
+            _lock=Freed;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void GetLock(){
+            while(Interlocked.CompareExchange(ref _lock, Locked,Freed)!=Freed){}
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void FreeLock(){
+            Interlocked.Exchange(ref _lock, Freed);
+        }
+    }
+
+    private UnsafeList<Result> deltaChanges;
     private NativeArray<JobHandle> jobs;
     private UnsafeList<UnsafeList<int>> stacks;
 
@@ -325,7 +351,7 @@ public sealed class PhysicsGraph:MonoBehaviour{
 
         graph=new UnsafeList<Vertex>(reserveVertexNumber,Allocator.Persistent);
         edgesAttractions=new UnsafeHashMap<int2,float>(reserveVertexNumber,Allocator.Persistent);
-        resultPositions=new UnsafeList<float2>(reserveVertexNumber,Allocator.Persistent);
+        deltaChanges=new UnsafeList<Result>(reserveVertexNumber,Allocator.Persistent);
         _showingVertex=new UnsafeList<int>(reserveVertexNumber>>2,Allocator.Persistent);
 
         jobs=new NativeArray<JobHandle> (MaximumJob,Allocator.Persistent);
@@ -374,24 +400,29 @@ public sealed class PhysicsGraph:MonoBehaviour{
         ClearGraph();
         this.vertices=vertices;
         vertexNumber=inputGraph.Length;
-        int minLength=math.min(graph.Length,vertexNumber);
+        deltaChanges.Length=vertexNumber;
 
-        for(int i = 0;i<minLength;i++) {
-            (graph.Ptr+i)->neighbors.Length=inputGraph[i].Count;
-        }
         if(vertexNumber>graph.Length) {//increment graph.Length and allocate new unsafe lists
-            int i=graph.Length;
+            int i;
+            for(i=0;i<graph.Length;i++) {
+                (graph.Ptr+i)->neighbors.Length=inputGraph[i].Count;
+                (deltaChanges.Ptr+i)->Init();
+            }
+
             graph.Length=vertexNumber;
             for(;i<vertexNumber;i++) {
-                (graph.Ptr+i)->neighbors=new UnsafeList<int>(inputGraph[i].Count,Allocator.Persistent);
-                (graph.Ptr+i)->neighbors.Length=inputGraph[i].Count;
+                (graph.Ptr + i)->neighbors = new UnsafeList<int>(inputGraph[i].Count, Allocator.Persistent){Length = inputGraph[i].Count};
+                (deltaChanges.Ptr+i)->Init();
             }
         }
         else{
             graph.Length=vertexNumber;
+            for(int i=0;i<graph.Length;i++) {
+                (graph.Ptr+i)->neighbors.Length=inputGraph[i].Count;
+                (deltaChanges.Ptr+i)->Init();
+            }
         }
 
-        resultPositions.Length=vertexNumber;
         edgesAttractions.Capacity=math.max(vertexNumber,edgesAttractions.Capacity);
         
         for(short i = 0;i<vertexNumber;i++) {
@@ -417,23 +448,29 @@ public sealed class PhysicsGraph:MonoBehaviour{
     public async void Refresh(int iteration=15) {
         const float THRESHOLD=0.1f;
         float maximumMovedDistance;
-        for(int t=0;t<iteration;t++){
-            if((t&3)==0){
-                await System.Threading.Tasks.Task.Delay(100);
+        unsafe{
+            for(int i=0;i<vertexNumber;i++){
+                (deltaChanges.Ptr+i)->Init();
+                (deltaChanges.Ptr+i)->change=0;
             }
+        }
+        for(int t=0;t<iteration;t++){
+            await System.Threading.Tasks.Task.Delay(50);
 
             float coolingFactor=1-(t/(float)iteration);
             unsafe {
+                
+
                 for(int i = 0;i<vertexNumber;i+=32) {
                     int end=Mathf.Min(i+MaximumJob,vertexNumber);
                     for(int j = i;j<end;j++) {
-                        int mod=(j%MaximumJob);
+                        int mod=j%MaximumJob;
                         jobs[mod]=new FindForce() {
-                            Stack=stacks.Ptr+(mod),
+                            Stack=stacks.Ptr+mod,
                             graph=graph.Ptr,
                             vertex=graph.Ptr+j,
                             nodesAddr=nodes.Ptr,
-                            resultPosition=resultPositions.Ptr+j,
+                            deltaChanges=deltaChanges.Ptr,
                             edgesAttraction=this.edgesAttractions,
                             treeHead=head,
                             coolingFactor=coolingFactor,
@@ -445,7 +482,7 @@ public sealed class PhysicsGraph:MonoBehaviour{
                             graph=graph.Ptr,
                             vertex=graph.Ptr+j,
                             nodesAddr=nodes.Ptr,
-                            resultPosition=resultPositions.Ptr+j,
+                            deltaChanges=deltaChanges.Ptr,
                             edgesAttraction=this.edgesAttractions,
                             treeHead=head,
                             coolingFactor=coolingFactor,
@@ -458,8 +495,12 @@ public sealed class PhysicsGraph:MonoBehaviour{
 
             maximumMovedDistance=THRESHOLD;
             for(short i = 0;i<vertexNumber;i++) {
-                float ret=UpdateVertex(resultPositions[i],i);
+                float ret=UpdateVertex(deltaChanges[i].change+graph[i].position,i);
                 maximumMovedDistance=ret>0?math.max(maximumMovedDistance,ret):maximumMovedDistance;
+                unsafe{
+                    (deltaChanges.Ptr+i)->Init();
+                    (deltaChanges.Ptr+i)->change=0;
+                }
             }
             //Debug.Log($"max:{maximumMovedDistance} with colling factor {coolingFactor}");
             if(maximumMovedDistance<=THRESHOLD){
@@ -475,7 +516,7 @@ public sealed class PhysicsGraph:MonoBehaviour{
         [NativeDisableUnsafePtrRestriction]public UnsafeList<int>*Stack;
         [NativeDisableUnsafePtrRestriction][ReadOnly]public Vertex* vertex,graph;
         [NativeDisableUnsafePtrRestriction][ReadOnly]public TreeNode* nodesAddr;
-        [NativeDisableUnsafePtrRestriction][WriteOnly]public float2* resultPosition;
+        [NativeDisableUnsafePtrRestriction][WriteOnly]public Result* deltaChanges;
         [ReadOnly]public UnsafeHashMap<int2,float> edgesAttraction;
 
         public int treeHead;
@@ -486,21 +527,27 @@ public sealed class PhysicsGraph:MonoBehaviour{
         public void Execute() {
             stack=*Stack;
             center=vertex->position;
-            float2 force=((vertex->repulse*Repulsion())+Attraction()+TowardCenter())/vertex->mass;
+            float2 force=(Repulsion()+Attraction()+TowardCenter())/vertex->mass;
 
-            float2 finalPosition=center+coolingFactor*force;
-            Bound b = nodesAddr[treeHead].bound;
-            finalPosition=b.Clamp(finalPosition);
-            *resultPosition=finalPosition;
-
+            float2 delta=coolingFactor*force;
+            {
+                Bound b = nodesAddr[treeHead].bound;
+                delta=b.Clamp(delta);
+            }
+            {
+                Result* r=deltaChanges+(vertex-graph);
+                r->GetLock();
+                r->change+=delta;
+                r->FreeLock();
+            }
             *Stack=stack;
             //Check();
         }
 
         [BurstDiscard]
         private void Check(){
-            if(float.IsNaN(resultPosition->x)){
-                Debug.Log($"WTF with {vertex->repulse*Repulsion()} {Attraction()}");
+            if(float.IsNaN((deltaChanges+(vertex-graph))->change.x)){
+                Debug.Log($"WTF with {Repulsion()} {Attraction()}");
             }
         }
 
@@ -526,22 +573,32 @@ public sealed class PhysicsGraph:MonoBehaviour{
                 
                 TreeNode*n=node+nodesAddr;
                 for(int i = n->vertexCount-1;i>=0;i--) {
-                    if(n->vertices[i]==vertex->id) {
+                    int other=n->vertices[i];
+                    if(other==vertex->id) {
                         continue;
                     }
-                    float2 forceVector=center-(n->vertices[i]+graph)->position;
-                    float sqrDist=forceVector.x*forceVector.x+forceVector.y*forceVector.y;
-                    if(sqrDist>sqrRadius) {
-                        continue;
+                    float2 forceVector=center-(other+graph)->position;
+                    {
+                        float sqrDist=forceVector.x*forceVector.x+forceVector.y*forceVector.y;
+                        if(sqrDist>sqrRadius) {
+                            continue;
+                        }
+                        sqrDist=math.max(sqrDist,ZERO_DIST);
+                        float dist=math.sqrt(sqrDist);
+                        dist=math.max(dist,ZERO_DIST);
+                        forceVector/=dist;//normalize the vector
+                        float repulseForceFactor=(other+graph)->repulse*vertex->repulse/sqrDist;
+                        forceVector*=repulseForceFactor;
                     }
-                    float dist=math.sqrt(sqrDist);
-                    dist=math.max(dist,ZERO_DIST);
-                    sqrDist=math.max(sqrDist,ZERO_DIST);
-                    //normalize the vector
-                    forceVector.x=forceVector.x/dist;
-                    forceVector.y=forceVector.y/dist;
+                    force+=forceVector;
 
-                    force+=((n->vertices[i]+graph)->repulse/sqrDist)*(forceVector);
+                    {
+                        float2 otherForce=-coolingFactor/(other+graph)->mass*forceVector;//reverse the direction of force
+                        Result* r=deltaChanges+other;
+                        r->GetLock();
+                        r->change+=otherForce;
+                        r->FreeLock();
+                    }
                 }
             }
             return force;
@@ -576,8 +633,7 @@ public sealed class PhysicsGraph:MonoBehaviour{
                 float sqrDist=forceVector.x*forceVector.x+forceVector.y*forceVector.y;
                 float dist=Unity.Mathematics.math.sqrt(sqrDist);
                 dist=math.max(dist,ZERO_DIST);
-                forceVector.x=forceVector.x/dist;
-                forceVector.y=forceVector.y/dist;
+                forceVector/=dist;
                 force+=GetEdgeFactor(dist,forceFactor)*forceVector;
             }
             return force;
@@ -585,19 +641,17 @@ public sealed class PhysicsGraph:MonoBehaviour{
     
         private float2 TowardCenter(){
             float2 forceVector=0-center;//toward center
-            float sqrDist=forceVector.x*forceVector.x+forceVector.y*forceVector.y;
-            float dist=Unity.Mathematics.math.sqrt(sqrDist);
+            float dist=Unity.Mathematics.math.sqrt(forceVector.x*forceVector.x+forceVector.y*forceVector.y);
             dist=math.max(dist,ZERO_DIST);
-            forceVector.x=forceVector.x/dist;
-            forceVector.y=forceVector.y/dist;
-            float2 force=GetEdgeFactor(dist,25)*forceVector;
+            forceVector/=dist;
+            float2 force=GetEdgeFactor(dist,40)*forceVector;
             return force;
         }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private float GetEdgeFactor(in float dist,in float factor){
-            const float SEPEARATION=3.5f;
+            const float SEPEARATION=2f;
             return factor*dist*dist/SEPEARATION/1000f;
         }
     }
