@@ -4,15 +4,15 @@ using System.Runtime.CompilerServices;
 using UnityEngine;
 
 public class GameObjectPool : MonoBehaviour{
+    [SerializeField]private int initialCapacity = 300;
     [SerializeField]private GameObject Prefab;
     private Stack<GameObject> pool;
     
     //order in script execution order is earlier than other script
     void Awake(){
-        const int size=300;
-        pool=new Stack<GameObject>(size);
+        pool=new Stack<GameObject>(initialCapacity);
         
-        for(int i=0;i<size;i++){
+        for(int i=0;i<initialCapacity;i++){
             GameObject obj=Instantiate(Prefab,transform);
             obj.SetActive(false);
             pool.Push(obj);

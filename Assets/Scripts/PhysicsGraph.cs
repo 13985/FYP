@@ -445,7 +445,7 @@ public sealed class PhysicsGraph:MonoBehaviour{
     }
 
 
-    public async void Refresh(int iteration=15) {
+    public async System.Threading.Tasks.Task Refresh(int iteration=15) {
         const float THRESHOLD=0.1f;
         float maximumMovedDistance;
         unsafe{

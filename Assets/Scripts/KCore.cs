@@ -5,9 +5,7 @@ using UnityEngine;
 using UnityEditor;
 using UnityEngine.UI;
 using TMPro;
-using System.Reflection;
 using System.Runtime.CompilerServices;
-using Unity.VisualScripting;
 using Unity.Mathematics;
 
 public sealed class UnionFind{
@@ -96,6 +94,9 @@ public sealed class KCore:MonoBehaviour{
     [SerializeField]private UIController.ToggleButton statusPanelButton;
     [SerializeField]private UIController.ToggleButton progressPanelButton;
     [SerializeField]private UIController.Detail algoDetail;
+    [Header("Other UI")]
+    [SerializeField]private TMP_Dropdown smallSelect;
+    [SerializeField]private TMP_Dropdown largeSelect;
 
 
     private Color unprocessedColor;
@@ -124,6 +125,7 @@ public sealed class KCore:MonoBehaviour{
     public class ConnectedComponent{
         public List<int> vertice;
         public Vector2[] bounds;
+        public Mesh areaMesh;
         public readonly int kValue;
         public int Count{get{return vertice.Count;}}
 
@@ -139,6 +141,7 @@ public sealed class KCore:MonoBehaviour{
         public ConnectedComponent(int kValue,int capacity){
             vertice=new List<int>(capacity);
             this.kValue=kValue;
+            areaMesh=null;
         }
 
         public void Add(int v){
@@ -146,10 +149,11 @@ public sealed class KCore:MonoBehaviour{
         }
     }
 
-    public class CoreComponents{
+
+    public class ShellComponents{
         public List<ConnectedComponent> components;
         public readonly int k;
-        public CoreComponents(int k){
+        public ShellComponents(int k){
             this.k=k;
             components=new List<ConnectedComponent>();
         }
@@ -158,10 +162,13 @@ public sealed class KCore:MonoBehaviour{
         }
     }
 
-    private CoreComponents[] _shellDiffentComponents;
-    public CoreComponents[] shellDiffentComponents{
+    private ShellComponents[] _shellDiffentComponents;
+    public ShellComponents[] shellDiffentComponents{
         [MethodImpl(MethodImplOptions.AggressiveInlining)]get{return _shellDiffentComponents;}
     }
+
+
+    private int2 showShellRange;//used to filter the shell when visualizing
 
     void Awake() {
         _instance=this;
@@ -171,19 +178,22 @@ public sealed class KCore:MonoBehaviour{
         mainStepSlider.wholeNumbers=true;
         
         statusBoard.SetActive(false);
-        progressPanel.SetActive(false);
         statusPanelButton.Init();
         progressPanelButton.Init();
         algoDetail.Init();
+
+        smallSelect.onValueChanged.AddListener(OnSmallChange);
+        largeSelect.onValueChanged.AddListener(OnLargeChange);
     }
 
-    /*
+    
     void OnDrawGizmos() {
         if(Application.isPlaying==true&&shellDiffentComponents!=null) {
             Gizmos.color=Color.yellow;
             for(int i = 0;i<shellDiffentComponents.Length;i++) {
                 for(int j = 0;j<shellDiffentComponents[i].components.Count;j++) {
                     ConnectedComponent component = shellDiffentComponents[i].components[j];
+                    if(component.bounds==null)continue;
                     for(int k = 1;k<component.bounds.Length;k++) {
                         Gizmos.DrawLine(component.bounds[k-1],component.bounds[k]);
                     }
@@ -194,7 +204,11 @@ public sealed class KCore:MonoBehaviour{
             }
         }
     }
-    */
+    
+
+    void OnDestroy(){
+        ClearMeshes();
+    }
 
     public void PauseRunning(){
         stopRunning=true;
@@ -211,9 +225,8 @@ public sealed class KCore:MonoBehaviour{
         _hasRan=false;
         _isRunning=true;
         statusBoard.SetActive(true);
-        progressPanel.SetActive(true);
+        //progressPanel.SetActive(true);
         GraphConstructor.instance.UpdateAllEdges(true);
-        Debug.Log("hi");
         runningKCore=StartCoroutine(Animate(true));
     }
 
@@ -316,6 +329,18 @@ public sealed class KCore:MonoBehaviour{
                 }
             }
         }
+
+        showShellRange.x=0;
+        showShellRange.y=currentShell;
+        smallSelect.ClearOptions();
+        largeSelect.ClearOptions();
+        for(int i=0;i<=currentShell;++i){
+            smallSelect.options.Add(new TMP_Dropdown.OptionData($"{i}",null));
+            largeSelect.options.Add(new TMP_Dropdown.OptionData($"{i}",null));
+        }
+        smallSelect.SetValueWithoutNotify(showShellRange.x);
+        largeSelect.SetValueWithoutNotify(showShellRange.y);
+
         maximumDegree=currentShell+1;
         candiates[0].Dispose();
         candiates[1].Dispose();
@@ -331,7 +356,7 @@ public sealed class KCore:MonoBehaviour{
 
         System.GC.Collect();
     }
-
+    
 
     private IEnumerator Animate(bool old){
         GameObject[] reverseMapping=GraphConstructor.instance.ReverseMapping;
@@ -367,14 +392,18 @@ public sealed class KCore:MonoBehaviour{
 
         while(true){
             shellText.text=$"shell: {currentShell}";
-            yield return Wait();
+            if(currentShell>=showShellRange.x&&currentShell<=showShellRange.y){
+                yield return Wait();
+            }
             while(candiates[0].TryRemoveLast(out int vertex)){//get one vertex in first list
                 ancestorText.text=$"processing: {vertex}";
                 GraphConstructor.instance.ShowEdgesOfVertex(vertex);
                 vertexKValue[vertex]=currentShell;
                 degree[vertex]=-1;
                 reverseMapping[vertex].GetComponent<SpriteRenderer>().color=_shellColor[currentShell];
-                yield return Wait();
+                if(currentShell>=showShellRange.x&&currentShell<=showShellRange.y){
+                    yield return Wait();
+                }
 
                 for(int i=0;i<adjacencyList[vertex].Count;i++){//process all its neighbor (decrement their degree)
                     int neighbor=adjacencyList[vertex][i];
@@ -383,7 +412,9 @@ public sealed class KCore:MonoBehaviour{
                     }
                     reverseMapping[neighbor].GetComponent<SpriteRenderer>().color=Color.white;
                     descendantText.text=$"neighbor: {neighbor}\ndegree: {degree[neighbor]}";
-                    yield return Wait();
+                    if(currentShell>=showShellRange.x&&currentShell<=showShellRange.y){
+                        yield return Wait();
+                    }
 
                     degree[neighbor]--;
                     if(degree[neighbor]<=currentShell&&candiates[1].Remove(neighbor)){//getIndex[neighbor]<0 means its already in group0, no need to moveDown again
@@ -391,7 +422,9 @@ public sealed class KCore:MonoBehaviour{
                     }
                     reverseMapping[neighbor].GetComponent<SpriteRenderer>().color=unprocessedColor;
                     descendantText.text=$"neighbor: {neighbor}\ndegree: {degree[neighbor]}";
-                    yield return Wait();
+                    if(currentShell>=showShellRange.x&&currentShell<=showShellRange.y){
+                        yield return Wait();
+                    }
                 }
                 GraphConstructor.instance.HideEdgesOfVertex(vertex);
             }
@@ -731,9 +764,9 @@ public sealed class KCore:MonoBehaviour{
         int differentComponent=1;
         int kValue;
 
-        _shellDiffentComponents=new CoreComponents[MaxK];
+        _shellDiffentComponents=new ShellComponents[MaxK];
         for(int k=0;k<MaxK;k++){
-            _shellDiffentComponents[k]=new CoreComponents(k);
+            _shellDiffentComponents[k]=new ShellComponents(k);
         }
         _shellDiffentComponents[0].Add(new ConnectedComponent(0,0));
         
@@ -765,16 +798,7 @@ public sealed class KCore:MonoBehaviour{
                     _shellDiffentComponents[0].components[0].Add(vertex);
                 }
             }
-        }
-
-        /*
-        for(int k = 0;k<shellDiffentComponents.Length;++k) {
-            for(int c = 0;c<shellDiffentComponents[k].components.Count;++c) {
-                //find all convex hull of differen connected componet of differenk k value
-                shellDiffentComponents[k].components[c].bounds=ConvexHull.Solve(shellDiffentComponents[k].components[c],GraphConstructor.instance.ReverseMapping);
-            }
-        }
-        */
+        }    
     }
 
     private void CleanUp(){
@@ -784,35 +808,35 @@ public sealed class KCore:MonoBehaviour{
         GraphConstructor.instance.UpdateAllEdges(UIController.instance.HideEdge());
     }
 
+
     /*
      *reference:https://web.ntnu.edu.tw/~algo/ConvexHull.html
      *Andrew's Monotone Chain
+    */
     private static class ConvexHull {
         private static List<Transform> vertice=new List<Transform>();
         private static List<Vector2> bounds=new List<Vector2>();
 
-        private class Comparator:IComparer<Transform> {
+        private struct Comparator:IComparer<Transform> {
             public int Compare(Transform a, Transform b) {
                 Vector2 posA=a.position,posB=b.position;
                 if(Mathf.Approximately(posA.x,posB.x)) {
                     if(Mathf.Approximately(posA.y,posB.y)) {
                         return 0;
-                    }
-                    else if(posA.y < posB.y) {
+                    }else if(posA.y < posB.y) {
                         return -1;
-                    }
-                    else if(posA.y > posB.y) {
+                    }else if(posA.y > posB.y) {
                         return 1;
+                    }else{
+                        return 0;
                     }
-                }
-                else if(posA.x < posB.x) {
+                }else if(posA.x < posB.x) {
                     return -1;
-                }
-                else if(posA.x > posB.x) {
+                }else if(posA.x > posB.x) {
                     return 1;
+                }else{
+                    return 0;
                 }
-
-                return 123456789;
             }
         }
 
@@ -875,8 +899,80 @@ public sealed class KCore:MonoBehaviour{
             //Debug.Log($"end with {m}");
             return result;
         }
+
+
+        public static Mesh CreateMesh(Vector2[] polygon,Color32 color){
+            if(polygon.Length<3){return null;}
+            Mesh mesh=new Mesh();
+            Vector3[] vertices=new Vector3[polygon.Length],normals=new Vector3[polygon.Length];
+            Vector2[] uv=new Vector2[polygon.Length];
+            for(int i=0;i<polygon.Length;++i){
+                vertices[i].x=polygon[i].x;
+                vertices[i].y=polygon[i].y;
+                vertices[i].z=0;
+                normals[i]=Vector3.forward;
+                uv[i]=Vector2.one;
+            }
+            mesh.vertices=vertices;
+            mesh.normals=normals;
+            uv[0]=Vector2.zero;
+            mesh.uv=uv;
+            
+            Color32[] colors32=new Color32[polygon.Length];
+            for(int i=0;i<polygon.Length;++i){
+                colors32[i]=color;
+            }
+            mesh.colors32=colors32;
+
+            Debug.Assert(3 * (polygon.Length-2)>0&&3 * (polygon.Length-2)<3000);
+
+            int[] triangles=new int[3 * (polygon.Length-2)];
+            for(int i=0,j=0;i<vertices.Length-2;++i,++j){
+                triangles[3*j]=0;
+                triangles[3*j+1]=i+1;
+                triangles[3*j+2]=i+2;
+            }
+            mesh.triangles=triangles;
+            return mesh;
+        }
     }
-    */
+
+
+    public void GenerateBoundary(){
+        for(int k = 0;k<shellDiffentComponents.Length;++k) {
+            for(int c = 0;c<shellDiffentComponents[k].components.Count;++c) {
+                //find all convex hull of differen connected componet of differenk k value
+                shellDiffentComponents[k].components[c].bounds=ConvexHull.Solve(shellDiffentComponents[k].components[c],GraphConstructor.instance.ReverseMapping);
+            }
+        }
+    }
+    
+
+    public void ClearMeshes(){
+        foreach(ShellComponents sc in shellDiffentComponents){
+            foreach(ConnectedComponent cc in sc.components){
+                if(cc.areaMesh==null){continue;}
+                Destroy(cc.areaMesh);
+                cc.areaMesh=null;
+            }
+        }
+    }
+
+
+    public ShellComponents[] GenerateMeshes(){
+        for(int shell=1;shell<shellDiffentComponents.Length;++shell){
+            ShellComponents sc=shellDiffentComponents[shell];
+            foreach(ConnectedComponent cc in sc.components){
+                cc.bounds=ConvexHull.Solve(cc,GraphConstructor.instance.ReverseMapping);
+                Color32 color=shellColor[shell];
+                color.a=(byte)(0.1*255);
+                cc.areaMesh=ConvexHull.CreateMesh(cc.bounds,color);
+            }
+        }
+
+        return shellDiffentComponents;
+    }
+
 
     public void CloseAlgoDetail(){
         algoDetail.Set(false);
@@ -893,5 +989,42 @@ public sealed class KCore:MonoBehaviour{
     public void OnAlgoDetail(){
         algoDetail.Toggle();
         UIController.instance.CloseAllDetails();
+    }
+
+
+    private void OnSmallChange(int val){
+        int value=int.Parse(smallSelect.options[val].text);
+        if(showShellRange.x==value){
+            return;
+        }
+        else if(showShellRange.y<value){
+            showShellRange.y=shellDiffentComponents.Length-1;
+        }
+        showShellRange.x=value;
+
+        largeSelect.ClearOptions();
+        for(int i=showShellRange.x;i<shellDiffentComponents.Length;++i){
+            largeSelect.options.Add(new TMP_Dropdown.OptionData($"{i}",null));
+        }
+        Debug.Log($"set {showShellRange.y-showShellRange.x}");
+        largeSelect.SetValueWithoutNotify(showShellRange.y-showShellRange.x);
+    }
+
+
+    private void OnLargeChange(int val){
+        int value=int.Parse(largeSelect.options[val].text);
+        if(showShellRange.y==value){
+            return;
+        }
+        else if(showShellRange.x>value){
+            showShellRange.x=0;
+        }
+        showShellRange.y=value;
+
+        smallSelect.ClearOptions();
+        for(int i=0;i<=showShellRange.y;++i){
+            smallSelect.options.Add(new TMP_Dropdown.OptionData($"{i}",null));
+        }
+        smallSelect.SetValueWithoutNotify(showShellRange.x);
     }
 }

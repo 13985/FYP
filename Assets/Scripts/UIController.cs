@@ -173,6 +173,8 @@ public sealed class UIController : MonoBehaviour{
         [MethodImpl(MethodImplOptions.AggressiveInlining)]get{ return _selectedVertexID; }
     }
 
+
+
     void Awake() {
         _instance=this;
         cameraMove = CameraMove.Stop;

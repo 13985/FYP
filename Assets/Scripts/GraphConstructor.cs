@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
@@ -19,7 +18,6 @@ using Unity.Jobs;
 
 using DotNetGraph.Core;
 using DotNetGraph.Compilation;
-
 using DotNetGraph.Extensions;
 
 using Debug=UnityEngine.Debug;
@@ -247,6 +245,10 @@ public sealed class GraphConstructor:MonoBehaviour{
     [SerializeField]private TextAsset inputFile;
     [SerializeField]private GameObjectPool vertexPool,edgePool;
     [SerializeField]private float radiusDiff,vertexSeparation;
+    [Header("Area highlighting")]
+    [SerializeField]private GameObjectPool meshFilterPool;
+
+
     private List<List<int>> orbits=new List<List<int>>();
     private Dictionary<int,int> getOrbit=new Dictionary<int,int>(MaximumVertexNumber*2);//vertex->orbit locate at
     private Dictionary<int2,GameObject> showedEdges;
@@ -254,6 +256,7 @@ public sealed class GraphConstructor:MonoBehaviour{
     private MinHeap availableOrbits;
     private SparseSet vertice;
     public Transform folder;
+    private List<GameObject> usedMeshFilters;
 
     private void CreateSample(){
         Dictionary<GameObject,int> map = new Dictionary<GameObject,int>();
@@ -305,6 +308,7 @@ public sealed class GraphConstructor:MonoBehaviour{
         }
 
         showingSelectedVertexEdge=false;
+        usedMeshFilters=new List<GameObject>();
     }
 
 
@@ -335,6 +339,7 @@ public sealed class GraphConstructor:MonoBehaviour{
         if(KCore.Instance!=null){
             KCore.Instance.PreProcess(out shells);
             Layout1();
+            UpdateAllEdges(UIController.instance.HideEdge());
         }
     }
 
@@ -643,7 +648,7 @@ public sealed class GraphConstructor:MonoBehaviour{
 
 
     unsafe private void Layout1(){
-        KCore.CoreComponents[] components=KCore.Instance.shellDiffentComponents;
+        KCore.ShellComponents[] components=KCore.Instance.shellDiffentComponents;
         HashSet<int> sameComponent=new HashSet<int>();
         float radius=0;
 
@@ -705,9 +710,25 @@ public sealed class GraphConstructor:MonoBehaviour{
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void RefreshLayout(){
+    public async void RefreshLayout(){
         if(KCore.Instance.isRunning){return;}
-        physicsModel.Refresh(50);
+        await physicsModel.Refresh(50);
+
+        //KCore.Instance.GenerateBoundary();return;
+        foreach(GameObject obj in usedMeshFilters){
+            meshFilterPool.Release(obj);
+        }
+        usedMeshFilters.Clear();
+        KCore.Instance.ClearMeshes();
+        KCore.ShellComponents[] scs=KCore.Instance.GenerateMeshes();
+        foreach(KCore.ShellComponents sc in scs){
+            foreach(KCore.ConnectedComponent cc in sc.components){
+                if(cc.areaMesh==null)continue;
+                GameObject go=meshFilterPool.Get();
+                go.GetComponent<MeshFilter>().mesh = cc.areaMesh;
+                usedMeshFilters.Add(go);
+            }
+        }
     }
 
 
