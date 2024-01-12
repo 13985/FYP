@@ -910,7 +910,7 @@ public sealed class KCore:MonoBehaviour{
                 vertices[i].x=polygon[i].x;
                 vertices[i].y=polygon[i].y;
                 vertices[i].z=0;
-                normals[i]=Vector3.forward;
+                normals[i]=-Vector3.forward;
                 uv[i]=Vector2.one;
             }
             mesh.vertices=vertices;
@@ -929,8 +929,8 @@ public sealed class KCore:MonoBehaviour{
             int[] triangles=new int[3 * (polygon.Length-2)];
             for(int i=0,j=0;i<vertices.Length-2;++i,++j){
                 triangles[3*j]=0;
-                triangles[3*j+1]=i+1;
-                triangles[3*j+2]=i+2;
+                triangles[3*j+1]=i+2;
+                triangles[3*j+2]=i+1;
             }
             mesh.triangles=triangles;
             return mesh;
