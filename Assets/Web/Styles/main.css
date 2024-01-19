@@ -1,0 +1,8 @@
+main{
+    height:var(--main-height);
+}
+
+
+#graph-container>svg{
+    background-color: var(--main-color1);
+}

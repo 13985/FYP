@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+    <title>Test</title>
+
+    <link rel="stylesheet" href="./Styles/all.css">
+    <link rel="stylesheet" href="./Styles/header.css">
+    <link rel="stylesheet" href="./Styles/main.css">
+    <link rel="stylesheet" href="./Styles/footer.css">
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="./JS/Graph.js"></script>
+    <script src="./JS/all.js"></script>
+    <script src="./JS/KCore.js"></script>
+</head>
+<body>
+    <header class="row-display">
+        <nav class="header-nav">
+            <ul id="graph-nav" class="row-display">
+                <li class="header-nav-li"><!------------------------------------Graph pop up-------------------------------------------->
+                    <input type="checkbox" id="graph-popup-set"/>
+                    <div class="nav-li-text-div">
+                        <label for="graph-popup-set">Graph</label>
+                    </div>
+                    <div class="nav-li-popup">
+                        <input type="file" class="nav-li-fixed-color" id="graphupload">
+                        <button type="button" id="graph-choose-button" class="nav-li-button" onclick="document.getElementById('graphupload').click()">Choose</button>
+                        <button type="button" id="graph-upload-button" class="nav-li-button">Upload</button>
+                        <hr>
+                        <p id="graph-VE-status">
+                            |V|:10000<br>|E|:10000
+                        </p>
+                    </div>
+                </li>
+                <li class="header-nav-li"><!------------------------------------Vertex pop up------------------------------------------->
+                    <input type="checkbox" id="vertex-popup-set"/>
+                    <div class="nav-li-text-div">
+                        <label for="vertex-popup-set">Vertex</label>
+                    </div>
+                    <div class="nav-li-popup">
+                        <select class="graph-update" id="vertex-update">
+                            <option class="graph-update-option" value="create">Create</option>
+                            <option class="graph-update-option" value="remove">Remove</option>
+                            <option class="graph-update-option" value="color">Color</option>
+                        </select>
+                        <input class="vertices-input" id="vertex-popup-input" type="text" pattern="(?:\d+\s?)+" max-length="500"/>
+                        <input class="nav-li-set-color" id="vertex-set-color" type="color"/>
+                        <button type="button" id="vertex-update-button" class="nav-li-button">Update</button>
+                    </div>
+                </li>
+                <li class="header-nav-li"><!------------------------------------Edge pop up------------------------------------------->
+                    <input type="checkbox" id="edge-popup-set"/>
+                    <div class="nav-li-text-div">
+                        <label for="edge-popup-set">Edge</label>
+                    </div>
+                    <div class="nav-li-popup">
+                        <select class="graph-update" id="edge-update">
+                            <option class="graph-update-option" value="create">Create</option>
+                            <option class="graph-update-option" value="remove">Remove</option>
+                        </select>
+                        <input class="vertices-input" id="edge-popup-input" type="text" pattern="(?:\d+\s?,\s?\d+\s?)+" max-length="500"/>
+                        <button type="button" id="edge-update-button" class="nav-li-button">Update</button>
+                    </div>
+                </li>
+            </ul>
+        </nav>
+        <div class="divider-vertical"></div>
+        <nav class="header-nav">
+            <ul id="control-nav" class="row-display">
+                <li class="header-nav-li"><!------------------------------------Camera pop up-------------------------------------------->
+                    <input type="checkbox" id="camera-popup-set"/>
+                    <div class="nav-li-text-div">
+                        <label for="camera-popup-set">Camera</label>
+                    </div>
+                    <div class="nav-li-popup">
+                        <input type="range" class="nav-li-range" id="zoom-slider" step="0.05">
+                        <input type="number" class="vertices-input nav-li-number" id="zoom-typing" step="0.05">
+                        <hr>
+                        <input type="checkbox" id="camera-move-set">
+                        <label for="camera-move-set">Move</label>
+                        <label for="move-speed-control">Sensitivity</label>
+                        <input type="range" class="nav-li-range" id="move-speed-control" step="0.01">
+                        <hr>
+                        <input type="text" class="vertices-input" id="camera-teleport-input"/>
+                        <button type="button" id="camera-teleport-button" class="nav-li-button">Teleport</button>
+                    </div>
+                </li>
+                <li class="header-nav-li"><!------------------------------------Algo pop up------------------------------------------->
+                    <input type="checkbox" id="algo-popup-set"/>
+                    <div class="nav-li-text-div">
+                        <label for="algo-popup-set">Algo</label>
+                    </div>
+                    <div class="nav-li-popup">
+                        <div class="row-display dummy-container">
+                            <select id="from-shell-value" class="nav-li-popup-box"></select>
+                            <select id="to-shell-value" class="nav-li-popup-box"></select>
+                        </div>
+                        <button type="button" class="nav-li-button" id="run-algo">Run</button>
+                    </div>
+                </li>
+            </ul>
+        </nav>
+        <div class="divider-vertical"></div>
+        <div class="theme-button">
+            <input type="checkbox" id="theme-button-set">
+            <label class="theme-button-detect" for="theme-button-set">
+                <div class="theme-button-handle"></div>
+            </label>
+        </div>
+    </header>
+    <main id="graph-container">
+        <svg width="100%" height="100%">
+
+        </svg>
+    </main>
+    <footer class="row-display">
+        <nav>
+            <ul id="footer-nav-ul" class="row-display">
+                <li><a href="https://www.cse.cuhk.edu.hk/" title="the chinese university of hong kong" target="_blank">CUHK CSE</a></li>
+                <li><a href="https://github.com/13985/FYP" title="author github" target="_blank">Github</a></li>
+            </ul>
+        </nav>
+    </footer>
+</body>
+</html>
