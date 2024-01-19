@@ -39,6 +39,9 @@ window.onload = function () {
     ";
     const scrollBarDarkSytle = document.createElement("style");
     scrollBarDarkSytle.innerText = scrollbarDarkCSS;
+    /**************************************************Vertex pop up****************************************************/
+    const vertexPopupInput = document.getElementById("vertex-popup-input");
+    const vertexSetColor = document.getElementById("vertex-set-color");
     themeButton.addEventListener("change", () => {
         if (themeButton.checked == true) {
             for (let i = 0; i < 5; ++i) {
@@ -135,6 +138,8 @@ window.onload = function () {
         function dragstarted(event, _vertex) {
             if (!event.active)
                 simulation.alphaTarget(0.3).restart();
+            vertexPopupInput.value = event.subject.id.toString();
+            vertexSetColor.value = event.subject.getColor();
             event.subject.fx = event.subject.x;
             event.subject.fy = event.subject.y;
         }
@@ -202,8 +207,6 @@ window.onload = function () {
     ");
     /****************************************************Vertex pop up**************************************************/
     const vertexUpdateSelect = document.getElementById("vertex-update");
-    const vertexSetColor = document.getElementById("vertex-set-color");
-    const vertexPopupInput = document.getElementById("vertex-popup-input");
     const vertexUpdateButton = document.getElementById("vertex-update-button");
     vertexSetColor.style.display = vertexUpdateSelect.value == "color" ? "block" : "none";
     vertexUpdateSelect.addEventListener("input", () => {
@@ -235,54 +238,17 @@ window.onload = function () {
         const theVertex = parseInt(vertexPopupInput.value);
         switch (vertexUpdateSelect.value) {
             case "create": {
-                if (graph.adjacencyList.get(theVertex) != undefined) {
+                if (graph.tryAddVertex(theVertex) == null) {
                     break;
                 }
-                const v = new Vertex(theVertex);
-                const vl = new VerticeList(v);
-                graph.adjacencyList.set(theVertex, vl);
-                graph.vertices.push(v);
                 updateSimulation();
                 setVENumber();
                 break;
             }
             case "remove": {
-                const vl = graph.adjacencyList.get(theVertex);
-                if (vl == undefined) {
+                if (graph.tryRemoveVertex(theVertex) == null) {
                     break;
                 }
-                for (const v_id of vl.others) {
-                    const other_vl = graph.adjacencyList.get(v_id);
-                    for (let i = 0; i < other_vl.others.length; ++i) {
-                        if (other_vl.others[i] != theVertex) {
-                            continue;
-                        }
-                        other_vl.others = other_vl.others.splice(i, 1);
-                        break;
-                    }
-                }
-                graph.adjacencyList.delete(theVertex);
-                for (let i = 0; i < graph.vertices.length; ++i) {
-                    if (graph.vertices[i].id != vl.main.id) {
-                        continue;
-                    }
-                    //(graph.vertices[i].circle as SVGCircleElement).remove();
-                    graph.vertices.splice(i, 1);
-                    break;
-                }
-                let lengthLeft = graph.edges.length;
-                for (let i = 0; i < lengthLeft;) {
-                    const e = graph.edges[i];
-                    if (e.source.id != theVertex && e.target.id != theVertex) {
-                        ++i;
-                    }
-                    else {
-                        //(e.line as SVGLineElement).remove();
-                        graph.edges[i] = graph.edges[lengthLeft - 1];
-                        --lengthLeft;
-                    }
-                }
-                graph.edges.length = lengthLeft;
                 updateSimulation();
                 setVENumber();
                 break;
@@ -394,4 +360,6 @@ window.onload = function () {
         graphSVG.selectAll("g").attr("transform", `translate(${SVGGOffsetX} ${SVGGOffsetY})`);
     });
     /****************************************************Algo popup **********************************************/
+    const fromShell = document.getElementById("from-shell-value");
+    const toShell = document.getElementById("to-shell-value");
 };

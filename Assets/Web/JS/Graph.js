@@ -160,4 +160,57 @@ class Graph {
             }
         }
     }
+    tryRemoveVertex(theVertex) {
+        const vl = this.adjacencyList.get(theVertex);
+        if (vl == undefined) {
+            return null;
+        }
+        for (const v_id of vl.others) {
+            const other_vl = this.adjacencyList.get(v_id);
+            for (let i = 0; i < other_vl.others.length; ++i) {
+                if (other_vl.others[i] != theVertex) {
+                    continue;
+                }
+                other_vl.others.splice(i, 1);
+                break;
+            }
+        }
+        this.adjacencyList.delete(theVertex);
+        for (let i = 0; i < this.vertices.length; ++i) {
+            if (this.vertices[i].id != vl.main.id) {
+                continue;
+            }
+            //(graph.vertices[i].circle as SVGCircleElement).remove();
+            this.vertices.splice(i, 1);
+            break;
+        }
+        let lengthLeft = this.edges.length;
+        for (let i = 0; i < lengthLeft;) {
+            const e = this.edges[i];
+            if (e.source.id != theVertex && e.target.id != theVertex) {
+                ++i;
+            }
+            else {
+                //(e.line as SVGLineElement).remove();
+                this.edges[i] = this.edges[lengthLeft - 1];
+                --lengthLeft;
+            }
+        }
+        this.edges.length = lengthLeft;
+        return vl.main;
+    }
+    tryAddVertex(theVertex) {
+        if (this.adjacencyList.get(theVertex) != undefined) {
+            return null;
+        }
+        const v = new Vertex(theVertex);
+        const vl = new VerticeList(v);
+        this.adjacencyList.set(theVertex, vl);
+        this.vertices.push(v);
+        return v;
+    }
+    addEdges() {
+    }
+    removeEdges() {
+    }
 }

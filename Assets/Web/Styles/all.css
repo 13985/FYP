@@ -69,15 +69,19 @@ html::-webkit-scrollbar-thumb:active{
 }
 
 
-body>*{
-    width:100%;
-}
-
-
 body{
     --header-height:80px;
     --main-height:800px;
     --footer-height:65px;
+
+    scroll-snap-type: y mandatory;
+}
+
+
+
+body>*{
+    width:100%;
+    scroll-snap-align: start;
 }
 
 

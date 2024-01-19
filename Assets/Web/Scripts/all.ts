@@ -43,6 +43,11 @@ window.onload=function(){
     const scrollBarDarkSytle:HTMLStyleElement=document.createElement("style") as HTMLStyleElement;
     scrollBarDarkSytle.innerText=scrollbarDarkCSS;
 
+    /**************************************************Vertex pop up****************************************************/
+    const vertexPopupInput:HTMLInputElement=<HTMLInputElement>document.getElementById("vertex-popup-input");
+    const vertexSetColor:HTMLInputElement=<HTMLInputElement>document.getElementById("vertex-set-color");
+
+
     themeButton.addEventListener("change",():void=>{
         if(themeButton.checked==true){
             for(let i:number=0;i<5;++i){
@@ -152,6 +157,8 @@ window.onload=function(){
         }
         function dragstarted(event:any,_vertex:Vertex):void{
             if(!event.active)simulation.alphaTarget(0.3).restart();
+            vertexPopupInput.value=(event.subject as Vertex).id.toString();
+            vertexSetColor.value=(event.subject as Vertex).getColor();
             event.subject.fx=event.subject.x;
             event.subject.fy=event.subject.y;
         }
@@ -227,8 +234,6 @@ window.onload=function(){
 
     /****************************************************Vertex pop up**************************************************/
     const vertexUpdateSelect:HTMLSelectElement=<HTMLSelectElement>document.getElementById("vertex-update");
-    const vertexSetColor:HTMLInputElement=<HTMLInputElement>document.getElementById("vertex-set-color");
-    const vertexPopupInput:HTMLInputElement=<HTMLInputElement>document.getElementById("vertex-popup-input");
     const vertexUpdateButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("vertex-update-button");
 
     vertexSetColor.style.display=vertexUpdateSelect.value=="color"?"block":"none";
@@ -265,51 +270,17 @@ window.onload=function(){
         const theVertex:number=parseInt(vertexPopupInput.value);
         switch(vertexUpdateSelect.value){
         case "create":{
-            if(graph.adjacencyList.get(theVertex)!=undefined){
+            if(graph.tryAddVertex(theVertex)==null){
                 break;
             }
-            const v:Vertex=new Vertex(theVertex);
-            const vl:VerticeList=new VerticeList(v);
-            graph.adjacencyList.set(theVertex,vl);
-            graph.vertices.push(v);
             updateSimulation();
             setVENumber();
             break;
         }
         case "remove":{
-            const vl:VerticeList|undefined=graph.adjacencyList.get(theVertex);
-            if(vl==undefined){
+            if(graph.tryRemoveVertex(theVertex)==null){
                 break;
             }
-
-            for(const v_id of vl.others){
-                const other_vl:VerticeList=<VerticeList>graph.adjacencyList.get(v_id);
-                for(let i:number=0;i<other_vl.others.length;++i){
-                    if(other_vl.others[i]!=theVertex){continue;}
-                    other_vl.others=other_vl.others.splice(i,1);
-                    break;
-                }
-            }
-            graph.adjacencyList.delete(theVertex);
-            for(let i:number=0;i<graph.vertices.length;++i){
-                if(graph.vertices[i].id!=vl.main.id){continue;}
-                //(graph.vertices[i].circle as SVGCircleElement).remove();
-                graph.vertices.splice(i,1);
-                break;
-            }
-
-            let lengthLeft:number=graph.edges.length;
-            for(let i:number=0;i<lengthLeft;){
-                const e:Edge=graph.edges[i];
-                if(e.source.id!=theVertex&&e.target.id!=theVertex){
-                    ++i;
-                }else{
-                    //(e.line as SVGLineElement).remove();
-                    graph.edges[i]=graph.edges[lengthLeft-1];
-                    --lengthLeft;
-                }
-            }
-            graph.edges.length=lengthLeft;
             updateSimulation();
             setVENumber();
             break;
