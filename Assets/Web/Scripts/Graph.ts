@@ -91,6 +91,7 @@ class Graph implements IClone<Graph>{
     public adjacencyList:Map<number,VerticeList>;
     public edges:Array<Edge>;
     public vertices:Array<Vertex>;
+    private static readonly edgeFormat:RegExp=/[\s?\d+\s?][,|\s?][\d+\s?]/;
 
 
     constructor(){
@@ -104,7 +105,7 @@ class Graph implements IClone<Graph>{
         const edges:string[]=edgeListRaw.split(/[\r\n|\r|\n]+/);
 
         edges.forEach((e)=>{
-            if(/[\s?\d+\s?][,|\s?][\d+\s?]/.test(e)==false){
+            if(Graph.edgeFormat.test(e)==false){
                 return;
             }
             const matchedValues=e.match(/(\d+)/g);
@@ -274,12 +275,11 @@ class Graph implements IClone<Graph>{
     }
 
 
-    public addEdges():void{
-
+    public addEdges(edges:string):void{
     }
 
 
-    public removeEdges():void{
+    public removeEdges(edges:string):void{
         
     }
 }

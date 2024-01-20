@@ -59,7 +59,7 @@ class Graph {
     from(edgeListRaw) {
         const edges = edgeListRaw.split(/[\r\n|\r|\n]+/);
         edges.forEach((e) => {
-            if (/[\s?\d+\s?][,|\s?][\d+\s?]/.test(e) == false) {
+            if (Graph.edgeFormat.test(e) == false) {
                 return;
             }
             const matchedValues = e.match(/(\d+)/g);
@@ -209,8 +209,9 @@ class Graph {
         this.vertices.push(v);
         return v;
     }
-    addEdges() {
+    addEdges(edges) {
     }
-    removeEdges() {
+    removeEdges(edges) {
     }
 }
+Graph.edgeFormat = /[\s?\d+\s?][,|\s?][\d+\s?]/;

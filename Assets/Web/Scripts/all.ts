@@ -23,6 +23,7 @@ window.onload=function(){
 
     var SVGGOffsetX:number=0,SVGGOffsetY:number=0;
     const graph:Graph=new Graph();
+    const kCore:KCoreAlgorithm.KCore=new KCoreAlgorithm.KCore(graph);
 
     const scrollbarDarkCSS:string="\
         html::-webkit-scrollbar-button{\
@@ -47,6 +48,9 @@ window.onload=function(){
     const vertexPopupInput:HTMLInputElement=<HTMLInputElement>document.getElementById("vertex-popup-input");
     const vertexSetColor:HTMLInputElement=<HTMLInputElement>document.getElementById("vertex-set-color");
 
+    /****************************************************Algo popup **********************************************/
+    const fromShell:HTMLSelectElement=<HTMLSelectElement>document.getElementById("from-shell-value");
+    const toShell:HTMLSelectElement=<HTMLSelectElement>document.getElementById("to-shell-value");
 
     themeButton.addEventListener("change",():void=>{
         if(themeButton.checked==true){
@@ -185,7 +189,8 @@ window.onload=function(){
         setVENumber();
         SVGGOffsetX=0;
         SVGGOffsetY=0;
-        (graphSVG.selectAll("g") as d3.Selection<SVGGElement,unknown,SVGElement,unknown>).attr("transform",`translate(${SVGGOffsetX} ${SVGGOffsetY})`);
+        (graphSVG.selectAll("g") as d3.Selection<SVGGElement,unknown,SVGElement,unknown>).attr("transform",`translate(0 0)`);
+        kCore.fastIteration().setColor("#FFFF00","#FF0000").setSelects(fromShell,toShell);
     }
 
 
@@ -309,11 +314,11 @@ window.onload=function(){
     }
     setZoomBound();
 
-    zoomSlider.addEventListener('change',():void=>{
+    zoomSlider.addEventListener('input',():void=>{
         zoomNumberInput.value=zoomSlider.value;
     });
 
-    zoomNumberInput.addEventListener('change',():void=>{
+    zoomNumberInput.addEventListener('input',():void=>{
         zoomSlider.value=zoomNumberInput.value;
     });
 
@@ -407,8 +412,6 @@ window.onload=function(){
 
 
     /****************************************************Algo popup **********************************************/
-    const fromShell:HTMLSelectElement=<HTMLSelectElement>document.getElementById("from-shell-value");
-    const toShell:HTMLSelectElement=<HTMLSelectElement>document.getElementById("to-shell-value");
 
     
 }

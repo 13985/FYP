@@ -21,6 +21,7 @@ window.onload = function () {
         .selectAll("circle");
     var SVGGOffsetX = 0, SVGGOffsetY = 0;
     const graph = new Graph();
+    const kCore = new KCoreAlgorithm.KCore(graph);
     const scrollbarDarkCSS = "\
         html::-webkit-scrollbar-button{\
             background-color:var(--background-dark);\
@@ -42,6 +43,9 @@ window.onload = function () {
     /**************************************************Vertex pop up****************************************************/
     const vertexPopupInput = document.getElementById("vertex-popup-input");
     const vertexSetColor = document.getElementById("vertex-set-color");
+    /****************************************************Algo popup **********************************************/
+    const fromShell = document.getElementById("from-shell-value");
+    const toShell = document.getElementById("to-shell-value");
     themeButton.addEventListener("change", () => {
         if (themeButton.checked == true) {
             for (let i = 0; i < 5; ++i) {
@@ -162,7 +166,8 @@ window.onload = function () {
         setVENumber();
         SVGGOffsetX = 0;
         SVGGOffsetY = 0;
-        graphSVG.selectAll("g").attr("transform", `translate(${SVGGOffsetX} ${SVGGOffsetY})`);
+        graphSVG.selectAll("g").attr("transform", `translate(0 0)`);
+        kCore.fastIteration().setColor("#FFFF00", "#FF0000").setSelects(fromShell, toShell);
     }
     loadGraph("0 1\r\n\
     1 2\r\n\
@@ -274,10 +279,10 @@ window.onload = function () {
         zoomNumberInput.setAttribute("max", max);
     }
     setZoomBound();
-    zoomSlider.addEventListener('change', () => {
+    zoomSlider.addEventListener('input', () => {
         zoomNumberInput.value = zoomSlider.value;
     });
-    zoomNumberInput.addEventListener('change', () => {
+    zoomNumberInput.addEventListener('input', () => {
         zoomSlider.value = zoomNumberInput.value;
     });
     const moveCameraButton = document.getElementById("camera-move-set");
@@ -360,6 +365,4 @@ window.onload = function () {
         graphSVG.selectAll("g").attr("transform", `translate(${SVGGOffsetX} ${SVGGOffsetY})`);
     });
     /****************************************************Algo popup **********************************************/
-    const fromShell = document.getElementById("from-shell-value");
-    const toShell = document.getElementById("to-shell-value");
 };
