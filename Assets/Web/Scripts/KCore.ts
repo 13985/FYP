@@ -33,10 +33,21 @@ namespace KCoreAlgorithm{
         private unionFind=new UnionFind();
 
 
+        /******************visualization control******************/
+        private isRunning:boolean=false;
+        private isPause:boolean=false;
+        private nextStep:boolean=false;
+        private stopRunning:boolean=false;
+        private speedControl:HTMLInputElement|null;
+        private pauseButton:HTMLButtonElement|null=null;
+        private nextStepButton:HTMLButtonElement|null=null;
+
+
         constructor(g:Graph){
             this.graph=g;
             this.maxOption=null;
             this.minOption=null;
+            this.speedControl=null;
         }
 
 
@@ -156,7 +167,15 @@ namespace KCoreAlgorithm{
         }
 
 
-        public async slowIteration():Promise<void>{
+        public async start():Promise<void>{
+            this.isRunning=true;
+            this.isPause=this.stopRunning=this.nextStep=false;
+            await this.slowIteration();
+            this.isPause=this.isRunning=this.stopRunning=this.nextStep=false;
+        }
+
+
+        private async slowIteration():Promise<void>{
             this.unionFind.set(this.graph.vertices.length);
             this.clearHelpers();
             let currentShell=0,nextShell=1;
@@ -180,6 +199,7 @@ namespace KCoreAlgorithm{
                     const vl:VerticeList=<VerticeList>this.graph.adjacencyList.get(v_id);
                     this.shells.set(v_id,currentShell);
                     vl.main.shell=currentShell;
+                    await this.wait();
 
                     for(const neighbor of vl.others){
                         let degree:number=(this.degrees.get(neighbor) as number);
@@ -190,6 +210,7 @@ namespace KCoreAlgorithm{
                             continue;
                         }
                         --degree;
+                        await this.wait();
                         if(degree<=currentShell){
                             this.removeFromSet1(neighbor);
                         }else{
@@ -216,6 +237,15 @@ namespace KCoreAlgorithm{
         }
 
 
+        private async wait():Promise<void>{
+            for(let timePassed:number=0;this.nextStep==false&&(this.isPause||timePassed<((this.speedControl as HTMLInputElement).valueAsNumber)*1000);timePassed+=10){
+                await new Promise((r)=>{setTimeout(r,10);});
+            }
+            this.isPause=false;
+            this.nextStep=false;
+        }
+
+
         private removeFromSet1(target:number):void{
             this.set0.push(target);
             this.degrees.set(target,-1);
@@ -238,7 +268,35 @@ namespace KCoreAlgorithm{
         }
 
 
-        public setSelects(min:HTMLSelectElement,max:HTMLSelectElement):void{
+        public setSpeedInput(speed:HTMLInputElement):KCore{
+            this.speedControl=speed;
+            this.speedControl.min="0.05";
+            this.speedControl.max="5";
+            this.speedControl.step="0.001";
+            return this;
+        }
+
+
+        public setButtons(pause:HTMLButtonElement,nextStep:HTMLButtonElement):KCore{
+            this.pauseButton=pause;
+            this.nextStepButton=nextStep;
+            this.pauseButton.addEventListener("click",():void=>{
+                if(this.isPause){
+                    this.isPause=false;
+                    this.isRunning=true;
+                }else{
+                    this.isRunning=false;
+                    this.isPause=true;
+                }
+            });
+            this.nextStepButton.addEventListener("click",():void=>{
+                this.nextStep=true;
+            });
+            return this;
+        }
+
+
+        public setSelects(min:HTMLSelectElement,max:HTMLSelectElement):KCore{
             this.minOption=min;
             this.maxOption=max;
             this.createOptions(0,this.shellComponents.length,this.minOption);
@@ -252,6 +310,7 @@ namespace KCoreAlgorithm{
             });
             this.minOption.value="0";
             this.maxOption.value=(this.shellComponents.length-1).toString();
+            return this;
         }
 
 
@@ -472,4 +531,11 @@ class Color{
         ret.b=start.b*(1-t)+end.b*t;
         ret.a=start.a*(1-t)+end.a*t;
     }
+}
+
+
+async function delay(ms:number):Promise<void>{
+    return new Promise((resolve:(value:void|Promise<void>)=>void,_reject:(reason?:any)=>void):void=>{
+        setTimeout(resolve,ms);
+    });
 }

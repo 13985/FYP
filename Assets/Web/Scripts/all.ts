@@ -412,6 +412,16 @@ window.onload=function(){
 
 
     /****************************************************Algo popup **********************************************/
+    const visualizationControl:ControlPanel=new ControlPanel("#algo-control");
+    const showAlgoControl=<HTMLInputElement>document.getElementById("show-algo-control");
+    showAlgoControl.addEventListener("input",():void=>{
+        if(showAlgoControl.checked){
+            visualizationControl.open();
+        }else{
+            visualizationControl.close();
+        }
+    });
+    visualizationControl.setCloseCallback(():void=>{showAlgoControl.checked=false;});
 
-    
+    kCore.setSpeedInput(document.getElementById("animation-speed-control") as HTMLInputElement).setButtons(document.getElementById("algo-pause") as HTMLButtonElement,document.getElementById("algo-nextStep") as HTMLButtonElement);
 }

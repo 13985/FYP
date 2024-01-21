@@ -37,6 +37,9 @@ html{
     --reverse-color2:var(--dark-theme-color2);
     --reverse-color3:var(--dark-theme-color3);
     --reverse-color4:var(--dark-theme-color4);
+
+    background-color: var(--main-color1);
+    transition: background-color var(--g-transition-time),color var(--g-transition-time), border-color var(--g-transition-time);
 }
 
 

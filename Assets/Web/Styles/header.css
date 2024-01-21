@@ -132,7 +132,7 @@ header>.divider-vertical{
     flex-direction: column;
     align-items: center;
     transition: transform 0.2s, background-color var(--g-transition-time), border-color var(--g-transition-time), color var(--g-transition-time);
-    z-index:1000;
+    z-index:50;
 }
 
 
@@ -184,6 +184,88 @@ header>.divider-vertical{
 
 input[type="color"]::-webkit-color-swatch-wrapper {
 	padding: 0;
+}
+
+
+/**********************************************control panel class*************************************************/
+
+.control-panel, .control-panel *{
+    transition: background-color var(--g-transition-time),color var(--g-transition-time), border-color var(--g-transition-time);
+}
+
+
+.control-panel{
+    background-color: var(--main-color1);
+    border: none;
+    padding: 0;
+    color:var(--reverse-color1);
+    position: absolute;
+    transform-origin: left top;
+    transform: scale(0,0);
+    transition: background-color var(--g-transition-time),color var(--g-transition-time), border-color var(--g-transition-time),transform var(--g-transition-time), opacity var(--g-transition-time);
+    z-index:999;
+    opacity:0;
+}
+
+
+.control-panel-open{
+    position: fixed;
+    transform: scale(1,1);
+    opacity: 1;
+}
+
+
+.control-panel>*{
+    width:100%;
+    position:relative;
+    top:0;
+    left:0;
+    padding:0;
+}
+
+
+.control-panel>.control-top{
+    background-color: var(--reverse-color1);
+    height:25%;
+    border: 0;
+    color:var(--main-color1);
+}
+
+
+.control-panel>.control-content{
+    background-color: transparent;
+    height:75%;
+    border:2px solid var(--reverse-color1);
+    border-top:none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+
+.control-panel>.control-top:active{
+    background-color: blue;
+}
+
+
+.control-panel>.control-top>button{
+    --margin:3px;
+    background-color: var(--main-color3);
+    border:0;
+    margin:0;
+    outline: none;
+    text-align: center;
+    color:var(--reverse-color1);
+    position: absolute;
+    top:var(--margin);
+    bottom:var(--margin);
+    right:var(--margin);
+    aspect-ratio: 1;
+}
+
+
+.control-panel>.control-top>button:hover{
+    background-color: color-mix(in srgb, red 70%, var(--reverse-color1) 30%);
 }
 
 
@@ -245,8 +327,14 @@ label[for="camera-move-set"]{
     text-align: center;
 }
 
+
+label[for="camera-move-set"]{
+    transition: background-color var(--g-transition-time),color var(--g-transition-time), border-color var(--g-transition-time);
+}
+
+
 #camera-move-set:checked + label[for="camera-move-set"]{
-    background-color:greenyellow;
+    background-color:color-mix(in srgb,rgb(0, 170, 0) 70%,var(--main-color0) 30%);
 }
 
 /***********************************************Algo pop up**************************************************************************/
@@ -260,8 +348,35 @@ label[for="camera-move-set"]{
     font-size:1.2rem;
     color:var(--reverse-color1);
     outline: none;
+    transition: background-color var(--g-transition-time),color var(--g-transition-time), border-color var(--g-transition-time);
 }
 
+
+#show-algo-control{
+    display: none;
+}
+
+
+label[for="show-algo-control"]{
+    display:block;
+    width:100%;
+    height:100%;
+    position:relative;
+    transition: background-color var(--g-transition-time),color var(--g-transition-time), border-color var(--g-transition-time);
+}
+
+
+#show-algo-control:checked + label[for="show-algo-control"]{
+    background-color:color-mix(in srgb,rgb(0, 170, 0) 70%,var(--main-color0) 30%);
+}
+
+
+#algo-control{
+    width:30vw;
+    height:20vh;
+    top:calc(100% + 2px);
+    left:-2px;
+}
 
 
 /***********************************************toggle dark/light themes*************************************************************/

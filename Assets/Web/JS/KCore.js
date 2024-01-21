@@ -37,9 +37,17 @@ var KCoreAlgorithm;
             this.set0 = [];
             this.set1 = [];
             this.unionFind = new UnionFind();
+            /******************visualization control******************/
+            this.isRunning = false;
+            this.isPause = false;
+            this.nextStep = false;
+            this.stopRunning = false;
+            this.pauseButton = null;
+            this.nextStepButton = null;
             this.graph = g;
             this.maxOption = null;
             this.minOption = null;
+            this.speedControl = null;
         }
         setGraph(g) {
             this.graph = g;
@@ -146,6 +154,14 @@ var KCoreAlgorithm;
             }
             return this;
         }
+        start() {
+            return __awaiter(this, void 0, void 0, function* () {
+                this.isRunning = true;
+                this.isPause = this.stopRunning = this.nextStep = false;
+                yield this.slowIteration();
+                this.isPause = this.isRunning = this.stopRunning = this.nextStep = false;
+            });
+        }
         slowIteration() {
             return __awaiter(this, void 0, void 0, function* () {
                 this.unionFind.set(this.graph.vertices.length);
@@ -170,6 +186,7 @@ var KCoreAlgorithm;
                         const vl = this.graph.adjacencyList.get(v_id);
                         this.shells.set(v_id, currentShell);
                         vl.main.shell = currentShell;
+                        yield this.wait();
                         for (const neighbor of vl.others) {
                             let degree = this.degrees.get(neighbor);
                             if (degree < 0) {
@@ -179,6 +196,7 @@ var KCoreAlgorithm;
                                 continue;
                             }
                             --degree;
+                            yield this.wait();
                             if (degree <= currentShell) {
                                 this.removeFromSet1(neighbor);
                             }
@@ -205,6 +223,15 @@ var KCoreAlgorithm;
                 }
             });
         }
+        wait() {
+            return __awaiter(this, void 0, void 0, function* () {
+                for (let timePassed = 0; this.nextStep == false && (this.isPause || timePassed < (this.speedControl.valueAsNumber) * 1000); timePassed += 10) {
+                    yield new Promise((r) => { setTimeout(r, 10); });
+                }
+                this.isPause = false;
+                this.nextStep = false;
+            });
+        }
         removeFromSet1(target) {
             this.set0.push(target);
             this.degrees.set(target, -1);
@@ -223,6 +250,31 @@ var KCoreAlgorithm;
             this.set1.length = 0;
             this.shellComponents.length = 0;
         }
+        setSpeedInput(speed) {
+            this.speedControl = speed;
+            this.speedControl.min = "0.05";
+            this.speedControl.max = "5";
+            this.speedControl.step="0.001";
+            return this;
+        }
+        setButtons(pause, nextStep) {
+            this.pauseButton = pause;
+            this.nextStepButton = nextStep;
+            this.pauseButton.addEventListener("click", () => {
+                if (this.isPause) {
+                    this.isPause = false;
+                    this.isRunning = true;
+                }
+                else {
+                    this.isRunning = false;
+                    this.isPause = true;
+                }
+            });
+            this.nextStepButton.addEventListener("click", () => {
+                this.nextStep = true;
+            });
+            return this;
+        }
         setSelects(min, max) {
             this.minOption = min;
             this.maxOption = max;
@@ -236,6 +288,7 @@ var KCoreAlgorithm;
             });
             this.minOption.value = "0";
             this.maxOption.value = (this.shellComponents.length - 1).toString();
+            return this;
         }
         createOptions(start, end, select) {
             const val = parseInt(select.value);
@@ -421,4 +474,11 @@ class Color {
         ret.b = start.b * (1 - t) + end.b * t;
         ret.a = start.a * (1 - t) + end.a * t;
     }
+}
+function delay(ms) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise((resolve, _reject) => {
+            setTimeout(resolve, ms);
+        });
+    });
 }

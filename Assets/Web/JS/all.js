@@ -365,4 +365,16 @@ window.onload = function () {
         graphSVG.selectAll("g").attr("transform", `translate(${SVGGOffsetX} ${SVGGOffsetY})`);
     });
     /****************************************************Algo popup **********************************************/
+    const visualizationControl = new ControlPanel("#algo-control");
+    const showAlgoControl = document.getElementById("show-algo-control");
+    showAlgoControl.addEventListener("input", () => {
+        if (showAlgoControl.checked) {
+            visualizationControl.open();
+        }
+        else {
+            visualizationControl.close();
+        }
+    });
+    visualizationControl.setCloseCallback(() => { showAlgoControl.checked = false; });
+    kCore.setSpeedInput(document.getElementById("animation-speed-control")).setButtons(document.getElementById("algo-pause"), document.getElementById("algo-nextStep"));
 };
