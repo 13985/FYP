@@ -1,5 +1,5 @@
 "use strict";
-class ControlPanel {
+class FloatingPanel {
     constructor(selector) {
         this.previousX = 0;
         this.previousY = 0;
@@ -8,8 +8,8 @@ class ControlPanel {
         this.isDragging = false;
         this.outerDiv = document.querySelector(selector);
         this.originalParent = this.outerDiv.parentElement;
-        this.topDiv = this.outerDiv.querySelector(".control-top");
-        this.contentDiv = this.outerDiv.querySelector(".control-content");
+        this.topDiv = this.outerDiv.querySelector(".panel-top");
+        this.contentDiv = this.outerDiv.querySelector(".panel-content");
         this.closeButton = this.topDiv.querySelector("button[type=button]");
         this.closeButton.addEventListener("click", this.close.bind(this));
         this.topDiv.addEventListener("mousedown", (me) => {
@@ -53,7 +53,7 @@ class ControlPanel {
         document.body.removeChild(this.outerDiv);
         this.originalParent.appendChild(this.outerDiv);
         setTimeout(() => {
-            this.outerDiv.classList.toggle("control-panel-open");
+            this.outerDiv.classList.toggle("floating-panel-open");
         }, 1); //no idea why it needs to wait some time
     }
     open() {
@@ -65,7 +65,7 @@ class ControlPanel {
         this.originalParent.removeChild(this.outerDiv);
         document.body.appendChild(this.outerDiv);
         setTimeout(() => {
-            this.outerDiv.classList.toggle("control-panel-open");
+            this.outerDiv.classList.toggle("floating-panel-open");
         }, 1); //no idea why it needs to wait some time
     }
 }

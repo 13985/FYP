@@ -365,7 +365,7 @@ window.onload = function () {
         graphSVG.selectAll("g").attr("transform", `translate(${SVGGOffsetX} ${SVGGOffsetY})`);
     });
     /****************************************************Algo popup **********************************************/
-    const visualizationControl = new ControlPanel("#algo-control");
+    const visualizationControl = new FloatingPanel("#algo-control");
     const showAlgoControl = document.getElementById("show-algo-control");
     showAlgoControl.addEventListener("input", () => {
         if (showAlgoControl.checked) {
@@ -377,4 +377,30 @@ window.onload = function () {
     });
     visualizationControl.setCloseCallback(() => { showAlgoControl.checked = false; });
     kCore.setSpeedInput(document.getElementById("algo-speed-control")).setButtons(document.getElementById("algo-pause"), document.getElementById("algo-nextStep"));
+    const statePanel = new FloatingPanel("#state-panel");
+    const showStatePanel = document.getElementById("show-algo-state");
+    showStatePanel.addEventListener("input", () => {
+        if (showStatePanel.checked) {
+            statePanel.open();
+        }
+        else {
+            statePanel.close();
+        }
+    });
+    statePanel.setCloseCallback(() => { showStatePanel.checked = false; });
+    const runButton = document.getElementById("run-algo");
+    const stopButton = document.getElementById("stop-algo");
+    runButton.addEventListener("click", () => {
+        kCore.start(() => {
+            stopButton.disabled = true;
+            runButton.disabled = false;
+        });
+        stopButton.disabled = false;
+        runButton.disabled = true;
+    });
+    stopButton.addEventListener("click", () => {
+        stopButton.disabled = true;
+        runButton.disabled = false;
+        kCore.stop();
+    });
 };

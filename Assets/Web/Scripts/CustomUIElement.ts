@@ -14,8 +14,8 @@ class FloatingPanel{
     constructor(selector:string){
         this.outerDiv=<HTMLDivElement>document.querySelector(selector);
         this.originalParent=this.outerDiv.parentElement as HTMLElement;
-        this.topDiv=<HTMLDivElement>this.outerDiv.querySelector(".control-top");
-        this.contentDiv=<HTMLDivElement>this.outerDiv.querySelector(".control-content");
+        this.topDiv=<HTMLDivElement>this.outerDiv.querySelector(".panel-top");
+        this.contentDiv=<HTMLDivElement>this.outerDiv.querySelector(".panel-content");
         this.closeButton=<HTMLButtonElement>this.topDiv.querySelector("button[type=button]");
         this.closeButton.addEventListener("click",this.close.bind(this));
 
@@ -65,7 +65,7 @@ class FloatingPanel{
         document.body.removeChild(this.outerDiv);
         this.originalParent.appendChild(this.outerDiv);
         setTimeout(():void=>{
-            this.outerDiv.classList.toggle("control-panel-open");
+            this.outerDiv.classList.toggle("floating-panel-open");
         },1);//no idea why it needs to wait some time
     }
 
@@ -79,7 +79,7 @@ class FloatingPanel{
         this.originalParent.removeChild(this.outerDiv);
         document.body.appendChild(this.outerDiv);
         setTimeout(():void=>{
-            this.outerDiv.classList.toggle("control-panel-open");
+            this.outerDiv.classList.toggle("floating-panel-open");
         },1);//no idea why it needs to wait some time
         
     }

@@ -276,6 +276,7 @@ class Graph implements IClone<Graph>{
 
 
     public addEdges(edges:string):void{
+        
     }
 
 

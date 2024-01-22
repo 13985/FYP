@@ -23,6 +23,7 @@ namespace KCoreAlgorithm{
         public maxOption:HTMLSelectElement|null;
         public minOption:HTMLSelectElement|null;
 
+        private opacity:string="0.3";
 
         /******************helper data structures*****************/
         private shells:Map<number,number>=new Map();
@@ -32,7 +33,6 @@ namespace KCoreAlgorithm{
         private set1:number[]=[];
         private unionFind=new UnionFind();
 
-
         /******************visualization control******************/
         private isRunning:boolean=false;
         private isPause:boolean=false;
@@ -41,6 +41,7 @@ namespace KCoreAlgorithm{
         private speedControl:HTMLInputElement|null;
         private pauseButton:HTMLButtonElement|null=null;
         private nextStepButton:HTMLButtonElement|null=null;
+
 
 
         constructor(g:Graph){
@@ -83,6 +84,7 @@ namespace KCoreAlgorithm{
 
         public fastIteration():KCore{
             this.unionFind.set(this.graph.vertices.length);
+            this.shellComponents.length=0;
             this.clearHelpers();
             let currentShell=0,nextShell=1;
 
@@ -167,16 +169,30 @@ namespace KCoreAlgorithm{
         }
 
 
-        public async start():Promise<void>{
+        public async start(onEnd?:()=>void):Promise<void>{
+            if(this.isRunning){
+                return;
+            }
             this.isRunning=true;
             this.isPause=this.stopRunning=this.nextStep=false;
+            for(const v of this.graph.vertices){
+                (v.circle as SVGCircleElement).setAttribute("opacity",this.opacity);
+            }
             await this.slowIteration();
+            for(const v of this.graph.vertices){
+                (v.circle as SVGCircleElement).setAttribute("opacity","1");
+            };
             this.isPause=this.isRunning=this.stopRunning=this.nextStep=false;
+            onEnd?.call(null);
+        }
+
+
+        public stop():void{
+            this.stopRunning=true;
         }
 
 
         private async slowIteration():Promise<void>{
-            this.unionFind.set(this.graph.vertices.length);
             this.clearHelpers();
             let currentShell=0,nextShell=1;
 
@@ -198,26 +214,41 @@ namespace KCoreAlgorithm{
                     const v_id:number=<number>this.set0.pop();
                     const vl:VerticeList=<VerticeList>this.graph.adjacencyList.get(v_id);
                     this.shells.set(v_id,currentShell);
-                    vl.main.shell=currentShell;
+                    (vl.main.circle as SVGCircleElement).setAttribute("opacity","1");
+                    if(this.stopRunning){
+                        return;
+                    }
                     await this.wait();
 
                     for(const neighbor of vl.others){
                         let degree:number=(this.degrees.get(neighbor) as number);
                         if(degree<0){
-                            if(this.shells.get(neighbor) as number==currentShell){
-                                this.unionFind.union(neighbor,v_id);
-                            }
                             continue;
                         }
-                        --degree;
+                        const neighbor_v:Vertex=(this.graph.adjacencyList.get(neighbor) as VerticeList).main;
+                        
+                        (neighbor_v.circle as SVGCircleElement).setAttribute("opacity","1");
+                        if(this.stopRunning){
+                            return;
+                        }
                         await this.wait();
+                        --degree;
                         if(degree<=currentShell){
                             this.removeFromSet1(neighbor);
                         }else{
                             nextShell=Math.min(nextShell,degree);
                             this.degrees.set(neighbor,degree);
                         }
+                        (neighbor_v.circle as SVGCircleElement).setAttribute("opacity",this.opacity);
+                        if(this.stopRunning){
+                            return;
+                        }
+                        await this.wait();
                     }
+                    (vl.main.circle as SVGCircleElement).setAttribute("opacity",this.opacity);
+                }
+                if(this.stopRunning){
+                    return;
                 }
                 
                 currentShell=nextShell;
@@ -264,7 +295,6 @@ namespace KCoreAlgorithm{
             this.shells.clear();
             this.set0.length=0;
             this.set1.length=0;
-            this.shellComponents.length=0;
         }
 
 

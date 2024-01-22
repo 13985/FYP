@@ -99,15 +99,16 @@
                             <select id="to-shell-value" class="nav-li-popup-box"></select>
                         </div>
                         <button type="button" class="nav-li-button" id="run-algo">Run</button>
+                        <button type="button" class="nav-li-button" id="stop-algo" disabled>Stop</button>
                         <hr>
                         <div style="position:relative;top:0;left:0">
                             <input type="checkbox" id="show-algo-control">
                             <label for="show-algo-control">Control</label>
-                            <div class="control-panel" id="algo-control">
-                                <div class="control-top">
+                            <div class="floating-panel" id="algo-control">
+                                <div class="panel-top">
                                     <button type="button">X</button>
                                 </div>
-                                <div class="control-content">
+                                <div class="panel-content">
                                     <input type="range" id="algo-speed-control"/>
                                     <div class="row-display">
                                         <button type="button" id="algo-pause">&gt;</button>
@@ -120,11 +121,11 @@
                         <div style="position:relative;top:0;left:0">
                             <input type="checkbox" id="show-algo-state">
                             <label for="show-algo-state">State</label>
-                            <div class="control-panel">
-                                <div class="control-top">
+                            <div class="floating-panel" id="state-panel">
+                                <div class="panel-top">
                                     <button type="button">X</button>
                                 </div>
-                                <div class="control-content"></div>
+                                <div class="panel-content"></div>
                             </div>
                         </div>
                     </div>

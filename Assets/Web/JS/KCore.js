@@ -30,6 +30,7 @@ var KCoreAlgorithm;
     class KCore {
         constructor(g) {
             this.shellComponents = [];
+            this.opacity = "0.3";
             /******************helper data structures*****************/
             this.shells = new Map();
             this.degrees = new Map();
@@ -75,6 +76,7 @@ var KCoreAlgorithm;
         }
         fastIteration() {
             this.unionFind.set(this.graph.vertices.length);
+            this.shellComponents.length = 0;
             this.clearHelpers();
             let currentShell = 0, nextShell = 1;
             this.graph.adjacencyList.forEach((vl, k) => {
@@ -154,17 +156,30 @@ var KCoreAlgorithm;
             }
             return this;
         }
-        start() {
+        start(onEnd) {
             return __awaiter(this, void 0, void 0, function* () {
+                if (this.isRunning) {
+                    return;
+                }
                 this.isRunning = true;
                 this.isPause = this.stopRunning = this.nextStep = false;
+                for (const v of this.graph.vertices) {
+                    v.circle.setAttribute("opacity", this.opacity);
+                }
                 yield this.slowIteration();
+                for (const v of this.graph.vertices) {
+                    v.circle.setAttribute("opacity", "1");
+                }
+                ;
                 this.isPause = this.isRunning = this.stopRunning = this.nextStep = false;
+                onEnd === null || onEnd === void 0 ? void 0 : onEnd.call(null);
             });
+        }
+        stop() {
+            this.stopRunning = true;
         }
         slowIteration() {
             return __awaiter(this, void 0, void 0, function* () {
-                this.unionFind.set(this.graph.vertices.length);
                 this.clearHelpers();
                 let currentShell = 0, nextShell = 1;
                 this.graph.adjacencyList.forEach((vl, k) => {
@@ -185,18 +200,23 @@ var KCoreAlgorithm;
                         const v_id = this.set0.pop();
                         const vl = this.graph.adjacencyList.get(v_id);
                         this.shells.set(v_id, currentShell);
-                        vl.main.shell = currentShell;
+                        vl.main.circle.setAttribute("opacity", "1");
+                        if (this.stopRunning) {
+                            return;
+                        }
                         yield this.wait();
                         for (const neighbor of vl.others) {
                             let degree = this.degrees.get(neighbor);
                             if (degree < 0) {
-                                if (this.shells.get(neighbor) == currentShell) {
-                                    this.unionFind.union(neighbor, v_id);
-                                }
                                 continue;
                             }
-                            --degree;
+                            const neighbor_v = this.graph.adjacencyList.get(neighbor).main;
+                            neighbor_v.circle.setAttribute("opacity", "1");
+                            if (this.stopRunning) {
+                                return;
+                            }
                             yield this.wait();
+                            --degree;
                             if (degree <= currentShell) {
                                 this.removeFromSet1(neighbor);
                             }
@@ -204,7 +224,16 @@ var KCoreAlgorithm;
                                 nextShell = Math.min(nextShell, degree);
                                 this.degrees.set(neighbor, degree);
                             }
+                            neighbor_v.circle.setAttribute("opacity", this.opacity);
+                            if (this.stopRunning) {
+                                return;
+                            }
+                            yield this.wait();
                         }
+                        vl.main.circle.setAttribute("opacity", this.opacity);
+                    }
+                    if (this.stopRunning) {
+                        return;
                     }
                     currentShell = nextShell;
                     if (this.set1.length <= 0) {
@@ -248,13 +277,12 @@ var KCoreAlgorithm;
             this.shells.clear();
             this.set0.length = 0;
             this.set1.length = 0;
-            this.shellComponents.length = 0;
         }
         setSpeedInput(speed) {
             this.speedControl = speed;
             this.speedControl.min = "0.05";
             this.speedControl.max = "5";
-            this.speedControl.step="0.001";
+            this.speedControl.step = "0.001";
             return this;
         }
         setButtons(pause, nextStep) {

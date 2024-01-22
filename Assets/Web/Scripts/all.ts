@@ -425,7 +425,7 @@ window.onload=function(){
 
     kCore.setSpeedInput(document.getElementById("algo-speed-control") as HTMLInputElement).setButtons(document.getElementById("algo-pause") as HTMLButtonElement,document.getElementById("algo-nextStep") as HTMLButtonElement);
 
-    const statePanel:FloatingPanel=new FloatingPanel("show-algo-state");
+    const statePanel:FloatingPanel=new FloatingPanel("#state-panel");
     const showStatePanel:HTMLInputElement=<HTMLInputElement>document.getElementById("show-algo-state");
     showStatePanel.addEventListener("input",():void=>{
         if(showStatePanel.checked){
@@ -435,4 +435,20 @@ window.onload=function(){
         }
     });
     statePanel.setCloseCallback(():void=>{showStatePanel.checked=false;});
+
+    const runButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("run-algo");
+    const stopButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("stop-algo");
+    runButton.addEventListener("click",()=>{
+        kCore.start(():void=>{
+            stopButton.disabled=true;
+            runButton.disabled=false;
+        });
+        stopButton.disabled=false;
+        runButton.disabled=true;
+    });
+    stopButton.addEventListener("click",()=>{
+        stopButton.disabled=true;
+        runButton.disabled=false;
+        kCore.stop();
+    });
 }

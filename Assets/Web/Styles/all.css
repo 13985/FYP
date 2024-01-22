@@ -74,7 +74,7 @@ html::-webkit-scrollbar-thumb:active{
 
 body{
     --header-height:80px;
-    --main-height:800px;
+    --main-height:100vh;
     --footer-height:65px;
 
     scroll-snap-type: y mandatory;
