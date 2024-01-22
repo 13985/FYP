@@ -412,7 +412,7 @@ window.onload=function(){
 
 
     /****************************************************Algo popup **********************************************/
-    const visualizationControl:ControlPanel=new ControlPanel("#algo-control");
+    const visualizationControl:FloatingPanel=new FloatingPanel("#algo-control");
     const showAlgoControl=<HTMLInputElement>document.getElementById("show-algo-control");
     showAlgoControl.addEventListener("input",():void=>{
         if(showAlgoControl.checked){
@@ -423,5 +423,16 @@ window.onload=function(){
     });
     visualizationControl.setCloseCallback(():void=>{showAlgoControl.checked=false;});
 
-    kCore.setSpeedInput(document.getElementById("animation-speed-control") as HTMLInputElement).setButtons(document.getElementById("algo-pause") as HTMLButtonElement,document.getElementById("algo-nextStep") as HTMLButtonElement);
+    kCore.setSpeedInput(document.getElementById("algo-speed-control") as HTMLInputElement).setButtons(document.getElementById("algo-pause") as HTMLButtonElement,document.getElementById("algo-nextStep") as HTMLButtonElement);
+
+    const statePanel:FloatingPanel=new FloatingPanel("show-algo-state");
+    const showStatePanel:HTMLInputElement=<HTMLInputElement>document.getElementById("show-algo-state");
+    showStatePanel.addEventListener("input",():void=>{
+        if(showStatePanel.checked){
+            statePanel.open();
+        }else{
+            statePanel.close();
+        }
+    });
+    statePanel.setCloseCallback(():void=>{showStatePanel.checked=false;});
 }

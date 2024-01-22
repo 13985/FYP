@@ -376,5 +376,5 @@ window.onload = function () {
         }
     });
     visualizationControl.setCloseCallback(() => { showAlgoControl.checked = false; });
-    kCore.setSpeedInput(document.getElementById("animation-speed-control")).setButtons(document.getElementById("algo-pause"), document.getElementById("algo-nextStep"));
+    kCore.setSpeedInput(document.getElementById("algo-speed-control")).setButtons(document.getElementById("algo-pause"), document.getElementById("algo-nextStep"));
 };

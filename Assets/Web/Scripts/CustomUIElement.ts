@@ -1,4 +1,4 @@
-class ControlPanel{
+class FloatingPanel{
     private outerDiv:HTMLDivElement;
     private topDiv:HTMLDivElement;
     private contentDiv:HTMLDivElement;
@@ -48,7 +48,7 @@ class ControlPanel{
     }
 
 
-    public setCloseCallback(callback:()=>void):ControlPanel{
+    public setCloseCallback(callback:()=>void):FloatingPanel{
         this.closeButton.addEventListener("click",():void=>{
             callback();
         });
