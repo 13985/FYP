@@ -295,6 +295,10 @@ input[type="color"]::-webkit-color-swatch-wrapper {
 
 /**********************************************Vertex/Edge popup**********************************************************/
 
+.graph-update-option{
+    font-size: 1.4rem;
+}
+
 .vertices-input{
     display: block;
     background-color:var(--main-color3);

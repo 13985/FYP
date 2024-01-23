@@ -3,12 +3,11 @@ window.onload = function () {
     const themeButton = document.getElementById("theme-button-set");
     const html = document.body.parentNode;
     const graphContainer = document.getElementById("graph-container");
-    const graphSVG_ = document.getElementById("graph-container");
     /* d3-svg declarations */
     const graphSVG = d3.select("#graph-container>svg")
-        .attr("width", graphSVG_.clientWidth)
-        .attr("height", graphSVG_.clientHeight)
-        .attr("viewbox", [0, 0, graphSVG_.clientWidth, graphSVG_.clientHeight]);
+        .attr("width", graphContainer.clientWidth)
+        .attr("height", graphContainer.clientHeight)
+        .attr("viewbox", [0, 0, graphContainer.clientWidth, graphContainer.clientHeight]);
     const svgLinksG = graphSVG.append("g")
         .attr("stroke", "#444")
         .attr("stroke-opacity", 0.6);
@@ -19,7 +18,7 @@ window.onload = function () {
     .attr("stroke-width",1.5);*/
     const svgCircles = svgCirclesG
         .selectAll("circle");
-    var SVGGOffsetX = 0, SVGGOffsetY = 0;
+    var SVGGOffsetX = 0, SVGGOffsetY = 0, SVGGScaleX = 1, SVGGScaleY = 1;
     const graph = new Graph();
     const kCore = new KCoreAlgorithm.KCore(graph);
     const scrollbarDarkCSS = "\
@@ -92,8 +91,8 @@ window.onload = function () {
     function updateSimulation() {
         const nodes = graph.vertices;
         const links = graph.edges;
-        const width = graphSVG_.clientWidth;
-        const height = graphSVG_.clientHeight;
+        const width = graphContainer.clientWidth;
+        const height = graphContainer.clientHeight;
         forceToX.x(width / 2);
         forceToY.y(height / 2);
         simulation.nodes(nodes)
@@ -270,9 +269,11 @@ window.onload = function () {
     /****************************************************Camera pop up****************************************************/
     const zoomSlider = document.getElementById("zoom-slider");
     const zoomNumberInput = document.getElementById("zoom-typing");
+    const zoomMin = 0, zoomMax = 5;
+    var previousX = 0, previousY = 0;
     function setZoomBound() {
-        const min = (0.1).toString();
-        const max = (20).toString();
+        const min = zoomMin.toString();
+        const max = zoomMax.toString();
         zoomSlider.setAttribute("min", min);
         zoomSlider.setAttribute("max", max);
         zoomNumberInput.setAttribute("min", min);
@@ -281,17 +282,29 @@ window.onload = function () {
     setZoomBound();
     zoomSlider.addEventListener('input', () => {
         zoomNumberInput.value = zoomSlider.value;
+        changeGraphContainerViewBox(zoomSlider.valueAsNumber);
     });
     zoomNumberInput.addEventListener('input', () => {
         zoomSlider.value = zoomNumberInput.value;
+        changeGraphContainerViewBox(zoomNumberInput.valueAsNumber);
     });
+    var previousMagnifier = 1;
+    zoomNumberInput.valueAsNumber = previousMagnifier;
+    zoomSlider.valueAsNumber = previousMagnifier;
+    function changeGraphContainerViewBox(magnifier) {
+        SVGGOffsetX -= (magnifier - previousMagnifier) / 2 * graphContainer.clientWidth;
+        SVGGOffsetY -= (magnifier - previousMagnifier) / 2 * graphContainer.clientHeight;
+        previousMagnifier = magnifier;
+        SVGGScaleX = magnifier;
+        SVGGScaleY = magnifier;
+        graphSVG.selectAll("g").attr("transform", `translate(${SVGGOffsetX} ${SVGGOffsetY}) scale(${SVGGScaleX} ${SVGGScaleY})`);
+    }
     const moveCameraButton = document.getElementById("camera-move-set");
     const moveSpeedControl = document.getElementById("move-speed-control");
     moveSpeedControl.max = (20).toString();
     moveSpeedControl.min = (0.1).toString();
     moveSpeedControl.valueAsNumber = 2;
     var moveCameraAllowed = false, isDragging = false;
-    var previousX, previousY;
     moveCameraButton.addEventListener("change", () => {
         moveCameraAllowed = !moveCameraAllowed;
         if (moveCameraAllowed) {
@@ -304,7 +317,7 @@ window.onload = function () {
     function moveGraph(dx, dy) {
         SVGGOffsetX += dx * moveSpeedControl.valueAsNumber;
         SVGGOffsetY += dy * moveSpeedControl.valueAsNumber;
-        graphSVG.selectAll("g").attr("transform", `translate(${SVGGOffsetX} ${SVGGOffsetY})`);
+        graphSVG.selectAll("g").attr("transform", `translate(${SVGGOffsetX} ${SVGGOffsetY}) scale(${SVGGScaleX} ${SVGGScaleY})`);
     }
     window.addEventListener("keydown", function (ke) {
         if (moveCameraAllowed == false)
@@ -358,8 +371,8 @@ window.onload = function () {
         if (vl == undefined) {
             return;
         }
-        const centerX = graphSVG_.clientWidth / 2;
-        const centerY = graphSVG_.clientHeight / 2;
+        const centerX = graphContainer.clientWidth / 2;
+        const centerY = graphContainer.clientHeight / 2;
         SVGGOffsetX = centerX - vl.main.x;
         SVGGOffsetY = centerY - vl.main.y;
         graphSVG.selectAll("g").attr("transform", `translate(${SVGGOffsetX} ${SVGGOffsetY})`);

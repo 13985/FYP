@@ -2,14 +2,13 @@
 window.onload=function(){
     const themeButton:HTMLInputElement=<HTMLInputElement>document.getElementById("theme-button-set");
     const html:HTMLElement=<HTMLElement>document.body.parentNode;
-    const graphContainer:HTMLElement=<HTMLElement>document.getElementById("graph-container");
-    const graphSVG_:SVGElement=<SVGElement><HTMLOrSVGElement>document.getElementById ("graph-container");
+    const graphContainer:SVGElement=<SVGElement><HTMLOrSVGElement>document.getElementById("graph-container");
 
     /* d3-svg declarations */
     const graphSVG:d3.Selection<SVGElement,unknown,HTMLElement,any>=d3.select<SVGElement,any>("#graph-container>svg")
-    .attr("width",graphSVG_.clientWidth)
-    .attr("height",graphSVG_.clientHeight)
-    .attr("viewbox",[0,0,graphSVG_.clientWidth,graphSVG_.clientHeight]);
+    .attr("width",graphContainer.clientWidth)
+    .attr("height",graphContainer.clientHeight)
+    .attr("viewbox",[0,0,graphContainer.clientWidth,graphContainer.clientHeight]);
     const svgLinksG:d3.Selection<SVGGElement,unknown,HTMLElement,any>=graphSVG.append("g")
     .attr("stroke", "#444")
     .attr("stroke-opacity", 0.6);
@@ -21,7 +20,7 @@ window.onload=function(){
     const svgCircles:d3.Selection<SVGCircleElement,Vertex,SVGGElement,any>=svgCirclesG
     .selectAll("circle");
 
-    var SVGGOffsetX:number=0,SVGGOffsetY:number=0;
+    var SVGGOffsetX:number=0,SVGGOffsetY:number=0,SVGGScaleX:number=1,SVGGScaleY:number=1;
     const graph:Graph=new Graph();
     const kCore:KCoreAlgorithm.KCore=new KCoreAlgorithm.KCore(graph);
 
@@ -106,8 +105,8 @@ window.onload=function(){
     function updateSimulation():void{
         const nodes:Array<Vertex>=graph.vertices;
         const links:Edge[]=graph.edges;
-        const width:number=graphSVG_.clientWidth;
-        const height:number=graphSVG_.clientHeight;
+        const width:number=graphContainer.clientWidth;
+        const height:number=graphContainer.clientHeight;
         forceToX.x(width/2);forceToY.y(height/2);
 
         simulation.nodes(nodes)
@@ -304,9 +303,12 @@ window.onload=function(){
     /****************************************************Camera pop up****************************************************/
     const zoomSlider:HTMLInputElement=<HTMLInputElement>document.getElementById("zoom-slider");
     const zoomNumberInput:HTMLInputElement=<HTMLInputElement>document.getElementById("zoom-typing");
+    const zoomMin:number=0,zoomMax:number=5;
+    var previousX:number=0,previousY:number=0;
+
     function setZoomBound():void{
-        const min:string=(0.1).toString();
-        const max:string=(20).toString();
+        const min:string=zoomMin.toString();
+        const max:string=zoomMax.toString();
         zoomSlider.setAttribute("min",min);
         zoomSlider.setAttribute("max",max);
         zoomNumberInput.setAttribute("min",min);
@@ -316,12 +318,27 @@ window.onload=function(){
 
     zoomSlider.addEventListener('input',():void=>{
         zoomNumberInput.value=zoomSlider.value;
+        changeGraphContainerViewBox(zoomSlider.valueAsNumber);
     });
 
     zoomNumberInput.addEventListener('input',():void=>{
         zoomSlider.value=zoomNumberInput.value;
+        changeGraphContainerViewBox(zoomNumberInput.valueAsNumber);
     });
 
+    var previousMagnifier:number=1;
+    zoomNumberInput.valueAsNumber=previousMagnifier;
+    zoomSlider.valueAsNumber=previousMagnifier;
+
+    function changeGraphContainerViewBox(magnifier:number):void{
+        SVGGOffsetX-=(magnifier-previousMagnifier)*graphContainer.clientWidth/2;
+        SVGGOffsetY-=(magnifier-previousMagnifier)*graphContainer.clientHeight/2;//move the graph the top left by the size/2 and the different between current and previous magnifier
+        previousMagnifier=magnifier;
+        SVGGScaleX=magnifier;
+        SVGGScaleY=magnifier;
+        (graphSVG.selectAll("g") as d3.Selection<SVGGElement,unknown,SVGElement,unknown>).attr("transform",`translate(${SVGGOffsetX} ${SVGGOffsetY}) scale(${SVGGScaleX} ${SVGGScaleY})`);
+        //grow the graph to bottom right by delta magnifier * width and height, so translate back by half of it
+    }
 
 
     const moveCameraButton:HTMLInputElement=<HTMLInputElement>document.getElementById("camera-move-set");
@@ -330,7 +347,6 @@ window.onload=function(){
     moveSpeedControl.min=(0.1).toString();
     moveSpeedControl.valueAsNumber=2;
     var moveCameraAllowed:boolean=false,isDragging:boolean=false;
-    var previousX:number,previousY:number;
     moveCameraButton.addEventListener("change",():void=>{
         moveCameraAllowed=!moveCameraAllowed;
         if(moveCameraAllowed){
@@ -344,7 +360,7 @@ window.onload=function(){
     function moveGraph(dx:number,dy:number):void{
         SVGGOffsetX+=dx*moveSpeedControl.valueAsNumber;
         SVGGOffsetY+=dy*moveSpeedControl.valueAsNumber;
-        (graphSVG.selectAll("g") as d3.Selection<SVGGElement,unknown,SVGElement,unknown>).attr("transform",`translate(${SVGGOffsetX} ${SVGGOffsetY})`);
+        (graphSVG.selectAll("g") as d3.Selection<SVGGElement,unknown,SVGElement,unknown>).attr("transform",`translate(${SVGGOffsetX} ${SVGGOffsetY}) scale(${SVGGScaleX} ${SVGGScaleY})`);
     }
     
     window.addEventListener("keydown",function(ke:KeyboardEvent):void{
@@ -403,8 +419,8 @@ window.onload=function(){
         if(vl==undefined){
             return;
         }
-        const centerX:number=graphSVG_.clientWidth/2;
-        const centerY:number=graphSVG_.clientHeight/2;
+        const centerX:number=graphContainer.clientWidth/2;
+        const centerY:number=graphContainer.clientHeight/2;
         SVGGOffsetX=centerX-(vl.main.x as number);
         SVGGOffsetY=centerY-(vl.main.y as number);
         (graphSVG.selectAll("g") as d3.Selection<SVGGElement,unknown,SVGElement,unknown>).attr("transform",`translate(${SVGGOffsetX} ${SVGGOffsetY})`);
