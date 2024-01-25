@@ -1,4 +1,11 @@
+/*
+hide non k-shell if starting core is more than 1
+force directed layoutt -explore alt?
+color node as it goes ( start with white)
+setting - to show not yet visualized current core nodes
+add edge! deature  (bonus during visualzation)
 
+*/
 namespace KCoreAlgorithm{
     export class ConnectedComponent{
         public vertices:Array<Vertex>=[];
@@ -73,7 +80,7 @@ namespace KCoreAlgorithm{
                 for(const cc of sc.connectedComponents){
                     cc.polygon?.setAttribute("fill",sc.color.toString(cc.polygonOpacity));
                     for(const v of cc.vertices){
-                        (v.circle as SVGCircleElement).setAttribute("fill",sc.color.toString());
+                        v.setColor(sc.color);
                     }
                 }
             }
@@ -218,7 +225,7 @@ namespace KCoreAlgorithm{
                     if(this.stopRunning){
                         return;
                     }
-                    await this.wait();
+                    await this.wait(currentShell);
 
                     for(const neighbor of vl.others){
                         let degree:number=(this.degrees.get(neighbor) as number);
@@ -231,7 +238,7 @@ namespace KCoreAlgorithm{
                         if(this.stopRunning){
                             return;
                         }
-                        await this.wait();
+                        await this.wait(currentShell);
                         --degree;
                         if(degree<=currentShell){
                             this.removeFromSet1(neighbor);
@@ -243,7 +250,7 @@ namespace KCoreAlgorithm{
                         if(this.stopRunning){
                             return;
                         }
-                        await this.wait();
+                        await this.wait(currentShell);
                     }
                     (vl.main.circle as SVGCircleElement).setAttribute("opacity",this.opacity);
                 }
@@ -268,11 +275,12 @@ namespace KCoreAlgorithm{
         }
 
 
-        private async wait():Promise<void>{
-            for(let timePassed:number=0;this.nextStep==false&&(this.isPause||timePassed<((this.speedControl as HTMLInputElement).valueAsNumber)*1000);timePassed+=10){
-                await new Promise((r)=>{setTimeout(r,10);});
+        private async wait(currentShell:number):Promise<void>{
+            if(currentShell>=parseInt((this.minOption as HTMLSelectElement).value)&&currentShell<=parseInt((this.maxOption as HTMLSelectElement).value)){
+                for(let timePassed:number=0;this.nextStep==false&&(this.isPause||timePassed<((this.speedControl as HTMLInputElement).valueAsNumber)*1000);timePassed+=10){
+                    await new Promise((r)=>{setTimeout(r,10);});
+                }
             }
-            this.isPause=false;
             this.nextStep=false;
         }
 
@@ -314,9 +322,11 @@ namespace KCoreAlgorithm{
                 if(this.isPause){
                     this.isPause=false;
                     this.isRunning=true;
+                    (this.pauseButton as HTMLButtonElement).innerText=">";
                 }else{
                     this.isRunning=false;
                     this.isPause=true;
+                    (this.pauseButton as HTMLButtonElement).innerText="||";
                 }
             });
             this.nextStepButton.addEventListener("click",():void=>{
@@ -477,7 +487,7 @@ class UnionFind{
 }
 
 
-class Color{
+class Color implements IClone<Color>{
     public r:number;
     public g:number;
     public b:number;
@@ -505,12 +515,32 @@ class Color{
     }
 
 
+    public toHexa():string{
+        return `#${Color.toHexaHelper(this.r)}${Color.toHexaHelper(this.g)}${Color.toHexaHelper(this.b)}`;
+    }
+
+
+    private static toHexaHelper(val:number):string{
+        let first:string=Math.floor(val).toString(16);
+        if(first.length<=1){
+            return `0${first}`;
+        }else{
+            return first;
+        }
+    }
+
+
     public assignFrom(other:Color):Color{
         this.r=other.r;
         this.g=other.g;
         this.b=other.b;
         this.a=other.a;
         return this;
+    }
+
+
+    public clone(): Color {
+        return new Color(this.r,this.g,this.b,this.a);
     }
 
 

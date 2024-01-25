@@ -8,6 +8,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+/*
+hide non k-shell if starting core is more than 1
+force directed layoutt -explore alt?
+color node as it goes ( start with white)
+setting - to show not yet visualized current core nodes
+add edge! deature  (bonus during visualzation)
+
+*/
 var KCoreAlgorithm;
 (function (KCoreAlgorithm) {
     class ConnectedComponent {
@@ -68,7 +76,7 @@ var KCoreAlgorithm;
                 for (const cc of sc.connectedComponents) {
                     (_a = cc.polygon) === null || _a === void 0 ? void 0 : _a.setAttribute("fill", sc.color.toString(cc.polygonOpacity));
                     for (const v of cc.vertices) {
-                        v.circle.setAttribute("fill", sc.color.toString());
+                        v.setColor(sc.color);
                     }
                 }
             }
@@ -204,7 +212,7 @@ var KCoreAlgorithm;
                         if (this.stopRunning) {
                             return;
                         }
-                        yield this.wait();
+                        yield this.wait(currentShell);
                         for (const neighbor of vl.others) {
                             let degree = this.degrees.get(neighbor);
                             if (degree < 0) {
@@ -215,7 +223,7 @@ var KCoreAlgorithm;
                             if (this.stopRunning) {
                                 return;
                             }
-                            yield this.wait();
+                            yield this.wait(currentShell);
                             --degree;
                             if (degree <= currentShell) {
                                 this.removeFromSet1(neighbor);
@@ -228,7 +236,7 @@ var KCoreAlgorithm;
                             if (this.stopRunning) {
                                 return;
                             }
-                            yield this.wait();
+                            yield this.wait(currentShell);
                         }
                         vl.main.circle.setAttribute("opacity", this.opacity);
                     }
@@ -252,12 +260,13 @@ var KCoreAlgorithm;
                 }
             });
         }
-        wait() {
+        wait(currentShell) {
             return __awaiter(this, void 0, void 0, function* () {
-                for (let timePassed = 0; this.nextStep == false && (this.isPause || timePassed < (this.speedControl.valueAsNumber) * 1000); timePassed += 10) {
-                    yield new Promise((r) => { setTimeout(r, 10); });
+                if (currentShell >= parseInt(this.minOption.value) && currentShell <= parseInt(this.maxOption.value)) {
+                    for (let timePassed = 0; this.nextStep == false && (this.isPause || timePassed < (this.speedControl.valueAsNumber) * 1000); timePassed += 10) {
+                        yield new Promise((r) => { setTimeout(r, 10); });
+                    }
                 }
-                this.isPause = false;
                 this.nextStep = false;
             });
         }
@@ -292,10 +301,12 @@ var KCoreAlgorithm;
                 if (this.isPause) {
                     this.isPause = false;
                     this.isRunning = true;
+                    this.pauseButton.innerText = ">";
                 }
                 else {
                     this.isRunning = false;
                     this.isPause = true;
+                    this.pauseButton.innerText = "||";
                 }
             });
             this.nextStepButton.addEventListener("click", () => {
@@ -447,12 +458,27 @@ class Color {
     toString(a) {
         return `rgb(${this.r},${this.g},${this.b},${a == undefined ? this.a : a})`;
     }
+    toHexa() {
+        return `#${Color.toHexaHelper(this.r)}${Color.toHexaHelper(this.g)}${Color.toHexaHelper(this.b)}`;
+    }
+    static toHexaHelper(val) {
+        let first = Math.floor(val).toString(16);
+        if (first.length <= 1) {
+            return `0${first}`;
+        }
+        else {
+            return first;
+        }
+    }
     assignFrom(other) {
         this.r = other.r;
         this.g = other.g;
         this.b = other.b;
         this.a = other.a;
         return this;
+    }
+    clone() {
+        return new Color(this.r, this.g, this.b, this.a);
     }
     static fromString(val) {
         let r, g, b, a;

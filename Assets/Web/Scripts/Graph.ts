@@ -14,14 +14,14 @@ class Vertex implements d3.SimulationNodeDatum,IClone<Vertex>{
     public fy?:number;
     public index?:number;
     public circle:SVGCircleElement|null;
-    private color:string;
+    private color:Color;
 
     constructor(id:number){
         this.id=id;
         this.shell=-1;
         this.radius=5;
         this.circle=null;
-        this.color="#ff0000"
+        this.color=new Color(0,0,0);
     }
 
     public clone():Vertex{
@@ -40,14 +40,25 @@ class Vertex implements d3.SimulationNodeDatum,IClone<Vertex>{
     }
 
 
-    public setColor(color:string):void{
-        this.color=color;
-        (this.circle as SVGCircleElement).setAttribute("fill",color);
+    public setColor(color:Color):void{
+        this.color=color.clone();
+        (this.circle as SVGCircleElement).setAttribute("fill",color.toString());
     }
 
 
-    public getColor():string{
-        return this.color;
+    public setColorString(color:string):void{
+        this.color=Color.fromString(color);
+        (this.circle as SVGCircleElement).setAttribute("fill",color.toString());
+    }
+
+
+    public getColorHexa():string{
+        return this.color.toHexa();
+    }
+
+
+    public getColorString():string{
+        return this.color.toString();
     }
 }
 
@@ -63,8 +74,41 @@ class Edge implements d3.SimulationLinkDatum<Vertex>{
         this.target=to;
         this.line=null;
     }
+
+
+    public toString():string{
+        if(this.source.id<this.target.id){
+            return `${this.source.id}-${this.target.id}`;
+        }else{
+            return `${this.target.id}-${this.source.id}`;
+        }
+    }
 }
 
+
+class VerticeList_{
+    public main:Vertex;
+    public others:Array<number>;
+    public otherEdges:Array<Edge>;
+    private indexer:Map<number,number>;
+
+    public constructor(v:Vertex){
+        this.main=v;
+        this.otherEdges=[];
+        this.others=[];
+        this.indexer=new Map<number,number>();
+    }
+
+
+    public addVertex(v:Vertex,e:Edge):void{
+        if(this.indexer.get(v.id)!=undefined){
+            return;
+        }
+        this.indexer.set(v.id,this.others.length);
+        this.others.push(v.id);
+        this.otherEdges.push(e);
+    }
+}
 
 
 class VerticeList implements IClone<VerticeList>{
@@ -91,6 +135,7 @@ class Graph implements IClone<Graph>{
     public adjacencyList:Map<number,VerticeList>;
     public edges:Array<Edge>;
     public vertices:Array<Vertex>;
+    private existsEdges:Map<string,number>;
     private static readonly edgeFormat:RegExp=/[\s?\d+\s?][,|\s?][\d+\s?]/;
 
 
@@ -98,6 +143,7 @@ class Graph implements IClone<Graph>{
         this.adjacencyList=new Map<number,VerticeList>();
         this.edges=new Array<Edge>();
         this.vertices=new Array<Vertex>();
+        this.existsEdges=new Map<string,number>();
     }
 
 
@@ -132,6 +178,11 @@ class Graph implements IClone<Graph>{
                     this.vertices.push(v);
                 }
             }else{
+                const code:string=vs[0]<vs[1]?`${vs[0]}-${vs[1]}`:`${vs[1]}-${vs[0]}`;
+                if(this.existsEdges.get(code)!=undefined){
+                    return;
+                }
+                this.existsEdges.set(code,this.edges.length);
                 this.edges.push(new Edge(see(vs[0],vs[1]),see(vs[1],vs[0])));
             }
         });
@@ -153,6 +204,10 @@ class Graph implements IClone<Graph>{
             g.edges[i].source=(g.adjacencyList.get(this.edges[i].source.id) as VerticeList).main;
             g.edges[i].source=(g.adjacencyList.get(this.edges[i].target.id) as VerticeList).main;
         }
+
+        this.existsEdges.forEach((val:number,key:string):void=>{
+            g.existsEdges.set(`${key}`,val);
+        });
         return g;
     }
 
@@ -275,8 +330,22 @@ class Graph implements IClone<Graph>{
     }
 
 
-    public addEdges(edges:string):void{
-        
+    public addEdges(a:number,b:number):boolean{
+        if(this.adjacencyList.get(a)==undefined||this.adjacencyList.get(b)==undefined){
+            return false;
+        }
+        const code:string=a<b?`${a}-${b}`:`${b}-${a}`;
+        if(this.existsEdges.get(code)!=undefined){
+            return false;
+        }
+        const a_vl:VerticeList=this.adjacencyList.get(a) as VerticeList;
+        const b_vl:VerticeList=this.adjacencyList.get(b) as VerticeList;
+        const e:Edge=new Edge(a_vl.main,b_vl.main);
+        this.existsEdges.set(code,this.edges.length);
+        this.edges.push(e);
+        a_vl.others.push(b);
+        b_vl.others.push(a);
+        return true;
     }
 
 

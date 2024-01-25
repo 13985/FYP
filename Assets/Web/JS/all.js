@@ -117,7 +117,7 @@ window.onload = function () {
             return n.radius;
         })
             .attr("fill", function (n) {
-            return n.getColor();
+            return n.getColorString();
         })
             .call(d3.drag()
             .on("start", dragstarted)
@@ -142,7 +142,7 @@ window.onload = function () {
             if (!event.active)
                 simulation.alphaTarget(0.3).restart();
             vertexPopupInput.value = event.subject.id.toString();
-            vertexSetColor.value = event.subject.getColor();
+            vertexSetColor.value = event.subject.getColorHexa();
             event.subject.fx = event.subject.x;
             event.subject.fy = event.subject.y;
         }
@@ -227,7 +227,7 @@ window.onload = function () {
                 if (vl == undefined) {
                     break;
                 }
-                vertexSetColor.value = vl.main.getColor();
+                vertexSetColor.value = vl.main.getColorHexa();
                 break;
             }
             case "create":
@@ -242,9 +242,11 @@ window.onload = function () {
         const theVertex = parseInt(vertexPopupInput.value);
         switch (vertexUpdateSelect.value) {
             case "create": {
-                if (graph.tryAddVertex(theVertex) == null) {
+                const v = graph.tryAddVertex(theVertex);
+                if (v == null) {
                     break;
                 }
+                v.setColor(kCore.shellComponents[0].color);
                 updateSimulation();
                 setVENumber();
                 break;
@@ -262,7 +264,7 @@ window.onload = function () {
                 if (vl == undefined) {
                     break;
                 }
-                vl.main.setColor(vertexSetColor.value);
+                vl.main.setColorString(vertexSetColor.value);
                 break;
         }
     });
@@ -292,12 +294,13 @@ window.onload = function () {
     zoomNumberInput.valueAsNumber = previousMagnifier;
     zoomSlider.valueAsNumber = previousMagnifier;
     function changeGraphContainerViewBox(magnifier) {
-        SVGGOffsetX -= (magnifier - previousMagnifier) / 2 * graphContainer.clientWidth;
-        SVGGOffsetY -= (magnifier - previousMagnifier) / 2 * graphContainer.clientHeight;
+        SVGGOffsetX -= (magnifier - previousMagnifier) * graphContainer.clientWidth / 2;
+        SVGGOffsetY -= (magnifier - previousMagnifier) * graphContainer.clientHeight / 2; //move the graph the top left by the size/2 and the different between current and previous magnifier
         previousMagnifier = magnifier;
         SVGGScaleX = magnifier;
         SVGGScaleY = magnifier;
         graphSVG.selectAll("g").attr("transform", `translate(${SVGGOffsetX} ${SVGGOffsetY}) scale(${SVGGScaleX} ${SVGGScaleY})`);
+        //grow the graph to bottom right by delta magnifier * width and height, so translate back by half of it
     }
     const moveCameraButton = document.getElementById("camera-move-set");
     const moveSpeedControl = document.getElementById("move-speed-control");

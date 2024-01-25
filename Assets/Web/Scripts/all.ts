@@ -133,7 +133,7 @@ window.onload=function(){
             return n.radius;
         })
         .attr("fill",function(n:Vertex):string{
-            return n.getColor();
+            return n.getColorString();
         })
         .call(
             d3.drag<SVGCircleElement,Vertex>()
@@ -161,7 +161,7 @@ window.onload=function(){
         function dragstarted(event:any,_vertex:Vertex):void{
             if(!event.active)simulation.alphaTarget(0.3).restart();
             vertexPopupInput.value=(event.subject as Vertex).id.toString();
-            vertexSetColor.value=(event.subject as Vertex).getColor();
+            vertexSetColor.value=(event.subject as Vertex).getColorHexa();
             event.subject.fx=event.subject.x;
             event.subject.fy=event.subject.y;
         }
@@ -257,7 +257,7 @@ window.onload=function(){
             if(vl==undefined){
                 break;
             }
-            vertexSetColor.value=vl.main.getColor();
+            vertexSetColor.value=vl.main.getColorHexa();
             break;
         }
         case "create":
@@ -274,9 +274,11 @@ window.onload=function(){
         const theVertex:number=parseInt(vertexPopupInput.value);
         switch(vertexUpdateSelect.value){
         case "create":{
-            if(graph.tryAddVertex(theVertex)==null){
+            const v:Vertex|null=graph.tryAddVertex(theVertex);
+            if(v==null){
                 break;
             }
+            v.setColor(kCore.shellComponents[0].color);
             updateSimulation();
             setVENumber();
             break;
@@ -294,7 +296,7 @@ window.onload=function(){
             if(vl==undefined){
                 break;
             }
-            vl.main.setColor(vertexSetColor.value);
+            vl.main.setColorString(vertexSetColor.value);
             break;
         }
     });
