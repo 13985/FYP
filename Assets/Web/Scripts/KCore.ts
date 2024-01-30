@@ -118,7 +118,7 @@ namespace KCoreAlgorithm{
     export class ConnectedComponent{
         public vertices:Array<Vertex>=[];
         public shell:number=-1;
-        public polygonOpacity:number=0;
+        public polygonOpacity:number=0.4;
         public polygon:SVGPolygonElement|null=null;
     }
 
@@ -134,6 +134,7 @@ namespace KCoreAlgorithm{
         private static readonly processed:number=-2;
         public graph:Graph;
         public shellComponents:Array<ShellComponets>=[];
+        private indexInConnectedComponents:Map<number,number>=new Map();
 
         /******************UI*************************************/
         public maxOption:HTMLSelectElement|null;
@@ -193,7 +194,13 @@ namespace KCoreAlgorithm{
 
         public fastIteration():KCore{
             this.unionFind.set(this.graph.vertices.length);
+            for(const sc of this.shellComponents){
+                for(const cc of sc.connectedComponents){
+                    (cc.polygon as SVGElement).remove();
+                }
+            }
             this.shellComponents.length=0;
+            this.indexInConnectedComponents.clear();
             this.clearHelpers();
             let currentShell=0,nextShell=1;
 
@@ -271,8 +278,20 @@ namespace KCoreAlgorithm{
 
             for(let node:number=0;node<this.unionFind.parents.length;++node){
                 if(node==this.unionFind.parents[node])continue;
-                this.shellComponents[this.shells.get(node) as number].connectedComponents[pComponentIndex.get(this.unionFind.parents[node]) as number].vertices.push((this.graph.adjacencyList.get(node) as VerticeList).main);
+                const idx:number=pComponentIndex.get(this.unionFind.parents[node]) as number;
+                this.shellComponents[this.shells.get(node) as number].connectedComponents[idx].vertices.push((this.graph.adjacencyList.get(node) as VerticeList).main);
+                this.indexInConnectedComponents.set(node,idx);
             }
+
+            /*
+            for(const sc of this.shellComponents){
+                for(const cc of sc.connectedComponents){
+                    const polygon:SVGPolygonElement=document.createElementNS("http://www.w3.org/2000/svg","polygon");
+                    cc.polygon=polygon;
+                    cc.polygon.setAttribute("visibility","hidden");
+                }
+            }
+            */
 
             this.setAllVerticesColor(true);
             return this;
@@ -485,6 +504,11 @@ namespace KCoreAlgorithm{
                 for(const v of this.graph.vertices){
                     (v.circle as SVGCircleElement).setAttribute("fill","var(--reverse-color2)");
                 }
+                for(const sc of this.shellComponents){
+                    for(const cc of sc.connectedComponents){
+                        cc.polygon?.setAttribute("visibility","hidden");
+                    }
+                }
             }else{
                 for(const sc of this.shellComponents){
                     for(const cc of sc.connectedComponents){
@@ -536,6 +560,21 @@ namespace KCoreAlgorithm{
             this.displayVerticesInRange(min,max+1,true);//set the edges visible first (some edge may connected to outside shell)
             this.displayVerticesInRange(0,min,false);//then for the edge connected to outside shell, hide them
             this.displayVerticesInRange(max+1,this.shellComponents.length,false);
+        }
+
+
+        public displayPolygons(show:boolean):void{
+            const value:string=show?"visible":"hidden";
+            for(const sc of this.shellComponents){
+                for(const cc of sc.connectedComponents){
+                    (cc.polygon as SVGElement).setAttribute("visibility",value);
+                }
+            }
+        }
+
+
+        public refreshPolygons(vertex:Vertex):void{
+            ConvesHull.Solve(this.shellComponents[vertex.id].connectedComponents[this.indexInConnectedComponents.get(vertex.id) as number]);
         }
     }
     
