@@ -178,7 +178,7 @@ class Graph implements IClone<Graph>{
                     this.vertices.push(v);
                 }
             }else{
-                const code:string=vs[0]<vs[1]?`${vs[0]}-${vs[1]}`:`${vs[1]}-${vs[0]}`;
+                const code:string=Graph.getEdgeHashCode(vs[0],vs[1]);
                 if(this.existsEdges.get(code)!=undefined){
                     return;
                 }
@@ -187,6 +187,11 @@ class Graph implements IClone<Graph>{
             }
         });
         return this;
+    }
+
+
+    public static getEdgeHashCode(v0:number,v1:number):string{
+        return v0<v1?`${v0}-${v1}`:`${v1}-${v0}`;
     }
 
 
@@ -351,5 +356,27 @@ class Graph implements IClone<Graph>{
 
     public removeEdges(edges:string):void{
         
+    }
+
+
+    public getEdge(v0:number,v1:number):Edge|undefined{
+        const code:string=Graph.getEdgeHashCode(v0,v1);
+        const idx:number|undefined=this.existsEdges.get(code);
+        if(idx==undefined){
+            return undefined;
+        }
+        return this.edges[idx];
+    }
+
+
+    public displayVertex(v_id:number,visible:boolean):void{
+        const value:string=visible?"visible":"hidden";
+        const vl:VerticeList=this.adjacencyList.get(v_id) as VerticeList;
+        (vl.main.circle as SVGElement).setAttribute("visibility",value);
+        for(const n of vl.others){
+            const code:string=Graph.getEdgeHashCode(v_id,n);
+            const e:Edge=this.edges[this.existsEdges.get(code) as number];
+            (e.line as SVGElement).setAttribute("visibility",value);
+        }
     }
 }

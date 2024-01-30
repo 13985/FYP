@@ -1,4 +1,12 @@
 "use strict";
+/*
+hide non k-shell if starting core is more than 1
+force directed layoutt -explore alt?
+color node as it goes ( start with white)
+setting - to show not yet visualized current core nodes
+add edge! deature  (bonus during visualzation)
+
+*/
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -8,14 +16,94 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-/*
-hide non k-shell if starting core is more than 1
-force directed layoutt -explore alt?
-color node as it goes ( start with white)
-setting - to show not yet visualized current core nodes
-add edge! deature  (bonus during visualzation)
-
-*/
+class Color {
+    constructor(r, g, b, a = 255) {
+        this.r = r;
+        this.g = g;
+        this.b = b;
+        this.a = 255;
+    }
+    validate() {
+        this.r = Math.max(0, Math.min(this.r, 255));
+        this.g = Math.max(0, Math.min(this.g, 255));
+        this.b = Math.max(0, Math.min(this.b, 255));
+        this.a = Math.max(0, Math.min(this.a, 255));
+        return this;
+    }
+    toString(a) {
+        return `rgb(${this.r},${this.g},${this.b},${a == undefined ? this.a : a})`;
+    }
+    toHexa() {
+        return `#${Color.toHexaHelper(this.r)}${Color.toHexaHelper(this.g)}${Color.toHexaHelper(this.b)}`;
+    }
+    static toHexaHelper(val) {
+        let first = Math.floor(val).toString(16);
+        if (first.length <= 1) {
+            return `0${first}`;
+        }
+        else {
+            return first;
+        }
+    }
+    assignFrom(other) {
+        this.r = other.r;
+        this.g = other.g;
+        this.b = other.b;
+        this.a = other.a;
+        return this;
+    }
+    clone() {
+        return new Color(this.r, this.g, this.b, this.a);
+    }
+    static fromString(val) {
+        let r, g, b, a;
+        if (val[0].startsWith("#")) {
+            if (val.length == 7) {
+                r = parseInt(val.substring(1, 3), 16);
+                g = parseInt(val.substring(3, 5), 16);
+                b = parseInt(val.substring(5, 7), 16);
+                a = 255;
+            }
+            else if (val.length == 9) {
+                r = parseInt(val.substring(1, 3), 16);
+                g = parseInt(val.substring(3, 5), 16);
+                b = parseInt(val.substring(5, 7), 16);
+                a = parseInt(val.substring(7, 9), 16);
+            }
+            else {
+                return new Color(-1, -1, -1);
+            }
+        }
+        else if (val.startsWith("rgb(")) {
+            const numbers = val.split(/\d+/g).map((val) => parseFloat(val));
+            if (numbers.length == 3) {
+                r = numbers[0];
+                g = numbers[1];
+                b = numbers[2];
+                a = 255;
+            }
+            else if (numbers.length == 4) {
+                r = numbers[0];
+                g = numbers[1];
+                b = numbers[2];
+                a = numbers[3];
+            }
+            else {
+                return new Color(-1, -1, -1);
+            }
+        }
+        else {
+            return new Color(-1, -1, -1);
+        }
+        return new Color(r, g, b, a).validate();
+    }
+    static lerp(ret, start, end, t) {
+        ret.r = start.r * (1 - t) + end.r * t;
+        ret.g = start.g * (1 - t) + end.g * t;
+        ret.b = start.b * (1 - t) + end.b * t;
+        ret.a = start.a * (1 - t) + end.a * t;
+    }
+}
 var KCoreAlgorithm;
 (function (KCoreAlgorithm) {
     class ConnectedComponent {
@@ -47,7 +135,8 @@ var KCoreAlgorithm;
             this.set1 = [];
             this.unionFind = new UnionFind();
             /******************visualization control******************/
-            this.isRunning = false;
+            this.isAnimationRunning = false;
+            this.IsAnimationRunning = () => this.isAnimationRunning;
             this.isPause = false;
             this.nextStep = false;
             this.stopRunning = false;
@@ -57,6 +146,7 @@ var KCoreAlgorithm;
             this.maxOption = null;
             this.minOption = null;
             this.speedControl = null;
+            this.state_currentShell = 0;
         }
         setGraph(g) {
             this.graph = g;
@@ -64,21 +154,12 @@ var KCoreAlgorithm;
             return this;
         }
         setColor(start, end) {
-            var _a;
             const color0 = Color.fromString(start);
             const color1 = Color.fromString(end);
             const shellCount = this.shellComponents.length;
             const interval = shellCount - 1;
             for (let i = 0; i < shellCount; ++i) {
                 Color.lerp(this.shellComponents[i].color, color0, color1, i / interval);
-            }
-            for (const sc of this.shellComponents) {
-                for (const cc of sc.connectedComponents) {
-                    (_a = cc.polygon) === null || _a === void 0 ? void 0 : _a.setAttribute("fill", sc.color.toString(cc.polygonOpacity));
-                    for (const v of cc.vertices) {
-                        v.setColor(sc.color);
-                    }
-                }
             }
             return this;
         }
@@ -162,24 +243,28 @@ var KCoreAlgorithm;
                     continue;
                 this.shellComponents[this.shells.get(node)].connectedComponents[pComponentIndex.get(this.unionFind.parents[node])].vertices.push(this.graph.adjacencyList.get(node).main);
             }
+            this.setAllVerticesColor(true);
             return this;
         }
         start(onEnd) {
             return __awaiter(this, void 0, void 0, function* () {
-                if (this.isRunning) {
+                if (this.isAnimationRunning) {
                     return;
                 }
-                this.isRunning = true;
+                this.isAnimationRunning = true;
                 this.isPause = this.stopRunning = this.nextStep = false;
                 for (const v of this.graph.vertices) {
                     v.circle.setAttribute("opacity", this.opacity);
                 }
+                this.setAllVerticesColor(true);
+                this.hideVerticesOutsideShells();
                 yield this.slowIteration();
                 for (const v of this.graph.vertices) {
                     v.circle.setAttribute("opacity", "1");
                 }
                 ;
-                this.isPause = this.isRunning = this.stopRunning = this.nextStep = false;
+                this.isPause = this.isAnimationRunning = this.stopRunning = this.nextStep = false;
+                this.displayVerticesInRange(0, this.shellComponents.length, true);
                 onEnd === null || onEnd === void 0 ? void 0 : onEnd.call(null);
             });
         }
@@ -208,11 +293,13 @@ var KCoreAlgorithm;
                         const v_id = this.set0.pop();
                         const vl = this.graph.adjacencyList.get(v_id);
                         this.shells.set(v_id, currentShell);
+                        this.degrees.set(v_id, KCore.processed);
                         vl.main.circle.setAttribute("opacity", "1");
+                        vl.main.setColor(this.shellComponents[currentShell].color);
+                        yield this.wait(currentShell);
                         if (this.stopRunning) {
                             return;
                         }
-                        yield this.wait(currentShell);
                         for (const neighbor of vl.others) {
                             let degree = this.degrees.get(neighbor);
                             if (degree < 0) {
@@ -224,6 +311,9 @@ var KCoreAlgorithm;
                                 return;
                             }
                             yield this.wait(currentShell);
+                            if (this.stopRunning) {
+                                return;
+                            }
                             --degree;
                             if (degree <= currentShell) {
                                 this.removeFromSet1(neighbor);
@@ -233,12 +323,11 @@ var KCoreAlgorithm;
                                 this.degrees.set(neighbor, degree);
                             }
                             neighbor_v.circle.setAttribute("opacity", this.opacity);
+                            yield this.wait(currentShell);
                             if (this.stopRunning) {
                                 return;
                             }
-                            yield this.wait(currentShell);
                         }
-                        vl.main.circle.setAttribute("opacity", this.opacity);
                     }
                     if (this.stopRunning) {
                         return;
@@ -263,8 +352,11 @@ var KCoreAlgorithm;
         wait(currentShell) {
             return __awaiter(this, void 0, void 0, function* () {
                 if (currentShell >= parseInt(this.minOption.value) && currentShell <= parseInt(this.maxOption.value)) {
-                    for (let timePassed = 0; this.nextStep == false && (this.isPause || timePassed < (this.speedControl.valueAsNumber) * 1000); timePassed += 10) {
+                    for (let timePassed = 0; this.nextStep == false && this.stopRunning == false && (this.isPause || timePassed < (this.speedControl.valueAsNumber) * 1000);) {
+                        const before = Date.now();
                         yield new Promise((r) => { setTimeout(r, 10); });
+                        const after = Date.now();
+                        timePassed += (after - before);
                     }
                 }
                 this.nextStep = false;
@@ -300,11 +392,10 @@ var KCoreAlgorithm;
             this.pauseButton.addEventListener("click", () => {
                 if (this.isPause) {
                     this.isPause = false;
-                    this.isRunning = true;
                     this.pauseButton.innerText = ">";
+                    //displayPartialResult(false);
                 }
                 else {
-                    this.isRunning = false;
                     this.isPause = true;
                     this.pauseButton.innerText = "||";
                 }
@@ -319,10 +410,10 @@ var KCoreAlgorithm;
             this.maxOption = max;
             this.createOptions(0, this.shellComponents.length, this.minOption);
             this.createOptions(0, this.shellComponents.length, this.maxOption);
-            this.minOption.addEventListener("change", () => {
+            this.minOption.addEventListener("input", () => {
                 this.createOptions(parseInt(this.minOption.value), this.shellComponents.length, this.maxOption);
             });
-            this.maxOption.addEventListener("change", () => {
+            this.maxOption.addEventListener("input", () => {
                 this.createOptions(0, parseInt(this.maxOption.value) + 1, this.minOption);
             });
             this.minOption.value = "0";
@@ -339,7 +430,63 @@ var KCoreAlgorithm;
             }
             select.value = Math.max(start, Math.min(end - 1, val)).toString();
         }
+        setAllVerticesColor(defaultColor) {
+            var _a;
+            if (defaultColor) {
+                for (const v of this.graph.vertices) {
+                    v.circle.setAttribute("fill", "var(--reverse-color2)");
+                }
+            }
+            else {
+                for (const sc of this.shellComponents) {
+                    for (const cc of sc.connectedComponents) {
+                        (_a = cc.polygon) === null || _a === void 0 ? void 0 : _a.setAttribute("fill", sc.color.toString(cc.polygonOpacity));
+                        for (const v of cc.vertices) {
+                            v.setColor(sc.color);
+                        }
+                    }
+                }
+            }
+        }
+        displayVerticesInRange(minShell, maxShell, visibile) {
+            for (let i = minShell; i < maxShell; ++i) {
+                const sc = this.shellComponents[i];
+                for (const cc of sc.connectedComponents) {
+                    for (const v of cc.vertices) {
+                        this.graph.displayVertex(v.id, visibile);
+                    }
+                }
+            }
+        }
+        displayPartialResult(show) {
+            const min = parseInt(this.minOption.value), max = parseInt(this.maxOption.value);
+            if (show) {
+                for (let shell = min; shell <= max; ++shell) {
+                    const sc = this.shellComponents[shell];
+                    for (const cc of sc.connectedComponents) {
+                        for (const v of cc.vertices) {
+                            v.setColor(sc.color);
+                        }
+                    }
+                }
+            }
+            else {
+                for (const v of this.graph.vertices) {
+                    if (this.degrees.get(v.id) != KCore.processed) {
+                        v.circle.setAttribute("fill", "var(--reverse-color2)");
+                    }
+                }
+            }
+        }
+        hideVerticesOutsideShells() {
+            const min = parseInt(this.minOption.value), max = parseInt(this.maxOption.value);
+            this.displayVerticesInRange(min, max + 1, true); //set the edges visible first (some edge may connected to outside shell)
+            this.displayVerticesInRange(0, min, false); //then for the edge connected to outside shell, hide them
+            this.displayVerticesInRange(max + 1, this.shellComponents.length, false);
+        }
     }
+    KCore.processed = -2;
+    KCore.defaultColor = new Color(1, 1, 1);
     KCoreAlgorithm.KCore = KCore;
     class Point {
         constructor(x, y) {
@@ -439,94 +586,6 @@ class UnionFind {
         for (let i = 0; i < this.parents.length; ++i) {
             this.parents[i] = this.find(i);
         }
-    }
-}
-class Color {
-    constructor(r, g, b, a = 255) {
-        this.r = r;
-        this.g = g;
-        this.b = b;
-        this.a = 255;
-    }
-    validate() {
-        this.r = Math.max(0, Math.min(this.r, 255));
-        this.g = Math.max(0, Math.min(this.g, 255));
-        this.b = Math.max(0, Math.min(this.b, 255));
-        this.a = Math.max(0, Math.min(this.a, 255));
-        return this;
-    }
-    toString(a) {
-        return `rgb(${this.r},${this.g},${this.b},${a == undefined ? this.a : a})`;
-    }
-    toHexa() {
-        return `#${Color.toHexaHelper(this.r)}${Color.toHexaHelper(this.g)}${Color.toHexaHelper(this.b)}`;
-    }
-    static toHexaHelper(val) {
-        let first = Math.floor(val).toString(16);
-        if (first.length <= 1) {
-            return `0${first}`;
-        }
-        else {
-            return first;
-        }
-    }
-    assignFrom(other) {
-        this.r = other.r;
-        this.g = other.g;
-        this.b = other.b;
-        this.a = other.a;
-        return this;
-    }
-    clone() {
-        return new Color(this.r, this.g, this.b, this.a);
-    }
-    static fromString(val) {
-        let r, g, b, a;
-        if (val[0].startsWith("#")) {
-            if (val.length == 7) {
-                r = parseInt(val.substring(1, 3), 16);
-                g = parseInt(val.substring(3, 5), 16);
-                b = parseInt(val.substring(5, 7), 16);
-                a = 255;
-            }
-            else if (val.length == 9) {
-                r = parseInt(val.substring(1, 3), 16);
-                g = parseInt(val.substring(3, 5), 16);
-                b = parseInt(val.substring(5, 7), 16);
-                a = parseInt(val.substring(7, 9), 16);
-            }
-            else {
-                return new Color(-1, -1, -1);
-            }
-        }
-        else if (val.startsWith("rgb(")) {
-            const numbers = val.split(/\d+/g).map((val) => parseFloat(val));
-            if (numbers.length == 3) {
-                r = numbers[0];
-                g = numbers[1];
-                b = numbers[2];
-                a = 255;
-            }
-            else if (numbers.length == 4) {
-                r = numbers[0];
-                g = numbers[1];
-                b = numbers[2];
-                a = numbers[3];
-            }
-            else {
-                return new Color(-1, -1, -1);
-            }
-        }
-        else {
-            return new Color(-1, -1, -1);
-        }
-        return new Color(r, g, b, a).validate();
-    }
-    static lerp(ret, start, end, t) {
-        ret.r = start.r * (1 - t) + end.r * t;
-        ret.g = start.g * (1 - t) + end.g * t;
-        ret.b = start.b * (1 - t) + end.b * t;
-        ret.a = start.a * (1 - t) + end.a * t;
     }
 }
 function delay(ms) {

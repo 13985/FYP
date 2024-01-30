@@ -6,6 +6,114 @@ setting - to show not yet visualized current core nodes
 add edge! deature  (bonus during visualzation)
 
 */
+
+
+class Color implements IClone<Color>{
+    public r:number;
+    public g:number;
+    public b:number;
+    public a:number;
+
+    constructor(r:number,g:number,b:number,a:number=255){
+        this.r=r;
+        this.g=g;
+        this.b=b;
+        this.a=255;
+    }
+
+
+    public validate():Color{
+        this.r=Math.max(0,Math.min(this.r,255));
+        this.g=Math.max(0,Math.min(this.g,255));
+        this.b=Math.max(0,Math.min(this.b,255));
+        this.a=Math.max(0,Math.min(this.a,255));
+        return this;
+    }
+
+
+    public toString(a?:number):string{
+        return `rgb(${this.r},${this.g},${this.b},${a==undefined?this.a:a})`;
+    }
+
+
+    public toHexa():string{
+        return `#${Color.toHexaHelper(this.r)}${Color.toHexaHelper(this.g)}${Color.toHexaHelper(this.b)}`;
+    }
+
+
+    private static toHexaHelper(val:number):string{
+        let first:string=Math.floor(val).toString(16);
+        if(first.length<=1){
+            return `0${first}`;
+        }else{
+            return first;
+        }
+    }
+
+
+    public assignFrom(other:Color):Color{
+        this.r=other.r;
+        this.g=other.g;
+        this.b=other.b;
+        this.a=other.a;
+        return this;
+    }
+
+
+    public clone(): Color {
+        return new Color(this.r,this.g,this.b,this.a);
+    }
+
+
+    public static fromString(val:string):Color{
+        let r:number,g:number,b:number,a:number;
+
+        if(val[0].startsWith("#")){
+            if(val.length==7){
+                r=parseInt(val.substring(1,3),16);
+                g=parseInt(val.substring(3,5),16);
+                b=parseInt(val.substring(5,7),16);
+                a=255;
+            }
+            else if(val.length==9){
+                r=parseInt(val.substring(1,3),16);
+                g=parseInt(val.substring(3,5),16);
+                b=parseInt(val.substring(5,7),16);
+                a=parseInt(val.substring(7,9),16);
+            }else{
+                return new Color(-1,-1,-1);
+            }
+        }else if(val.startsWith("rgb(")){
+            const numbers:number[]=val.split(/\d+/g).map((val:string):number=>parseFloat(val));
+            if(numbers.length==3){
+                r=numbers[0];
+                g=numbers[1];
+                b=numbers[2];
+                a=255;
+            }else if(numbers.length==4){
+                r=numbers[0];
+                g=numbers[1];
+                b=numbers[2];
+                a=numbers[3];
+            }else{
+                return new Color(-1,-1,-1);
+            }
+        }else{
+            return new Color(-1,-1,-1);
+        }
+
+        return new Color(r,g,b,a).validate();
+    }
+
+
+    public static lerp(ret:Color,start:Color,end:Color,t:number):void{
+        ret.r=start.r*(1-t)+end.r*t;
+        ret.g=start.g*(1-t)+end.g*t;
+        ret.b=start.b*(1-t)+end.b*t;
+        ret.a=start.a*(1-t)+end.a*t;
+    }
+}
+
 namespace KCoreAlgorithm{
     export class ConnectedComponent{
         public vertices:Array<Vertex>=[];
@@ -23,6 +131,7 @@ namespace KCoreAlgorithm{
 
     
     export class KCore{
+        private static readonly processed:number=-2;
         public graph:Graph;
         public shellComponents:Array<ShellComponets>=[];
 
@@ -41,7 +150,8 @@ namespace KCoreAlgorithm{
         private unionFind=new UnionFind();
 
         /******************visualization control******************/
-        private isRunning:boolean=false;
+        private isAnimationRunning:boolean=false;
+        public IsAnimationRunning:()=>boolean=():boolean=>this.isAnimationRunning;
         private isPause:boolean=false;
         private nextStep:boolean=false;
         private stopRunning:boolean=false;
@@ -49,13 +159,15 @@ namespace KCoreAlgorithm{
         private pauseButton:HTMLButtonElement|null=null;
         private nextStepButton:HTMLButtonElement|null=null;
 
-
+        private static readonly defaultColor:Color=new Color(1,1,1);
+        private state_currentShell:number;
 
         constructor(g:Graph){
             this.graph=g;
             this.maxOption=null;
             this.minOption=null;
             this.speedControl=null;
+            this.state_currentShell=0;
         }
 
 
@@ -75,16 +187,6 @@ namespace KCoreAlgorithm{
             for(let i:number=0;i<shellCount;++i){
                 Color.lerp(this.shellComponents[i].color,color0,color1,i/interval);
             }
-
-            for(const sc of this.shellComponents){
-                for(const cc of sc.connectedComponents){
-                    cc.polygon?.setAttribute("fill",sc.color.toString(cc.polygonOpacity));
-                    for(const v of cc.vertices){
-                        v.setColor(sc.color);
-                    }
-                }
-            }
-
             return this;
         }
 
@@ -172,24 +274,30 @@ namespace KCoreAlgorithm{
                 this.shellComponents[this.shells.get(node) as number].connectedComponents[pComponentIndex.get(this.unionFind.parents[node]) as number].vertices.push((this.graph.adjacencyList.get(node) as VerticeList).main);
             }
 
+            this.setAllVerticesColor(true);
             return this;
         }
 
 
         public async start(onEnd?:()=>void):Promise<void>{
-            if(this.isRunning){
+            if(this.isAnimationRunning){
                 return;
             }
-            this.isRunning=true;
+            this.isAnimationRunning=true;
             this.isPause=this.stopRunning=this.nextStep=false;
             for(const v of this.graph.vertices){
                 (v.circle as SVGCircleElement).setAttribute("opacity",this.opacity);
             }
+            this.setAllVerticesColor(true);
+            this.hideVerticesOutsideShells();
+
             await this.slowIteration();
+
             for(const v of this.graph.vertices){
                 (v.circle as SVGCircleElement).setAttribute("opacity","1");
             };
-            this.isPause=this.isRunning=this.stopRunning=this.nextStep=false;
+            this.isPause=this.isAnimationRunning=this.stopRunning=this.nextStep=false;
+            this.displayVerticesInRange(0,this.shellComponents.length,true);
             onEnd?.call(null);
         }
 
@@ -221,11 +329,13 @@ namespace KCoreAlgorithm{
                     const v_id:number=<number>this.set0.pop();
                     const vl:VerticeList=<VerticeList>this.graph.adjacencyList.get(v_id);
                     this.shells.set(v_id,currentShell);
+                    this.degrees.set(v_id,KCore.processed);
                     (vl.main.circle as SVGCircleElement).setAttribute("opacity","1");
+                    vl.main.setColor(this.shellComponents[currentShell].color);
+                    await this.wait(currentShell);
                     if(this.stopRunning){
                         return;
                     }
-                    await this.wait(currentShell);
 
                     for(const neighbor of vl.others){
                         let degree:number=(this.degrees.get(neighbor) as number);
@@ -239,6 +349,9 @@ namespace KCoreAlgorithm{
                             return;
                         }
                         await this.wait(currentShell);
+                        if(this.stopRunning){
+                            return;
+                        }
                         --degree;
                         if(degree<=currentShell){
                             this.removeFromSet1(neighbor);
@@ -247,12 +360,11 @@ namespace KCoreAlgorithm{
                             this.degrees.set(neighbor,degree);
                         }
                         (neighbor_v.circle as SVGCircleElement).setAttribute("opacity",this.opacity);
+                        await this.wait(currentShell);
                         if(this.stopRunning){
                             return;
                         }
-                        await this.wait(currentShell);
                     }
-                    (vl.main.circle as SVGCircleElement).setAttribute("opacity",this.opacity);
                 }
                 if(this.stopRunning){
                     return;
@@ -277,8 +389,11 @@ namespace KCoreAlgorithm{
 
         private async wait(currentShell:number):Promise<void>{
             if(currentShell>=parseInt((this.minOption as HTMLSelectElement).value)&&currentShell<=parseInt((this.maxOption as HTMLSelectElement).value)){
-                for(let timePassed:number=0;this.nextStep==false&&(this.isPause||timePassed<((this.speedControl as HTMLInputElement).valueAsNumber)*1000);timePassed+=10){
+                for(let timePassed:number=0;this.nextStep==false&&this.stopRunning==false&&(this.isPause||timePassed<((this.speedControl as HTMLInputElement).valueAsNumber)*1000);){
+                    const before:number=Date.now();
                     await new Promise((r)=>{setTimeout(r,10);});
+                    const after:number=Date.now();
+                    timePassed+=(after-before);
                 }
             }
             this.nextStep=false;
@@ -321,10 +436,9 @@ namespace KCoreAlgorithm{
             this.pauseButton.addEventListener("click",():void=>{
                 if(this.isPause){
                     this.isPause=false;
-                    this.isRunning=true;
                     (this.pauseButton as HTMLButtonElement).innerText=">";
+                    //displayPartialResult(false);
                 }else{
-                    this.isRunning=false;
                     this.isPause=true;
                     (this.pauseButton as HTMLButtonElement).innerText="||";
                 }
@@ -342,10 +456,10 @@ namespace KCoreAlgorithm{
             this.createOptions(0,this.shellComponents.length,this.minOption);
             this.createOptions(0,this.shellComponents.length,this.maxOption);
 
-            this.minOption.addEventListener("change",()=>{
+            this.minOption.addEventListener("input",()=>{
                 this.createOptions(parseInt((this.minOption as HTMLSelectElement).value),this.shellComponents.length,this.maxOption as HTMLSelectElement);
             });
-            this.maxOption.addEventListener("change",()=>{
+            this.maxOption.addEventListener("input",()=>{
                 this.createOptions(0,parseInt((this.maxOption as HTMLSelectElement).value)+1,this.minOption as HTMLSelectElement);
             });
             this.minOption.value="0";
@@ -363,6 +477,65 @@ namespace KCoreAlgorithm{
                 `;
             }
             select.value=Math.max(start,Math.min(end-1,val)).toString();
+        }
+
+
+        public setAllVerticesColor(defaultColor:boolean):void{
+            if(defaultColor){
+                for(const v of this.graph.vertices){
+                    (v.circle as SVGCircleElement).setAttribute("fill","var(--reverse-color2)");
+                }
+            }else{
+                for(const sc of this.shellComponents){
+                    for(const cc of sc.connectedComponents){
+                        cc.polygon?.setAttribute("fill",sc.color.toString(cc.polygonOpacity));
+                        for(const v of cc.vertices){
+                            v.setColor(sc.color);
+                        }
+                    }
+                }
+            }
+        }
+
+
+        private displayVerticesInRange(minShell:number,maxShell:number,visibile:boolean):void{
+            for(let i:number=minShell;i<maxShell;++i){
+                const sc:ShellComponets=this.shellComponents[i];
+                for(const cc of sc.connectedComponents){
+                    for(const v of cc.vertices){
+                        this.graph.displayVertex(v.id,visibile);
+                    }
+                }
+            }
+        }
+
+
+        public displayPartialResult(show:boolean):void{
+            const min:number=parseInt((this.minOption as HTMLSelectElement).value),max:number=parseInt((this.maxOption as HTMLSelectElement).value);
+            if(show){
+                for(let shell:number=min;shell<=max;++shell){
+                    const sc:ShellComponets=this.shellComponents[shell];
+                    for(const cc of sc.connectedComponents){
+                        for(const v of cc.vertices){
+                            v.setColor(sc.color);
+                        }
+                    }
+                }
+            }else{
+                for(const v of this.graph.vertices){
+                    if(this.degrees.get(v.id) as number!=KCore.processed){
+                        (v.circle as SVGCircleElement).setAttribute("fill","var(--reverse-color2)");
+                    }
+                }
+            }
+        }
+
+
+        private hideVerticesOutsideShells():void{
+            const min:number=parseInt((this.minOption as HTMLSelectElement).value),max:number=parseInt((this.maxOption as HTMLSelectElement).value);
+            this.displayVerticesInRange(min,max+1,true);//set the edges visible first (some edge may connected to outside shell)
+            this.displayVerticesInRange(0,min,false);//then for the edge connected to outside shell, hide them
+            this.displayVerticesInRange(max+1,this.shellComponents.length,false);
         }
     }
     
@@ -483,113 +656,6 @@ class UnionFind{
         for(let i:number=0;i<this.parents.length;++i){
             this.parents[i]=this.find(i);
         }
-    }
-}
-
-
-class Color implements IClone<Color>{
-    public r:number;
-    public g:number;
-    public b:number;
-    public a:number;
-
-    constructor(r:number,g:number,b:number,a:number=255){
-        this.r=r;
-        this.g=g;
-        this.b=b;
-        this.a=255;
-    }
-
-
-    public validate():Color{
-        this.r=Math.max(0,Math.min(this.r,255));
-        this.g=Math.max(0,Math.min(this.g,255));
-        this.b=Math.max(0,Math.min(this.b,255));
-        this.a=Math.max(0,Math.min(this.a,255));
-        return this;
-    }
-
-
-    public toString(a?:number):string{
-        return `rgb(${this.r},${this.g},${this.b},${a==undefined?this.a:a})`;
-    }
-
-
-    public toHexa():string{
-        return `#${Color.toHexaHelper(this.r)}${Color.toHexaHelper(this.g)}${Color.toHexaHelper(this.b)}`;
-    }
-
-
-    private static toHexaHelper(val:number):string{
-        let first:string=Math.floor(val).toString(16);
-        if(first.length<=1){
-            return `0${first}`;
-        }else{
-            return first;
-        }
-    }
-
-
-    public assignFrom(other:Color):Color{
-        this.r=other.r;
-        this.g=other.g;
-        this.b=other.b;
-        this.a=other.a;
-        return this;
-    }
-
-
-    public clone(): Color {
-        return new Color(this.r,this.g,this.b,this.a);
-    }
-
-
-    public static fromString(val:string):Color{
-        let r:number,g:number,b:number,a:number;
-
-        if(val[0].startsWith("#")){
-            if(val.length==7){
-                r=parseInt(val.substring(1,3),16);
-                g=parseInt(val.substring(3,5),16);
-                b=parseInt(val.substring(5,7),16);
-                a=255;
-            }
-            else if(val.length==9){
-                r=parseInt(val.substring(1,3),16);
-                g=parseInt(val.substring(3,5),16);
-                b=parseInt(val.substring(5,7),16);
-                a=parseInt(val.substring(7,9),16);
-            }else{
-                return new Color(-1,-1,-1);
-            }
-        }else if(val.startsWith("rgb(")){
-            const numbers:number[]=val.split(/\d+/g).map((val:string):number=>parseFloat(val));
-            if(numbers.length==3){
-                r=numbers[0];
-                g=numbers[1];
-                b=numbers[2];
-                a=255;
-            }else if(numbers.length==4){
-                r=numbers[0];
-                g=numbers[1];
-                b=numbers[2];
-                a=numbers[3];
-            }else{
-                return new Color(-1,-1,-1);
-            }
-        }else{
-            return new Color(-1,-1,-1);
-        }
-
-        return new Color(r,g,b,a).validate();
-    }
-
-
-    public static lerp(ret:Color,start:Color,end:Color,t:number):void{
-        ret.r=start.r*(1-t)+end.r*t;
-        ret.g=start.g*(1-t)+end.g*t;
-        ret.b=start.b*(1-t)+end.b*t;
-        ret.a=start.a*(1-t)+end.a*t;
     }
 }
 

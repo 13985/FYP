@@ -1,5 +1,5 @@
 
-window.onload=function(){
+window.onload=():void=>{
     const themeButton:HTMLInputElement=<HTMLInputElement>document.getElementById("theme-button-set");
     const html:HTMLElement=<HTMLElement>document.body.parentNode;
     const graphContainer:SVGElement=<SVGElement><HTMLOrSVGElement>document.getElementById("graph-container");
@@ -123,6 +123,7 @@ window.onload=function(){
         .attr("stroke-width",1)
         .each(function(e:Edge,_idx:number,_lines:SVGLineElement[]|ArrayLike<SVGLineElement>):void{
             e.line=this;
+            e.line.setAttribute("stroke","var(--reverse-color4)");
         }).merge(link);
 
         let node:d3.Selection<SVGCircleElement,Vertex, SVGGElement, unknown>=svgCirclesG.selectAll<SVGCircleElement,Vertex>("circle")
@@ -131,9 +132,6 @@ window.onload=function(){
         node=node.enter().append("circle")
         .attr("r",function(n:Vertex,_i:number):number{
             return n.radius;
-        })
-        .attr("fill",function(n:Vertex):string{
-            return n.getColorString();
         })
         .call(
             d3.drag<SVGCircleElement,Vertex>()
@@ -468,5 +466,15 @@ window.onload=function(){
         stopButton.disabled=true;
         runButton.disabled=false;
         kCore.stop();
+    });
+
+
+    const partialResultCheckBos:HTMLInputElement=document.getElementById("partial-results-set") as HTMLInputElement;
+    partialResultCheckBos.addEventListener("input",():void=>{
+        if(kCore.IsAnimationRunning()==false){
+            partialResultCheckBos.checked=false;
+            return;
+        }
+        kCore.displayPartialResult(partialResultCheckBos.checked);
     });
 }

@@ -315,9 +315,12 @@ input[type="color"]::-webkit-color-swatch-wrapper {
     background-color: red;
 }
 
-/***********************************************Control******************************************************************************/
+/***********************************************Control / toggable label******************************************************************************/
 
-#camera-move-set:checked + label[for="camera-move-set"], #show-algo-control:checked + label[for="show-algo-control"], #show-algo-state:checked + label[for="show-algo-state"]{
+#camera-move-set:checked + label[for="camera-move-set"], 
+#show-algo-control:checked + label[for="show-algo-control"], 
+#show-algo-state:checked + label[for="show-algo-state"], 
+#partial-results-set:checked + label[for="partial-results-set"]{
     background-color:color-mix(in srgb,rgb(0, 170, 0) 70%,var(--main-color0) 30%);
 }
 
@@ -391,7 +394,7 @@ label[for="camera-move-set"]{
 }
 
 
-#show-algo-control, #show-algo-state{
+#show-algo-control, #show-algo-state, #partial-results-set{
     display: none;
 }
 
@@ -401,6 +404,13 @@ label[for="show-algo-control"], label[for="show-algo-state"]{
     width:100%;
     height:100%;
     position:relative;
+    color:var(--reverse-color1);
+    transition: background-color var(--g-transition-time), color var(--g-transition-time), border-color var(--g-transition-time);
+}
+
+
+label[for="partial-results-set"]{
+    display:block;
     color:var(--reverse-color1);
     transition: background-color var(--g-transition-time), color var(--g-transition-time), border-color var(--g-transition-time);
 }

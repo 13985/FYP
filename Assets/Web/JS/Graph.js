@@ -118,7 +118,7 @@ class Graph {
                 }
             }
             else {
-                const code = vs[0] < vs[1] ? `${vs[0]}-${vs[1]}` : `${vs[1]}-${vs[0]}`;
+                const code = Graph.getEdgeHashCode(vs[0], vs[1]);
                 if (this.existsEdges.get(code) != undefined) {
                     return;
                 }
@@ -127,6 +127,9 @@ class Graph {
             }
         });
         return this;
+    }
+    static getEdgeHashCode(v0, v1) {
+        return v0 < v1 ? `${v0}-${v1}` : `${v1}-${v0}`;
     }
     clone() {
         const g = new Graph();
@@ -267,6 +270,24 @@ class Graph {
         return true;
     }
     removeEdges(edges) {
+    }
+    getEdge(v0, v1) {
+        const code = Graph.getEdgeHashCode(v0, v1);
+        const idx = this.existsEdges.get(code);
+        if (idx == undefined) {
+            return undefined;
+        }
+        return this.edges[idx];
+    }
+    displayVertex(v_id, visible) {
+        const value = visible ? "visible" : "hidden";
+        const vl = this.adjacencyList.get(v_id);
+        vl.main.circle.setAttribute("visibility", value);
+        for (const n of vl.others) {
+            const code = Graph.getEdgeHashCode(v_id, n);
+            const e = this.edges[this.existsEdges.get(code)];
+            e.line.setAttribute("visibility", value);
+        }
     }
 }
 Graph.edgeFormat = /[\s?\d+\s?][,|\s?][\d+\s?]/;

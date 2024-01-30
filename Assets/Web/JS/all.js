@@ -1,5 +1,5 @@
 "use strict";
-window.onload = function () {
+window.onload = () => {
     const themeButton = document.getElementById("theme-button-set");
     const html = document.body.parentNode;
     const graphContainer = document.getElementById("graph-container");
@@ -108,6 +108,7 @@ window.onload = function () {
             .attr("stroke-width", 1)
             .each(function (e, _idx, _lines) {
             e.line = this;
+            e.line.setAttribute("stroke", "var(--reverse-color4)");
         }).merge(link);
         let node = svgCirclesG.selectAll("circle")
             .data(nodes, function (data) { return data.id; });
@@ -115,9 +116,6 @@ window.onload = function () {
         node = node.enter().append("circle")
             .attr("r", function (n, _i) {
             return n.radius;
-        })
-            .attr("fill", function (n) {
-            return n.getColorString();
         })
             .call(d3.drag()
             .on("start", dragstarted)
@@ -418,5 +416,13 @@ window.onload = function () {
         stopButton.disabled = true;
         runButton.disabled = false;
         kCore.stop();
+    });
+    const partialResultCheckBos = document.getElementById("partial-results-set");
+    partialResultCheckBos.addEventListener("input", () => {
+        if (kCore.IsAnimationRunning() == false) {
+            partialResultCheckBos.checked = false;
+            return;
+        }
+        kCore.displayPartialResult(partialResultCheckBos.checked);
     });
 };
