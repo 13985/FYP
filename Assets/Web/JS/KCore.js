@@ -110,7 +110,7 @@ var KCoreAlgorithm;
         constructor() {
             this.vertices = [];
             this.shell = -1;
-            this.polygonOpacity = 0;
+            this.polygonOpacity = 0.4;
             this.polygon = null;
         }
     }
@@ -126,6 +126,7 @@ var KCoreAlgorithm;
     class KCore {
         constructor(g) {
             this.shellComponents = [];
+            this.indexInConnectedComponents = new Map();
             this.opacity = "0.3";
             /******************helper data structures*****************/
             this.shells = new Map();
@@ -164,8 +165,15 @@ var KCoreAlgorithm;
             return this;
         }
         fastIteration() {
+            var _a;
             this.unionFind.set(this.graph.vertices.length);
+            for (const sc of this.shellComponents) {
+                for (const cc of sc.connectedComponents) {
+                    (_a = cc.polygon) === null || _a === void 0 ? void 0 : _a.remove();
+                }
+            }
             this.shellComponents.length = 0;
+            this.indexInConnectedComponents.clear();
             this.clearHelpers();
             let currentShell = 0, nextShell = 1;
             this.graph.adjacencyList.forEach((vl, k) => {
@@ -241,8 +249,19 @@ var KCoreAlgorithm;
             for (let node = 0; node < this.unionFind.parents.length; ++node) {
                 if (node == this.unionFind.parents[node])
                     continue;
-                this.shellComponents[this.shells.get(node)].connectedComponents[pComponentIndex.get(this.unionFind.parents[node])].vertices.push(this.graph.adjacencyList.get(node).main);
+                const idx = pComponentIndex.get(this.unionFind.parents[node]);
+                this.shellComponents[this.shells.get(node)].connectedComponents[idx].vertices.push(this.graph.adjacencyList.get(node).main);
+                this.indexInConnectedComponents.set(node, idx);
             }
+            /*
+            for(const sc of this.shellComponents){
+                for(const cc of sc.connectedComponents){
+                    const polygon:SVGPolygonElement=document.createElementNS("http://www.w3.org/2000/svg","polygon");
+                    cc.polygon=polygon;
+                    cc.polygon.setAttribute("visibility","hidden");
+                }
+            }
+            */
             this.setAllVerticesColor(true);
             return this;
         }
@@ -328,6 +347,7 @@ var KCoreAlgorithm;
                                 return;
                             }
                         }
+                        vl.main.circle.setAttribute("opacity", this.opacity);
                     }
                     if (this.stopRunning) {
                         return;
@@ -431,16 +451,21 @@ var KCoreAlgorithm;
             select.value = Math.max(start, Math.min(end - 1, val)).toString();
         }
         setAllVerticesColor(defaultColor) {
-            var _a;
+            var _a, _b;
             if (defaultColor) {
                 for (const v of this.graph.vertices) {
                     v.circle.setAttribute("fill", "var(--reverse-color2)");
+                }
+                for (const sc of this.shellComponents) {
+                    for (const cc of sc.connectedComponents) {
+                        (_a = cc.polygon) === null || _a === void 0 ? void 0 : _a.setAttribute("visibility", "hidden");
+                    }
                 }
             }
             else {
                 for (const sc of this.shellComponents) {
                     for (const cc of sc.connectedComponents) {
-                        (_a = cc.polygon) === null || _a === void 0 ? void 0 : _a.setAttribute("fill", sc.color.toString(cc.polygonOpacity));
+                        (_b = cc.polygon) === null || _b === void 0 ? void 0 : _b.setAttribute("fill", sc.color.toString(cc.polygonOpacity));
                         for (const v of cc.vertices) {
                             v.setColor(sc.color);
                         }
@@ -483,6 +508,17 @@ var KCoreAlgorithm;
             this.displayVerticesInRange(min, max + 1, true); //set the edges visible first (some edge may connected to outside shell)
             this.displayVerticesInRange(0, min, false); //then for the edge connected to outside shell, hide them
             this.displayVerticesInRange(max + 1, this.shellComponents.length, false);
+        }
+        displayPolygons(show) {
+            const value = show ? "visible" : "hidden";
+            for (const sc of this.shellComponents) {
+                for (const cc of sc.connectedComponents) {
+                    cc.polygon.setAttribute("visibility", value);
+                }
+            }
+        }
+        refreshPolygons(vertex) {
+            ConvesHull.Solve(this.shellComponents[vertex.id].connectedComponents[this.indexInConnectedComponents.get(vertex.id)]);
         }
     }
     KCore.processed = -2;

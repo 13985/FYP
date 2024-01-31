@@ -89,6 +89,10 @@ class Graph {
         this.existsEdges = new Map();
     }
     from(edgeListRaw) {
+        this.adjacencyList.clear();
+        this.vertices.length = 0;
+        this.edges.length = 0;
+        this.existsEdges.clear();
         const edges = edgeListRaw.split(/[\r\n|\r|\n]+/);
         edges.forEach((e) => {
             if (Graph.edgeFormat.test(e) == false) {

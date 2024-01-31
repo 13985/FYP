@@ -196,7 +196,7 @@ namespace KCoreAlgorithm{
             this.unionFind.set(this.graph.vertices.length);
             for(const sc of this.shellComponents){
                 for(const cc of sc.connectedComponents){
-                    (cc.polygon as SVGElement).remove();
+                    cc.polygon?.remove();
                 }
             }
             this.shellComponents.length=0;
@@ -384,6 +384,8 @@ namespace KCoreAlgorithm{
                             return;
                         }
                     }
+                    (vl.main.circle as SVGCircleElement).setAttribute("opacity",this.opacity);
+
                 }
                 if(this.stopRunning){
                     return;

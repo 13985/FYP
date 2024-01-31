@@ -148,6 +148,10 @@ class Graph implements IClone<Graph>{
 
 
     public from(edgeListRaw:string):Graph{
+        this.adjacencyList.clear();
+        this.vertices.length=0;
+        this.edges.length=0;
+        this.existsEdges.clear();
         const edges:string[]=edgeListRaw.split(/[\r\n|\r|\n]+/);
 
         edges.forEach((e)=>{
