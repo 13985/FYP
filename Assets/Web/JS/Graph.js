@@ -1,16 +1,14 @@
 "use strict";
 class Vertex {
     constructor(id) {
+        this.list = undefined;
         this.id = id;
-        this.shell = -1;
         this.radius = 5;
         this.circle = null;
         this.color = new Color(0, 0, 0);
     }
     clone() {
-        var _a;
         const v = new Vertex(this.id);
-        v.shell = this.shell;
         v.radius = this.radius;
         v.x = this.x;
         v.y = this.y;
@@ -19,7 +17,7 @@ class Vertex {
         v.fx = this.fx;
         v.fy = this.fy;
         v.index = this.index;
-        v.circle = (_a = this.circle) === null || _a === void 0 ? void 0 : _a.cloneNode(true);
+        v.circle = null;
         return v;
     }
     setColor(color) {
@@ -71,7 +69,18 @@ class VerticeList_ {
 class VerticeList {
     constructor(main) {
         this.main = main;
+        this.main.list = this;
         this.others = new Array();
+    }
+    remove(other) {
+        const length = this.others.length;
+        for (let i = 0; i < length; ++i) {
+            if (this.others[i] == other) {
+                this.others[i] = this.others[length - 1];
+                this.others.pop();
+                return;
+            }
+        }
     }
     clone() {
         const list = new VerticeList(this.main.clone());
@@ -106,9 +115,8 @@ class Graph {
             const see = (parent, child) => {
                 let list = this.adjacencyList.get(parent);
                 if (list == undefined) {
-                    const v = new Vertex(parent);
-                    list = new VerticeList(v);
-                    this.vertices.push(v);
+                    list = new VerticeList(new Vertex(parent));
+                    this.vertices.push(list.main);
                     this.adjacencyList.set(parent, list);
                 }
                 list.others.push(child);
@@ -116,9 +124,9 @@ class Graph {
             };
             if (vs[0] == vs[1]) {
                 if (this.adjacencyList.get(vs[0]) == undefined) {
-                    const v = new Vertex(vs[0]);
-                    this.adjacencyList.set(vs[0], new VerticeList(v));
-                    this.vertices.push(v);
+                    const list = new VerticeList(new Vertex(vs[0]));
+                    this.adjacencyList.set(vs[0], list);
+                    this.vertices.push(list.main);
                 }
             }
             else {
@@ -137,20 +145,23 @@ class Graph {
     }
     clone() {
         const g = new Graph();
+        this.copyTo(g);
+        return g;
+    }
+    copyTo(g) {
         for (let i = 0; i < this.vertices.length; ++i) {
             const id = this.vertices[i].id;
             const list = this.adjacencyList.get(id);
-            g.adjacencyList.set(id, list.clone());
-            g.vertices.push(list.main);
+            const listClone = list.clone();
+            g.adjacencyList.set(id, listClone);
+            g.vertices.push(listClone.main);
         }
-        for (let i = 0; i < g.edges.length; ++i) {
-            g.edges[i].source = g.adjacencyList.get(this.edges[i].source.id).main;
-            g.edges[i].source = g.adjacencyList.get(this.edges[i].target.id).main;
+        for (let i = 0; i < this.edges.length; ++i) {
+            g.edges.push(new Edge(g.adjacencyList.get(this.edges[i].source.id).main, g.adjacencyList.get(this.edges[i].target.id).main));
         }
         this.existsEdges.forEach((val, key) => {
             g.existsEdges.set(`${key}`, val);
         });
-        return g;
     }
     vertexCount() {
         return this.adjacencyList.size;
@@ -170,13 +181,6 @@ class Graph {
                 }
             }
         }
-        return true;
-    }
-    addVertex(v) {
-        if (this.adjacencyList.get(v) != undefined) {
-            return false;
-        }
-        this.adjacencyList.set(v, new VerticeList(new Vertex(v)));
         return true;
     }
     clear(removeSVG = false) {
@@ -252,15 +256,16 @@ class Graph {
         }
         const v = new Vertex(theVertex);
         const vl = new VerticeList(v);
+        v.list = vl;
         this.adjacencyList.set(theVertex, vl);
         this.vertices.push(v);
         return v;
     }
-    addEdges(a, b) {
+    addEdge(a, b) {
         if (this.adjacencyList.get(a) == undefined || this.adjacencyList.get(b) == undefined) {
             return false;
         }
-        const code = a < b ? `${a}-${b}` : `${b}-${a}`;
+        const code = Graph.getEdgeHashCode(a, b);
         if (this.existsEdges.get(code) != undefined) {
             return false;
         }
@@ -273,7 +278,25 @@ class Graph {
         b_vl.others.push(a);
         return true;
     }
-    removeEdges(edges) {
+    removeEdge(a, b) {
+        if (this.adjacencyList.get(a) == undefined || this.adjacencyList.get(b) == undefined) {
+            return false;
+        }
+        const code = Graph.getEdgeHashCode(a, b);
+        const idx = this.existsEdges.get(code);
+        if (idx == undefined) {
+            return false;
+        }
+        const e = this.edges[this.edges.length - 1];
+        this.existsEdges.set(Graph.getEdgeHashCode(e.source.id, e.target.id), idx);
+        this.existsEdges.delete(code);
+        this.edges[idx] = e;
+        this.edges.pop();
+        const a_vl = this.adjacencyList.get(a);
+        const b_vl = this.adjacencyList.get(b);
+        a_vl.remove(b);
+        b_vl.remove(a);
+        return true;
     }
     getEdge(v0, v1) {
         const code = Graph.getEdgeHashCode(v0, v1);

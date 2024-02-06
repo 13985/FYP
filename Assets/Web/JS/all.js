@@ -3,9 +3,12 @@ window.onload = () => {
     const themeButton = document.getElementById("theme-button-set");
     const html = document.body.parentNode;
     const graph = new Graph();
+    const resultGraph = new Graph();
     /***********************************************window 1******************************/
-    const gw = new GraphWindow(graph, "#graph-container", "#graph-container>svg");
-    const kCore = new KCoreAlgorithm.KCore(graph);
+    const gw = new GraphWindow(graph, "#graph-container", "#graph-container>#window0").setWH(500, 600);
+    const resultGW = new GraphWindow(resultGraph, "#graph-container", "#graph-container>#window1").setWH(500, 600);
+    const kCore = new KCoreAlgorithm.KCore(graph, gw.innerSVG);
+    const resultKCore = new KCoreAlgorithm.KCore(resultGraph, resultGW.innerSVG);
     const scrollbarDarkCSS = "\
         html::-webkit-scrollbar-button{\
             background-color:var(--background-dark);\
@@ -70,10 +73,13 @@ window.onload = () => {
     function loadGraph(edgeList) {
         graph.clear(true);
         graph.from(edgeList);
-        gw.updateSimulation();
-        gw.resetContainerTransform();
+        gw.resetContainerTransform().updateSimulation();
         setVENumber();
         kCore.fastIteration().setColor("#FFFF00", "#FF0000").setSelects(fromShell, toShell);
+        graph.copyTo(resultGraph);
+        resultGW.resetContainerTransform().updateSimulation().setVertexDragStartCallback(resultKCore.refreshPolygons.bind(resultKCore));
+        KCoreAlgorithm.ConvesHull.svg = resultGW.innerSVG;
+        resultKCore.fastIteration().setColor("#FFFF00", "#FF0000").setAllVerticesColor(false).displayPolygons(true);
     }
     loadGraph("0 1\r\n\
     1 2\r\n\

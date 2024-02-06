@@ -4,7 +4,6 @@ interface IClone<T>{
 
 class Vertex implements d3.SimulationNodeDatum,IClone<Vertex>{
     public id:number;
-    public shell:number;
     public radius:number;
     public x?:number;
     public y?:number;
@@ -15,10 +14,10 @@ class Vertex implements d3.SimulationNodeDatum,IClone<Vertex>{
     public index?:number;
     public circle:SVGCircleElement|null;
     private color:Color;
+    public list:VerticeList|undefined=undefined;
 
     constructor(id:number){
         this.id=id;
-        this.shell=-1;
         this.radius=5;
         this.circle=null;
         this.color=new Color(0,0,0);
@@ -26,7 +25,6 @@ class Vertex implements d3.SimulationNodeDatum,IClone<Vertex>{
 
     public clone():Vertex{
         const v=new Vertex(this.id);
-        v.shell=this.shell;
         v.radius=this.radius;
         v.x=this.x;
         v.y=this.y;
@@ -35,7 +33,7 @@ class Vertex implements d3.SimulationNodeDatum,IClone<Vertex>{
         v.fx=this.fx;
         v.fy=this.fy;
         v.index=this.index;
-        v.circle=this.circle?.cloneNode(true) as SVGCircleElement;
+        v.circle=null;
         return v;
     }
 
@@ -117,7 +115,20 @@ class VerticeList implements IClone<VerticeList>{
 
     constructor(main:Vertex){
         this.main=main;
+        this.main.list=this;
         this.others=new Array<number>();
+    }
+
+
+    public remove(other:number):void{
+        const length:number=this.others.length;
+        for(let i:number=0;i<length;++i){
+            if(this.others[i]==other){
+                this.others[i]=this.others[length-1];
+                this.others.pop();
+                return;
+            }
+        }
     }
 
 
@@ -167,9 +178,8 @@ class Graph implements IClone<Graph>{
             const see=(parent:number,child:number):Vertex=>{
                 let list:VerticeList|undefined=this.adjacencyList.get(parent);
                 if(list==undefined){
-                    const v:Vertex=new Vertex(parent);
-                    list=new VerticeList(v);
-                    this.vertices.push(v);
+                    list=new VerticeList(new Vertex(parent));
+                    this.vertices.push(list.main);
                     this.adjacencyList.set(parent,list);
                 }
                 list.others.push(child);
@@ -177,9 +187,9 @@ class Graph implements IClone<Graph>{
             }
             if(vs[0]==vs[1]){
                 if(this.adjacencyList.get(vs[0])==undefined){
-                    const v:Vertex=new Vertex(vs[0]);
-                    this.adjacencyList.set(vs[0],new VerticeList(v));
-                    this.vertices.push(v);
+                    const list:VerticeList=new VerticeList(new Vertex(vs[0]));
+                    this.adjacencyList.set(vs[0],list);
+                    this.vertices.push(list.main);
                 }
             }else{
                 const code:string=Graph.getEdgeHashCode(vs[0],vs[1]);
@@ -201,23 +211,30 @@ class Graph implements IClone<Graph>{
 
     public clone():Graph{
         const g:Graph=new Graph();
+        this.copyTo(g);
+        return g;
+    }
 
+
+    public copyTo(g:Graph):void{
         for(let i:number=0;i<this.vertices.length;++i){
             const id:number=this.vertices[i].id;
             const list:VerticeList=<VerticeList>this.adjacencyList.get(id);
-            g.adjacencyList.set(id,list.clone());
-            g.vertices.push(list.main);
+            const listClone=list.clone();
+            g.adjacencyList.set(id,listClone);
+            g.vertices.push(listClone.main);
         }
 
-        for(let i:number=0;i<g.edges.length;++i){
-            g.edges[i].source=(g.adjacencyList.get(this.edges[i].source.id) as VerticeList).main;
-            g.edges[i].source=(g.adjacencyList.get(this.edges[i].target.id) as VerticeList).main;
+        for(let i:number=0;i<this.edges.length;++i){
+            g.edges.push(new Edge(
+                (g.adjacencyList.get(this.edges[i].source.id) as VerticeList).main,
+                (g.adjacencyList.get(this.edges[i].target.id) as VerticeList).main
+            ));
         }
 
         this.existsEdges.forEach((val:number,key:string):void=>{
             g.existsEdges.set(`${key}`,val);
         });
-        return g;
     }
 
 
@@ -243,16 +260,6 @@ class Graph implements IClone<Graph>{
             }
         }
 
-        return true;
-    }
-
-
-    public addVertex(v:number):boolean{
-        if(this.adjacencyList.get(v)!=undefined){
-            return false;
-        }
-
-        this.adjacencyList.set(v,new VerticeList(new Vertex(v)));
         return true;
     }
 
@@ -333,17 +340,18 @@ class Graph implements IClone<Graph>{
         }
         const v:Vertex=new Vertex(theVertex);
         const vl:VerticeList=new VerticeList(v);
+        v.list=vl;
         this.adjacencyList.set(theVertex,vl);
         this.vertices.push(v);
         return v;
     }
 
 
-    public addEdges(a:number,b:number):boolean{
+    public addEdge(a:number,b:number):boolean{
         if(this.adjacencyList.get(a)==undefined||this.adjacencyList.get(b)==undefined){
             return false;
         }
-        const code:string=a<b?`${a}-${b}`:`${b}-${a}`;
+        const code:string=Graph.getEdgeHashCode(a,b);
         if(this.existsEdges.get(code)!=undefined){
             return false;
         }
@@ -358,8 +366,26 @@ class Graph implements IClone<Graph>{
     }
 
 
-    public removeEdges(edges:string):void{
-        
+    public removeEdge(a:number,b:number):boolean{
+        if(this.adjacencyList.get(a)==undefined||this.adjacencyList.get(b)==undefined){
+            return false;
+        }
+        const code:string=Graph.getEdgeHashCode(a,b);
+        const idx:number|undefined=this.existsEdges.get(code);
+        if(idx==undefined){
+            return false;
+        }
+        const e:Edge=this.edges[this.edges.length-1];
+        this.existsEdges.set(Graph.getEdgeHashCode(e.source.id,e.target.id),idx);
+        this.existsEdges.delete(code);
+        this.edges[idx]=e;
+        this.edges.pop();
+
+        const a_vl:VerticeList=this.adjacencyList.get(a) as VerticeList;
+        const b_vl:VerticeList=this.adjacencyList.get(b) as VerticeList;
+        a_vl.remove(b);
+        b_vl.remove(a);
+        return true;
     }
 
 

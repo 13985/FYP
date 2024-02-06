@@ -1,9 +1,10 @@
+
 class FloatingPanel{
-    private outerDiv:HTMLDivElement;
-    private topDiv:HTMLDivElement;
-    private contentDiv:HTMLDivElement;
-    private closeButton:HTMLButtonElement;
-    private originalParent:HTMLElement;
+    private readonly outerDiv:HTMLDivElement;
+    private readonly topDiv:HTMLDivElement;
+    private readonly contentDiv:HTMLDivElement;
+    private readonly closeButton:HTMLButtonElement;
+    private readonly originalParent:HTMLElement;
 
     private previousX:number=0;
     private previousY:number=0;
@@ -86,7 +87,7 @@ class FloatingPanel{
 }
 
 
-type mouseEventCallback=(me:MouseEvent)=>void;
+type MouseEventCallback=(me:MouseEvent)=>void;
 
 /**
  * @field 
@@ -103,10 +104,11 @@ class GraphWindow{
     
     private readonly forceToX:d3.ForceX<Vertex>=d3.forceX().strength(0.15);
     private readonly forceToY:d3.ForceY<Vertex>=d3.forceY().strength(0.15);
-    private simulation:d3.Simulation<Vertex,Edge>=d3.forceSimulation<Vertex,Edge>()
+    private readonly simulation:d3.Simulation<Vertex,Edge>=d3.forceSimulation<Vertex,Edge>()
     .force("charge", d3.forceManyBody<Vertex>().strength(-150))
     .force("x", this.forceToX)
     .force("y",this.forceToY);
+    private simulationStable:boolean=false;
 
     private readonly linksG:d3.Selection<SVGGElement,unknown,HTMLElement,undefined>;
     private readonly circlesG:d3.Selection<SVGGElement,unknown,HTMLElement,undefined>;
@@ -119,18 +121,20 @@ class GraphWindow{
     private mouseX:number=0;
     private mouseY:number=0;
     private magnifier:number=1;
+    private width:number=500;
+    private height:number=500;
     private _isMouseOverContainer:boolean=false;
 
-    private onVertexDragStarted:((v:Vertex)=>void)|undefined=undefined;
+    private onVertexMoved:((v:Vertex)=>void)|undefined=undefined;
 
     constructor(g:Graph,containerSelector:string,innerSVGSelector:string){
         this.graph=g;
         this.container=document.querySelector(containerSelector) as HTMLElement;
         this.innerSVG=document.querySelector(innerSVGSelector) as SVGElement;
         const svg:d3.Selection<SVGElement,any,HTMLElement,undefined>=d3.select<SVGElement,any>(innerSVGSelector)
-        .attr("width",this.container.clientWidth)
-        .attr("height",this.container.clientHeight)
-        .attr("viewbox",[0,0,this.container.clientWidth,this.container.clientHeight]);
+        .attr("width",this.width)
+        .attr("height",this.height)
+        .attr("viewbox",[0,0,this.width,this.height]);
 
         this.linksG=(svg.append("g") as d3.Selection<SVGGElement,unknown,HTMLElement,undefined>)
         .attr("stroke", "#444")
@@ -138,8 +142,8 @@ class GraphWindow{
         this.circlesG=svg.append("g") as d3.Selection<SVGGElement,unknown,HTMLElement,undefined>;
         this.setGraph(g);
 
-        this.forceToX.x(this.container.clientWidth/2);
-        this.forceToY.y(this.container.clientHeight/2);
+        this.forceToX.x(this.width/2);
+        this.forceToY.y(this.height/2);
 
         this.container.addEventListener("mouseleave",():void=>{this._isMouseOverContainer=false;});
         this.container.addEventListener("mouseenter",():void=>{this._isMouseOverContainer=true;});
@@ -153,7 +157,18 @@ class GraphWindow{
 
 
     public setVertexDragStartCallback(callback:((v:Vertex)=>void)|undefined=undefined):GraphWindow{
-        this.onVertexDragStarted=callback;
+        this.onVertexMoved=callback;
+        return this;
+    }
+
+
+    public setWH(width:number,height:number):GraphWindow{
+        this.width=width;
+        this.height=height;
+        this.forceToX.x(this.width/2);this.forceToY.y(this.height/2);
+        this.innerSVG.setAttribute("width",`${this.width}`);
+        this.innerSVG.setAttribute("height",`${this.height}`);
+        this.innerSVG.setAttribute("viewbox",`[0,0,${this.width},${this.height}]`);
         return this;
     }
 
@@ -165,15 +180,27 @@ class GraphWindow{
     public updateSimulation():GraphWindow{
         const nodes:Array<Vertex>=this.graph.vertices;
         const links:Edge[]=this.graph.edges;
-        /*
-        const width:number=this.container.clientWidth;
-        const height:number=this.container.clientHeight;
-        this.forceToX.x(width/2);this.forceToY.y(height/2);
-        */
+
+        const ticked:()=>void=():void=>{
+            link.attr("x1",(e:Edge):number=><number>e.source.x)
+            .attr("y1",(e:Edge):number=><number>e.source.y)
+            .attr("x2",(e:Edge):number=><number>e.target.x)
+            .attr("y2",(e:Edge):number=><number>e.target.y);
+            node.attr("cx",(v:Vertex):number=>(<number>v.x))
+            .attr("cy",(v:Vertex):number=>(<number>v.y));
+            if(this.simulationStable==false&&this.onVertexMoved!=undefined){
+                for(const v of this.graph.vertices){
+                    this.onVertexMoved(v);
+                }
+            }
+        }
 
         this.simulation.nodes(nodes)
         .force("link",d3.forceLink<Vertex,d3.SimulationLinkDatum<Vertex>>(links))
-        .on("tick", ticked);
+        .on("tick", ticked)
+        .on("end",():void=>{
+            this.simulationStable=true;
+        });
 
         let link:d3.Selection<SVGLineElement, Edge, SVGGElement, unknown>=this.linksG.selectAll<SVGLineElement,Edge>("line")
         .data<Edge>(links,function(datum:Edge|undefined):number{
@@ -192,6 +219,7 @@ class GraphWindow{
         .data<Vertex>(nodes,function(data:Vertex):number{return data.id;})
         node.exit().remove();
         node=node.enter().append("circle")
+        .attr("fill","var(--reverse-color2)")
         .attr("r",function(n:Vertex,_i:number):number{
             return n.radius;
         })
@@ -210,15 +238,6 @@ class GraphWindow{
             return n.id.toString();
         });
 
-        function ticked() {
-            link.attr("x1",(e:Edge):number=><number>e.source.x)
-            .attr("y1",(e:Edge):number=><number>e.source.y)
-            .attr("x2",(e:Edge):number=><number>e.target.x)
-            .attr("y2",(e:Edge):number=><number>e.target.y);
-            node.attr("cx",(v:Vertex):number=>(<number>v.x))
-            .attr("cy",(v:Vertex):number=>(<number>v.y));
-        }
-
         this.simulation.alpha(1).restart();
         return this;
     }
@@ -228,13 +247,14 @@ class GraphWindow{
         if(!event.active){this.simulation.alphaTarget(0.3).restart();}
         event.subject.fx=event.subject.x;
         event.subject.fy=event.subject.y;
-        if(this.onVertexDragStarted){this.onVertexDragStarted(v);}
+        this.simulationStable=false;
     }
 
 
-    private VertexDragged(event:any,_v:Vertex):void{
+    private VertexDragged(event:any,v:Vertex):void{
         event.subject.fx=event.x;
         event.subject.fy=event.y;
+        this.simulationStable=false;
     }
 
 
@@ -242,6 +262,7 @@ class GraphWindow{
         if(!event.active){this.simulation.alphaTarget(0);}
         event.subject.fx=null;
         event.subject.fy=null;
+        this.simulationStable=false;
     }
 
 
@@ -252,23 +273,23 @@ class GraphWindow{
 
     public allowMoveGraph(allow:boolean):GraphWindow{
         if(allow){
-            this.container.addEventListener("mousedown",this.containerDragStarted);
-            this.container.addEventListener("mousemove",this.containerDragged);
-            this.container.addEventListener("mouseup",this.containerDragEnded);
-            this.container.addEventListener("keypress",this.moveGraphByKey);
-            this.container.setAttribute("oncontextmenu","return false;");
+            this.innerSVG.addEventListener("mousedown",this.containerDragStarted);
+            this.innerSVG.addEventListener("mousemove",this.containerDragged);
+            this.innerSVG.addEventListener("mouseup",this.containerDragEnded);
+            this.innerSVG.addEventListener("keypress",this.moveGraphByKey);
+            this.innerSVG.setAttribute("oncontextmenu","return false;");
         }else{
-            this.container.removeEventListener("mousedown",this.containerDragStarted);
-            this.container.removeEventListener("mousemove",this.containerDragged);
-            this.container.removeEventListener("mouseup",this.containerDragEnded);
-            this.container.removeEventListener("keypress",this.moveGraphByKey);
-            this.container.removeAttribute("oncontextmenu");
+            this.innerSVG.removeEventListener("mousedown",this.containerDragStarted);
+            this.innerSVG.removeEventListener("mousemove",this.containerDragged);
+            this.innerSVG.removeEventListener("mouseup",this.containerDragEnded);
+            this.innerSVG.removeEventListener("keypress",this.moveGraphByKey);
+            this.innerSVG.removeAttribute("oncontextmenu");
         }
         return this;
     }
 
 
-    private containerDragStarted:(me:MouseEvent)=>void=(me)=>{
+    private readonly containerDragStarted:(me:MouseEvent)=>void=(me)=>{
         if(me.button==2){
             this.isDraggingContainer=true;
             this.mouseX=me.offsetX;
@@ -279,7 +300,7 @@ class GraphWindow{
     }
 
 
-    private containerDragged:(me:MouseEvent)=>void=(me)=>{
+    private readonly containerDragged:(me:MouseEvent)=>void=(me)=>{
         if(this.isDraggingContainer==false){return;}
         const dx:number=me.offsetX-this.mouseX;
         const dy:number=me.offsetY-this.mouseY;
@@ -289,12 +310,12 @@ class GraphWindow{
     }
 
 
-    private containerDragEnded:(me:MouseEvent)=>void=(_me)=>{
+    private readonly containerDragEnded:(me:MouseEvent)=>void=(_me)=>{
         this.isDraggingContainer=false;
     }
 
 
-    private moveGraphByKey:(ke:KeyboardEvent)=>void=(ke)=>{
+    private readonly moveGraphByKey:(ke:KeyboardEvent)=>void=(ke)=>{
         if(this.isDraggingContainer==false){return;}
         switch(ke.code){
         case "ArrowLeft":
@@ -325,8 +346,8 @@ class GraphWindow{
 
 
     public scaleGraph(magnifier:number):GraphWindow{
-        this.offsetX-=(magnifier-this.magnifier)*this.container.clientWidth/2;
-        this.offsetY-=(magnifier-this.magnifier)*this.container.clientHeight/2;//move the graph the top left by the size/2 and the different between current and previous magnifier
+        this.offsetX-=(magnifier-this.magnifier)*this.width/2;
+        this.offsetY-=(magnifier-this.magnifier)*this.height/2;//move the graph the top left by the size/2 and the different between current and previous magnifier
         this.magnifier=magnifier;
         this.scaleX=magnifier;
         this.scaleY=magnifier;
@@ -335,8 +356,8 @@ class GraphWindow{
 
 
     public setCenter(x:number,y:number):GraphWindow{
-        const centerX:number=this.container.clientWidth/2;
-        const centerY:number=this.container.clientHeight/2;
+        const centerX:number=this.width/2;
+        const centerY:number=this.height/2;
         this.offsetX=centerX-(x as number);
         this.offsetY=centerY-(y as number);
         return this.setGTransforms();

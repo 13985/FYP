@@ -85,6 +85,7 @@ class GraphWindow {
             .force("charge", d3.forceManyBody().strength(-150))
             .force("x", this.forceToX)
             .force("y", this.forceToY);
+        this.simulationStable = false;
         this.moveSpeed = 1;
         this.offsetX = 0;
         this.offsetY = 0;
@@ -94,8 +95,10 @@ class GraphWindow {
         this.mouseX = 0;
         this.mouseY = 0;
         this.magnifier = 1;
+        this.width = 500;
+        this.height = 500;
         this._isMouseOverContainer = false;
-        this.onVertexDragStarted = undefined;
+        this.onVertexMoved = undefined;
         this.containerDragStarted = (me) => {
             if (me.button == 2) {
                 this.isDraggingContainer = true;
@@ -146,16 +149,16 @@ class GraphWindow {
         this.container = document.querySelector(containerSelector);
         this.innerSVG = document.querySelector(innerSVGSelector);
         const svg = d3.select(innerSVGSelector)
-            .attr("width", this.container.clientWidth)
-            .attr("height", this.container.clientHeight)
-            .attr("viewbox", [0, 0, this.container.clientWidth, this.container.clientHeight]);
+            .attr("width", this.width)
+            .attr("height", this.height)
+            .attr("viewbox", [0, 0, this.width, this.height]);
         this.linksG = svg.append("g")
             .attr("stroke", "#444")
             .attr("stroke-opacity", 0.6);
         this.circlesG = svg.append("g");
         this.setGraph(g);
-        this.forceToX.x(this.container.clientWidth / 2);
-        this.forceToY.y(this.container.clientHeight / 2);
+        this.forceToX.x(this.width / 2);
+        this.forceToY.y(this.height / 2);
         this.container.addEventListener("mouseleave", () => { this._isMouseOverContainer = false; });
         this.container.addEventListener("mouseenter", () => { this._isMouseOverContainer = true; });
     }
@@ -164,7 +167,17 @@ class GraphWindow {
         return this.updateSimulation();
     }
     setVertexDragStartCallback(callback = undefined) {
-        this.onVertexDragStarted = callback;
+        this.onVertexMoved = callback;
+        return this;
+    }
+    setWH(width, height) {
+        this.width = width;
+        this.height = height;
+        this.forceToX.x(this.width / 2);
+        this.forceToY.y(this.height / 2);
+        this.innerSVG.setAttribute("width", `${this.width}`);
+        this.innerSVG.setAttribute("height", `${this.height}`);
+        this.innerSVG.setAttribute("viewbox", `[0,0,${this.width},${this.height}]`);
         return this;
     }
     /**
@@ -174,14 +187,26 @@ class GraphWindow {
     updateSimulation() {
         const nodes = this.graph.vertices;
         const links = this.graph.edges;
-        /*
-        const width:number=this.container.clientWidth;
-        const height:number=this.container.clientHeight;
-        this.forceToX.x(width/2);this.forceToY.y(height/2);
-        */
+        const ticked = () => {
+            link.attr("x1", (e) => e.source.x)
+                .attr("y1", (e) => e.source.y)
+                .attr("x2", (e) => e.target.x)
+                .attr("y2", (e) => e.target.y);
+            node.attr("cx", (v) => v.x)
+                .attr("cy", (v) => v.y);
+            if (this.simulationStable == false && this.onVertexMoved != undefined) {
+                console.log("hi");
+                for (const v of this.graph.vertices) {
+                    this.onVertexMoved(v);
+                }
+            }
+        };
         this.simulation.nodes(nodes)
             .force("link", d3.forceLink(links))
-            .on("tick", ticked);
+            .on("tick", ticked)
+            .on("end", () => {
+            this.simulationStable = true;
+        });
         let link = this.linksG.selectAll("line")
             .data(links, function (datum) {
             //return `${(<Edge>datum).source.id}-${(<Edge>datum).target.id}`;
@@ -198,6 +223,7 @@ class GraphWindow {
             .data(nodes, function (data) { return data.id; });
         node.exit().remove();
         node = node.enter().append("circle")
+            .attr("fill", "var(--reverse-color2)")
             .attr("r", function (n, _i) {
             return n.radius;
         })
@@ -212,14 +238,6 @@ class GraphWindow {
             text(function (n, _i) {
             return n.id.toString();
         });
-        function ticked() {
-            link.attr("x1", (e) => e.source.x)
-                .attr("y1", (e) => e.source.y)
-                .attr("x2", (e) => e.target.x)
-                .attr("y2", (e) => e.target.y);
-            node.attr("cx", (v) => v.x)
-                .attr("cy", (v) => v.y);
-        }
         this.simulation.alpha(1).restart();
         return this;
     }
@@ -229,13 +247,12 @@ class GraphWindow {
         }
         event.subject.fx = event.subject.x;
         event.subject.fy = event.subject.y;
-        if (this.onVertexDragStarted) {
-            this.onVertexDragStarted(v);
-        }
+        this.simulationStable = false;
     }
-    VertexDragged(event, _v) {
+    VertexDragged(event, v) {
         event.subject.fx = event.x;
         event.subject.fy = event.y;
+        this.simulationStable = false;
     }
     vertexDragended(event, _v) {
         if (!event.active) {
@@ -243,24 +260,25 @@ class GraphWindow {
         }
         event.subject.fx = null;
         event.subject.fy = null;
+        this.simulationStable = false;
     }
     isMouseOverContainer() {
         return this._isMouseOverContainer;
     }
     allowMoveGraph(allow) {
         if (allow) {
-            this.container.addEventListener("mousedown", this.containerDragStarted);
-            this.container.addEventListener("mousemove", this.containerDragged);
-            this.container.addEventListener("mouseup", this.containerDragEnded);
-            this.container.addEventListener("keypress", this.moveGraphByKey);
-            this.container.setAttribute("oncontextmenu", "return false;");
+            this.innerSVG.addEventListener("mousedown", this.containerDragStarted);
+            this.innerSVG.addEventListener("mousemove", this.containerDragged);
+            this.innerSVG.addEventListener("mouseup", this.containerDragEnded);
+            this.innerSVG.addEventListener("keypress", this.moveGraphByKey);
+            this.innerSVG.setAttribute("oncontextmenu", "return false;");
         }
         else {
-            this.container.removeEventListener("mousedown", this.containerDragStarted);
-            this.container.removeEventListener("mousemove", this.containerDragged);
-            this.container.removeEventListener("mouseup", this.containerDragEnded);
-            this.container.removeEventListener("keypress", this.moveGraphByKey);
-            this.container.removeAttribute("oncontextmenu");
+            this.innerSVG.removeEventListener("mousedown", this.containerDragStarted);
+            this.innerSVG.removeEventListener("mousemove", this.containerDragged);
+            this.innerSVG.removeEventListener("mouseup", this.containerDragEnded);
+            this.innerSVG.removeEventListener("keypress", this.moveGraphByKey);
+            this.innerSVG.removeAttribute("oncontextmenu");
         }
         return this;
     }
@@ -270,16 +288,16 @@ class GraphWindow {
         this.setGTransforms();
     }
     scaleGraph(magnifier) {
-        this.offsetX -= (magnifier - this.magnifier) * this.container.clientWidth / 2;
-        this.offsetY -= (magnifier - this.magnifier) * this.container.clientHeight / 2; //move the graph the top left by the size/2 and the different between current and previous magnifier
+        this.offsetX -= (magnifier - this.magnifier) * this.width / 2;
+        this.offsetY -= (magnifier - this.magnifier) * this.height / 2; //move the graph the top left by the size/2 and the different between current and previous magnifier
         this.magnifier = magnifier;
         this.scaleX = magnifier;
         this.scaleY = magnifier;
         return this.setGTransforms();
     }
     setCenter(x, y) {
-        const centerX = this.container.clientWidth / 2;
-        const centerY = this.container.clientHeight / 2;
+        const centerX = this.width / 2;
+        const centerY = this.height / 2;
         this.offsetX = centerX - x;
         this.offsetY = centerY - y;
         return this.setGTransforms();

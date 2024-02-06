@@ -4,11 +4,15 @@ window.onload=():void=>{
     const html:HTMLElement=<HTMLElement>document.body.parentNode;
     
     const graph:Graph=new Graph();
+    const resultGraph:Graph=new Graph();
 
     /***********************************************window 1******************************/
-    const gw:GraphWindow=new GraphWindow(graph,"#graph-container","#graph-container>svg");
+    const gw:GraphWindow=new GraphWindow(graph,"#graph-container","#graph-container>#window0").setWH(500,600);
+    const resultGW:GraphWindow=new GraphWindow(resultGraph,"#graph-container","#graph-container>#window1").setWH(500,600);
 
-    const kCore:KCoreAlgorithm.KCore=new KCoreAlgorithm.KCore(graph);
+    const kCore:KCoreAlgorithm.KCore=new KCoreAlgorithm.KCore(graph,gw.innerSVG as SVGSVGElement);
+    const resultKCore:KCoreAlgorithm.KCore=new KCoreAlgorithm.KCore(resultGraph,resultGW.innerSVG as SVGSVGElement);
+    
 
     const scrollbarDarkCSS:string="\
         html::-webkit-scrollbar-button{\
@@ -84,10 +88,14 @@ window.onload=():void=>{
     function loadGraph(edgeList:string):void{
         graph.clear(true);
         graph.from(edgeList);
-        gw.updateSimulation();
-        gw.resetContainerTransform();
+        gw.resetContainerTransform().updateSimulation();
         setVENumber();
         kCore.fastIteration().setColor("#FFFF00","#FF0000").setSelects(fromShell,toShell);
+
+        graph.copyTo(resultGraph);
+        resultGW.resetContainerTransform().updateSimulation().setVertexDragStartCallback(resultKCore.refreshPolygons.bind(resultKCore));
+        KCoreAlgorithm.ConvesHull.svg=resultGW.innerSVG as SVGSVGElement;
+        resultKCore.fastIteration().setColor("#FFFF00","#FF0000").setAllVerticesColor(false).displayPolygons(true);
     }
 
 
@@ -132,7 +140,6 @@ window.onload=():void=>{
     23 23\r\n\
     24 24\r\n\
     ");
-
 
     /****************************************************Vertex pop up**************************************************/
     const vertexUpdateSelect:HTMLSelectElement=<HTMLSelectElement>document.getElementById("vertex-update");

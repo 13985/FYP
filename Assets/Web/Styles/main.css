@@ -1,9 +1,14 @@
 main{
-    height:var(--main-height);
+    height: auto;
 }
 
 
 #graph-container>svg{
     background-color: var(--main-color1);
     transition: background-color var(--g-transition-time),color var(--g-transition-time), border-color var(--g-transition-time);
+}
+
+
+.graph-svg{
+    border: 2px solid var(--reverse-color1);
 }
