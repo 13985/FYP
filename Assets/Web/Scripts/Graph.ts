@@ -264,7 +264,7 @@ class Graph implements IClone<Graph>{
     }
 
 
-    public clear(removeSVG:boolean=false):void{
+    public clear(removeSVG:boolean=false):this{
         this.adjacencyList.clear();
         if(removeSVG){
             for(let i:number=0;i<this.vertices.length;++i){
@@ -276,6 +276,8 @@ class Graph implements IClone<Graph>{
         }
         this.edges.length=0;
         this.vertices.length=0;
+        this.existsEdges.clear();
+        return this;
     }
 
 

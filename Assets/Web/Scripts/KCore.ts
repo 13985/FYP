@@ -147,7 +147,7 @@ namespace KCoreAlgorithm{
     export class KCore{
         private static readonly processed:number=-2;
         public graph:Graph;
-        public shellComponents:Array<ShellComponet>=[];
+        public readonly shellComponents:Array<ShellComponet>=[];
 
         /******************UI*************************************/
         public maxOption:HTMLSelectElement|null;
@@ -175,7 +175,6 @@ namespace KCoreAlgorithm{
         private pauseButton:HTMLButtonElement|null=null;
         private nextStepButton:HTMLButtonElement|null=null;
 
-        private static readonly defaultColor:Color=new Color(1,1,1);
         private state_currentShell:number;
 
         constructor(g:Graph,svg:SVGSVGElement){
@@ -215,6 +214,7 @@ namespace KCoreAlgorithm{
                     cc.polygon?.remove();
                 }
             }
+
             this.shellComponents.length=0;
             this.vertexToInfo.clear();
             this.clearHelpers();
@@ -296,17 +296,6 @@ namespace KCoreAlgorithm{
                 (this.vertexToInfo.get(node) as ConnectedComponetInfo).index=parentInfo.index;
             }
 
-            /*
-            for(const sc of this.shellComponents){
-                for(const cc of sc.connectedComponents){
-                    const polygon:SVGPolygonElement=document.createElementNS("http://www.w3.org/2000/svg","polygon");
-                    cc.polygon=polygon;
-                    cc.polygon.setAttribute("visibility","hidden");
-                }
-            }
-            */
-
-            this.setAllVerticesColor(true);
             return this;
         }
 
@@ -585,7 +574,7 @@ namespace KCoreAlgorithm{
                     if(cc.vertices.length<3){continue;}
                     else if(cc.polygon==undefined){
                         cc.polygon=document.createElementNS("http://www.w3.org/2000/svg","polygon");
-                        ConvesHull.Solve(cc);
+                        ConvesHull.Solve(cc,this.svgContainer);
                         this.svgContainer.insertBefore(cc.polygon,this.svgContainer.firstChild);
                     }
                     (cc.polygon as SVGElement).setAttribute("visibility",value);
@@ -600,7 +589,7 @@ namespace KCoreAlgorithm{
         public refreshPolygons(vertex:Vertex):void{
             const info:ConnectedComponetInfo=this.vertexToInfo.get(vertex.id) as ConnectedComponetInfo;
             const cc:ConnectedComponent=this.shellComponents[info.shell].connectedComponents[info.index];
-            ConvesHull.Solve(cc);
+            ConvesHull.Solve(cc,this.svgContainer);
         }
 
 
@@ -849,23 +838,21 @@ namespace KCoreAlgorithm{
 
     export abstract class ConvesHull{
         private static points:Point[]=[];
-        public static svg:SVGSVGElement;
-
 
         private static cross(o:Point,a:Point,b:Point):number{
             return (a.x-o.x)*(b.y-o.y)-(a.y-o.y)*(b.x-o.x);
         }
 
 
-        public static Solve(cc:ConnectedComponent):void{
-            if(cc.vertices.length<2){
+        public static Solve(cc:ConnectedComponent,svg:SVGSVGElement):void{
+            if(cc.vertices.length<3){
                 return;
             }
             const polygon:SVGPolygonElement=cc.polygon as SVGPolygonElement;
             polygon.points.clear();
             if(cc.vertices.length<4){
                 for(const vertex of cc.vertices){
-                    const p:SVGPoint=ConvesHull.svg.createSVGPoint();
+                    const p:SVGPoint=svg.createSVGPoint();
                     p.x=vertex.x as number;
                     p.y=vertex.y as number;
                     polygon.points.appendItem(p);
@@ -908,7 +895,7 @@ namespace KCoreAlgorithm{
             }
 
             for(const p of ConvesHull.points){
-                const realPoint:SVGPoint=ConvesHull.svg.createSVGPoint();
+                const realPoint:SVGPoint=svg.createSVGPoint();
                 realPoint.x=p.x;
                 realPoint.y=p.y;
                 polygon.points.appendItem(realPoint);

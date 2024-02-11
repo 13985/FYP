@@ -180,6 +180,8 @@ class GraphWindow{
     public updateSimulation():GraphWindow{
         const nodes:Array<Vertex>=this.graph.vertices;
         const links:Edge[]=this.graph.edges;
+        this.simulation.stop();
+        this.simulationStable=false;
 
         const ticked:()=>void=():void=>{
             link.attr("x1",(e:Edge):number=><number>e.source.x)

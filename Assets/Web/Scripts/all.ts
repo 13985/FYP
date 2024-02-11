@@ -9,10 +9,10 @@ window.onload=():void=>{
     /***********************************************window 1******************************/
     const gw:GraphWindow=new GraphWindow(graph,"#graph-container","#graph-container>#window0").setWH(500,600);
     const resultGW:GraphWindow=new GraphWindow(resultGraph,"#graph-container","#graph-container>#window1").setWH(500,600);
-
+    
     const kCore:KCoreAlgorithm.KCore=new KCoreAlgorithm.KCore(graph,gw.innerSVG as SVGSVGElement);
     const resultKCore:KCoreAlgorithm.KCore=new KCoreAlgorithm.KCore(resultGraph,resultGW.innerSVG as SVGSVGElement);
-    
+    resultGW.setVertexDragStartCallback(resultKCore.refreshPolygons.bind(resultKCore));
 
     const scrollbarDarkCSS:string="\
         html::-webkit-scrollbar-button{\
@@ -90,11 +90,10 @@ window.onload=():void=>{
         graph.from(edgeList);
         gw.resetContainerTransform().updateSimulation();
         setVENumber();
-        kCore.fastIteration().setColor("#FFFF00","#FF0000").setSelects(fromShell,toShell);
+        kCore.fastIteration().setColor("#FFFF00","#FF0000").setSelects(fromShell,toShell).setAllVerticesColor(true);
 
-        graph.copyTo(resultGraph);
-        resultGW.resetContainerTransform().updateSimulation().setVertexDragStartCallback(resultKCore.refreshPolygons.bind(resultKCore));
-        KCoreAlgorithm.ConvesHull.svg=resultGW.innerSVG as SVGSVGElement;
+        graph.copyTo(resultGraph.clear(true));
+        resultGW.resetContainerTransform().updateSimulation();
         resultKCore.fastIteration().setColor("#FFFF00","#FF0000").setAllVerticesColor(false).displayPolygons(true);
     }
 
@@ -205,6 +204,58 @@ window.onload=():void=>{
             break;
         }
     });
+
+
+    /****************************************************edge popup *****************************************************/
+    const edgeUpdateSelect:HTMLSelectElement=<HTMLSelectElement>document.getElementById("vertex-update");
+    const edgePopupInput:HTMLInputElement=<HTMLInputElement>document.getElementById("vertex-popup-input");
+    const edgeUpdateButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("vertex-update-button");
+
+    edgeUpdateSelect.addEventListener("input",()=>{
+        vertexSetColor.style.display=vertexUpdateSelect.value=="color"?"block":"none";
+    });
+
+
+    edgePopupInput.addEventListener("change",()=>{
+        if(edgePopupInput.value.length==0){
+            return;
+        }
+        const theVertex:number=parseInt(vertexPopupInput.value);
+        switch(edgeUpdateSelect.value){
+        case "create":
+        case "remove":
+            break;
+        }
+    });
+
+
+    edgeUpdateButton.addEventListener("click",()=>{
+        if(edgePopupInput.value.length==0){
+            return;
+        }
+        const theVertex:number=parseInt(vertexPopupInput.value);
+        switch(edgeUpdateSelect.value){
+        case "create":{
+            const v:Vertex|null=graph.tryAddVertex(theVertex);
+            if(v==null){
+                break;
+            }
+            v.setColor(kCore.shellComponents[0].color);
+            gw.updateSimulation();
+            setVENumber();
+            break;
+        }
+        case "remove":{
+            if(graph.tryRemoveVertex(theVertex)==null){
+                break;
+            }
+            gw.updateSimulation();
+            setVENumber();
+            break;
+        }
+        }
+    });
+
 
     
     /****************************************************Camera pop up****************************************************/

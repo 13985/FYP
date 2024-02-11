@@ -195,6 +195,8 @@ class Graph {
         }
         this.edges.length = 0;
         this.vertices.length = 0;
+        this.existsEdges.clear();
+        return this;
     }
     translate(dx, dy) {
         const translate = `translate(${dx}px,${dy}px);`;

@@ -187,6 +187,8 @@ class GraphWindow {
     updateSimulation() {
         const nodes = this.graph.vertices;
         const links = this.graph.edges;
+        this.simulation.stop();
+        this.simulationStable = false;
         const ticked = () => {
             link.attr("x1", (e) => e.source.x)
                 .attr("y1", (e) => e.source.y)
@@ -195,7 +197,6 @@ class GraphWindow {
             node.attr("cx", (v) => v.x)
                 .attr("cy", (v) => v.y);
             if (this.simulationStable == false && this.onVertexMoved != undefined) {
-                console.log("hi");
                 for (const v of this.graph.vertices) {
                     this.onVertexMoved(v);
                 }

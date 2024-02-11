@@ -259,16 +259,6 @@ var KCoreAlgorithm;
                 this.shellComponents[parentInfo.shell].connectedComponents[parentInfo.index].vertices.push(this.graph.adjacencyList.get(node).main);
                 this.vertexToInfo.get(node).index = parentInfo.index;
             }
-            /*
-            for(const sc of this.shellComponents){
-                for(const cc of sc.connectedComponents){
-                    const polygon:SVGPolygonElement=document.createElementNS("http://www.w3.org/2000/svg","polygon");
-                    cc.polygon=polygon;
-                    cc.polygon.setAttribute("visibility","hidden");
-                }
-            }
-            */
-            this.setAllVerticesColor(true);
             return this;
         }
         start(onEnd) {
@@ -524,7 +514,7 @@ var KCoreAlgorithm;
                     }
                     else if (cc.polygon == undefined) {
                         cc.polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-                        ConvesHull.Solve(cc);
+                        ConvesHull.Solve(cc, this.svgContainer);
                         this.svgContainer.insertBefore(cc.polygon, this.svgContainer.firstChild);
                     }
                     cc.polygon.setAttribute("visibility", value);
@@ -537,7 +527,7 @@ var KCoreAlgorithm;
         refreshPolygons(vertex) {
             const info = this.vertexToInfo.get(vertex.id);
             const cc = this.shellComponents[info.shell].connectedComponents[info.index];
-            ConvesHull.Solve(cc);
+            ConvesHull.Solve(cc, this.svgContainer);
         }
         addEdge(a, b) {
             if (this.graph.addEdge(a, b) == false) {
@@ -756,7 +746,6 @@ var KCoreAlgorithm;
         }
     }
     KCore.processed = -2;
-    KCore.defaultColor = new Color(1, 1, 1);
     KCoreAlgorithm.KCore = KCore;
     class Point {
         constructor(x, y) {
@@ -769,15 +758,15 @@ var KCoreAlgorithm;
         static cross(o, a, b) {
             return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
         }
-        static Solve(cc) {
-            if (cc.vertices.length < 2) {
+        static Solve(cc, svg) {
+            if (cc.vertices.length < 3) {
                 return;
             }
             const polygon = cc.polygon;
             polygon.points.clear();
             if (cc.vertices.length < 4) {
                 for (const vertex of cc.vertices) {
-                    const p = ConvesHull.svg.createSVGPoint();
+                    const p = svg.createSVGPoint();
                     p.x = vertex.x;
                     p.y = vertex.y;
                     polygon.points.appendItem(p);
@@ -818,7 +807,7 @@ var KCoreAlgorithm;
                 ConvesHull.points.push(p);
             }
             for (const p of ConvesHull.points) {
-                const realPoint = ConvesHull.svg.createSVGPoint();
+                const realPoint = svg.createSVGPoint();
                 realPoint.x = p.x;
                 realPoint.y = p.y;
                 polygon.points.appendItem(realPoint);
