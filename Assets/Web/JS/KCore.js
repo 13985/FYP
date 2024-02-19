@@ -132,8 +132,9 @@ var KCoreAlgorithm;
             this.index = i;
         }
     }
-    class KCore {
+    class KCore extends GraphAlgorithm.Algorithm {
         constructor(g, svg) {
+            super(g);
             this.shellComponents = [];
             this.opacity = "0.3";
             /******************helper data structures*****************/
@@ -144,23 +145,15 @@ var KCoreAlgorithm;
             this.unionFind = new UnionFind();
             this.vertexToInfo = new Map();
             /******************visualization control******************/
-            this.isAnimationRunning = false;
-            this.IsAnimationRunning = () => this.isAnimationRunning;
-            this.isPause = false;
-            this.nextStep = false;
-            this.stopRunning = false;
-            this.pauseButton = null;
-            this.nextStepButton = null;
-            this.graph = g;
+            this.IsAnimationRunning = () => this.isAnimating;
             this.maxOption = null;
             this.minOption = null;
-            this.speedControl = null;
             this.state_currentShell = 0;
             this.svgContainer = svg;
         }
         setGraph(g) {
             this.graph = g;
-            this.fastIteration();
+            this.preprocess();
             return this;
         }
         setColor(start, end) {
@@ -173,7 +166,7 @@ var KCoreAlgorithm;
             }
             return this;
         }
-        fastIteration() {
+        preprocess() {
             var _a;
             this.unionFind.set(this.graph.vertices.length);
             for (const sc of this.shellComponents) {
@@ -263,30 +256,30 @@ var KCoreAlgorithm;
         }
         start(onEnd) {
             return __awaiter(this, void 0, void 0, function* () {
-                if (this.isAnimationRunning) {
+                if (this.isAnimating) {
                     return;
                 }
-                this.isAnimationRunning = true;
-                this.isPause = this.stopRunning = this.nextStep = false;
+                this.isAnimating = true;
+                this.isPause = this.stopAnimating = this.nextStep = false;
                 for (const v of this.graph.vertices) {
                     v.circle.setAttribute("opacity", this.opacity);
                 }
                 this.setAllVerticesColor(true);
                 this.hideVerticesOutsideShells();
-                yield this.slowIteration();
+                yield this.animate();
                 for (const v of this.graph.vertices) {
                     v.circle.setAttribute("opacity", "1");
                 }
                 ;
-                this.isPause = this.isAnimationRunning = this.stopRunning = this.nextStep = false;
+                this.isPause = this.isAnimating = this.stopAnimating = this.nextStep = false;
                 this.displayVerticesInRange(0, this.shellComponents.length, true);
                 onEnd === null || onEnd === void 0 ? void 0 : onEnd.call(null);
             });
         }
         stop() {
-            this.stopRunning = true;
+            this.stopAnimating = true;
         }
-        slowIteration() {
+        animate() {
             return __awaiter(this, void 0, void 0, function* () {
                 this.clearHelpers();
                 let currentShell = 0, nextShell = 1;
@@ -310,7 +303,7 @@ var KCoreAlgorithm;
                         vl.main.circle.setAttribute("opacity", "1");
                         vl.main.setColor(this.shellComponents[currentShell].color);
                         yield this.wait(currentShell);
-                        if (this.stopRunning) {
+                        if (this.stopAnimating) {
                             return;
                         }
                         for (const neighbor of vl.others) {
@@ -320,11 +313,11 @@ var KCoreAlgorithm;
                             }
                             const neighbor_v = this.graph.adjacencyList.get(neighbor).main;
                             neighbor_v.circle.setAttribute("opacity", "1");
-                            if (this.stopRunning) {
+                            if (this.stopAnimating) {
                                 return;
                             }
                             yield this.wait(currentShell);
-                            if (this.stopRunning) {
+                            if (this.stopAnimating) {
                                 return;
                             }
                             --degree;
@@ -337,13 +330,13 @@ var KCoreAlgorithm;
                             }
                             neighbor_v.circle.setAttribute("opacity", this.opacity);
                             yield this.wait(currentShell);
-                            if (this.stopRunning) {
+                            if (this.stopAnimating) {
                                 return;
                             }
                         }
                         vl.main.circle.setAttribute("opacity", this.opacity);
                     }
-                    if (this.stopRunning) {
+                    if (this.stopAnimating) {
                         return;
                     }
                     currentShell = nextShell;
@@ -364,14 +357,12 @@ var KCoreAlgorithm;
             });
         }
         wait(currentShell) {
+            const _super = Object.create(null, {
+                waitfor: { get: () => super.waitfor }
+            });
             return __awaiter(this, void 0, void 0, function* () {
                 if (currentShell >= parseInt(this.minOption.value) && currentShell <= parseInt(this.maxOption.value)) {
-                    for (let timePassed = 0; this.nextStep == false && this.stopRunning == false && (this.isPause || timePassed < (this.speedControl.valueAsNumber) * 1000);) {
-                        const before = Date.now();
-                        yield new Promise((r) => { setTimeout(r, 10); });
-                        const after = Date.now();
-                        timePassed += (after - before);
-                    }
+                    yield _super.waitfor.call(this);
                 }
                 this.nextStep = false;
             });
@@ -391,32 +382,6 @@ var KCoreAlgorithm;
             this.inSet1.clear();
             this.set0.length = 0;
             this.set1.length = 0;
-        }
-        setSpeedInput(speed) {
-            this.speedControl = speed;
-            this.speedControl.min = "0.05";
-            this.speedControl.max = "5";
-            this.speedControl.step = "0.001";
-            return this;
-        }
-        setButtons(pause, nextStep) {
-            this.pauseButton = pause;
-            this.nextStepButton = nextStep;
-            this.pauseButton.addEventListener("click", () => {
-                if (this.isPause) {
-                    this.isPause = false;
-                    this.pauseButton.innerText = ">";
-                    //displayPartialResult(false);
-                }
-                else {
-                    this.isPause = true;
-                    this.pauseButton.innerText = "||";
-                }
-            });
-            this.nextStepButton.addEventListener("click", () => {
-                this.nextStep = true;
-            });
-            return this;
         }
         setSelects(min, max) {
             this.minOption = min;
@@ -554,25 +519,80 @@ var KCoreAlgorithm;
                 subgraph = this.shellComponents[a_idx.shell].connectedComponents[a_idx.index];
                 theInfo = a_idx;
             }
+            this.KCore_ConnectedComponent(theInfo);
+            return this;
+        }
+        removeEdge(a, b) {
+            if (this.graph.removeEdge(a, b) == false) {
+                return this;
+            }
+            const a_idx = this.vertexToInfo.get(a);
+            const b_idx = this.vertexToInfo.get(b);
+            let subgraph;
+            let theInfo;
+            if (a_idx.shell != b_idx.shell) {
+                if (a_idx.shell > b_idx.shell) { //higher shell not affacted by lower shell vertex
+                    subgraph = this.shellComponents[b_idx.shell].connectedComponents[b_idx.index];
+                    theInfo = b_idx;
+                }
+                else {
+                    subgraph = this.shellComponents[a_idx.shell].connectedComponents[a_idx.index];
+                    theInfo = a_idx;
+                }
+            }
+            else { //they must be in the same connected component
+                subgraph = this.shellComponents[a_idx.shell].connectedComponents[a_idx.index];
+                theInfo = a_idx;
+            }
+            this.KCore_ConnectedComponent(theInfo);
+            return this;
+        }
+        removeComponent(shellComponent, idx, setIndex = false) {
+            var _a;
+            const last = shellComponent.connectedComponents[shellComponent.connectedComponents.length - 1];
+            const ret = shellComponent.connectedComponents[idx];
+            if (setIndex) {
+                for (const v of last.vertices) {
+                    const ccIdx = this.vertexToInfo.get(v.id);
+                    ccIdx.index = idx;
+                } //set the last first, just in case last==idx1, all indices of vertices will still be correctly setted after this
+            }
+            shellComponent.connectedComponents[idx] = last;
+            shellComponent.connectedComponents.pop();
+            (_a = ret.polygon) === null || _a === void 0 ? void 0 : _a.remove();
+            return ret;
+        }
+        mergeComponent(shellComponent, idx0, idx1) {
+            if (idx0 > idx1) {
+                const temp = idx0;
+                idx0 = idx1;
+                idx1 = temp;
+            }
+            const a = shellComponent.connectedComponents[idx0];
+            const b = this.removeComponent(shellComponent, idx1, true);
+            for (const v of b.vertices) {
+                a.vertices.push(v);
+                const ccIdx = this.vertexToInfo.get(v.id);
+                ccIdx.index = idx0;
+            }
+        }
+        KCore_ConnectedComponent(theInfo) {
+            const cc = this.shellComponents[theInfo.shell].connectedComponents[theInfo.index];
             this.unionFind.set(this.graph.vertices.length);
             this.clearHelpers();
-            let currentShell = subgraph.shell, nextShell = subgraph.shell + 1;
-            for (const v of subgraph.vertices) {
-                const vl = v.list;
+            let minDegree = Number.MAX_SAFE_INTEGER;
+            for (const v of cc.vertices) {
                 let d = 0;
-                for (const other of vl.others) {
-                    if (this.vertexToInfo.get(other).shell >= currentShell) {
+                for (const other of v.list.others) {
+                    if (this.vertexToInfo.get(other).shell >= cc.shell) {
                         ++d;
                     }
                 }
-                if (d <= currentShell) {
-                    this.set0.push(v.id);
-                }
-                else {
-                    this.set1.push(v.id);
-                }
                 this.degrees.set(v.id, d);
+                minDegree = Math.min(minDegree, d);
             }
+            let currentShell = minDegree;
+            let nextShell = minDegree + 1;
             let differentShell = 0;
             //atmost 2 iteration after added an edge (degree+1)
             while (true) {
@@ -618,8 +638,8 @@ var KCoreAlgorithm;
                 }
             }
             this.degrees.clear();
-            if (differentShell <= 1) {
-                return this; //no new shell is generated in this connected component
+            if (differentShell <= 1 && minDegree == theInfo.shell) {
+                return; //no new shell is generated in this connected component
             }
             this.unionFind.flatten();
             this.removeComponent(this.shellComponents[theInfo.shell], theInfo.index);
@@ -628,11 +648,11 @@ var KCoreAlgorithm;
             const newShell = this.set1;
             oldShell.length = 0;
             newShell.length = 0;
-            for (const v of subgraph.vertices) {
+            for (const v of cc.vertices) {
                 if (v.id != this.unionFind.parents[v.id])
                     continue;
                 const info = this.vertexToInfo.get(v.id);
-                if (info.shell > subgraph.shell) {
+                if (info.shell > cc.shell) {
                     newShell.push(v.id);
                     continue;
                 }
@@ -640,10 +660,10 @@ var KCoreAlgorithm;
                     oldShell.push(v.id);
                 }
                 const sc = this.shellComponents[info.shell].connectedComponents;
-                const cc = new ConnectedComponent(info.shell);
+                const cc_ = new ConnectedComponent(info.shell);
                 info.index = sc.length;
-                cc.vertices.push(v);
-                sc.push(cc);
+                cc_.vertices.push(v);
+                sc.push(cc_);
             }
             for (const v of oldShell) {
                 if (v == this.unionFind.parents[v])
@@ -706,42 +726,6 @@ var KCoreAlgorithm;
                         cc.vertices.push(v);
                     }
                 }
-            }
-            return this;
-        }
-        removeEdge(a, b) {
-            if (this.graph.removeEdge(a, b) == false) {
-                return this;
-            }
-            return this;
-        }
-        removeComponent(shellComponent, idx, setIndex = false) {
-            var _a;
-            const last = shellComponent.connectedComponents[shellComponent.connectedComponents.length - 1];
-            const ret = shellComponent.connectedComponents[idx];
-            if (setIndex) {
-                for (const v of last.vertices) {
-                    const ccIdx = this.vertexToInfo.get(v.id);
-                    ccIdx.index = idx;
-                } //set the last first, just in case last==idx1, all indices of vertices will still be correctly setted after this
-            }
-            shellComponent.connectedComponents[idx] = last;
-            shellComponent.connectedComponents.pop();
-            (_a = ret.polygon) === null || _a === void 0 ? void 0 : _a.remove();
-            return ret;
-        }
-        mergeComponent(shellComponent, idx0, idx1) {
-            if (idx0 > idx1) {
-                const temp = idx0;
-                idx0 = idx1;
-                idx1 = temp;
-            }
-            const a = shellComponent.connectedComponents[idx0];
-            const b = this.removeComponent(shellComponent, idx1, true);
-            for (const v of b.vertices) {
-                a.vertices.push(v);
-                const ccIdx = this.vertexToInfo.get(v.id);
-                ccIdx.index = idx0;
             }
         }
     }

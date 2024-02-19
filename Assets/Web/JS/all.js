@@ -76,10 +76,10 @@ window.onload = () => {
         graph.from(edgeList);
         gw.resetContainerTransform().updateSimulation();
         setVENumber();
-        kCore.fastIteration().setColor("#FFFF00", "#FF0000").setSelects(fromShell, toShell).setAllVerticesColor(true);
+        kCore.preprocess().setColor("#FFFF00", "#FF0000").setSelects(fromShell, toShell).setAllVerticesColor(true);
         graph.copyTo(resultGraph.clear(true));
         resultGW.resetContainerTransform().updateSimulation();
-        resultKCore.fastIteration().setColor("#FFFF00", "#FF0000").setAllVerticesColor(false).displayPolygons(true);
+        resultKCore.preprocess().setColor("#FFFF00", "#FF0000").setAllVerticesColor(false).displayPolygons(true);
     }
     loadGraph("0 1\r\n\
     1 2\r\n\
@@ -179,6 +179,66 @@ window.onload = () => {
                 }
                 vl.main.setColorString(vertexSetColor.value);
                 break;
+        }
+    });
+    /****************************************************edge popup *****************************************************/
+    const edgeUpdateSelect = document.getElementById("edge-update");
+    const edgePopupInput = document.getElementById("edge-popup-input");
+    const edgeUpdateButton = document.getElementById("edge-update-button");
+    const edgeEditMode = document.getElementById("edge-edit-mode");
+    edgeUpdateSelect.addEventListener("input", () => {
+        vertexSetColor.style.display = vertexUpdateSelect.value == "color" ? "block" : "none";
+    });
+    edgePopupInput.addEventListener("change", () => {
+        if (edgePopupInput.value.length == 0) {
+            return;
+        }
+        switch (edgeUpdateSelect.value) {
+            case "create":
+                resultGW.isCreateEdge = true;
+                break;
+            case "remove":
+                resultGW.isCreateEdge = false;
+                break;
+        }
+    });
+    edgeEditMode.addEventListener("input", () => {
+        resultGW.pressToAddEdge(edgeEditMode.checked);
+        switch (edgeUpdateSelect.value) {
+            case "create":
+                resultGW.isCreateEdge = true;
+                break;
+            case "remove":
+                resultGW.isCreateEdge = false;
+                break;
+        }
+    });
+    edgeUpdateButton.addEventListener("click", () => {
+        if (edgePopupInput.value.length == 0) {
+            return;
+        }
+        const edgeFormat = /(\d+\s?,\s?\d+\s?)/g;
+        const edgesString = edgePopupInput.value.split(edgeFormat);
+        console.log(edgesString);
+        switch (edgeUpdateSelect.value) {
+            case "create": {
+                for (const str of edgesString) {
+                    const numbers = str.split(/(\d+)/g);
+                    const from = parseInt(numbers[0]);
+                    const to = parseInt(numbers[0]);
+                    kCore.addEdge(from, to);
+                }
+                break;
+            }
+            case "remove": {
+                for (const str of edgesString) {
+                    const numbers = str.split(/(\d+)/g);
+                    const from = parseInt(numbers[0]);
+                    const to = parseInt(numbers[0]);
+                    kCore.removeEdge(from, to);
+                }
+                break;
+            }
         }
     });
     /****************************************************Camera pop up****************************************************/

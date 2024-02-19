@@ -97,10 +97,13 @@ type MouseEventCallback=(me:MouseEvent)=>void;
  *   --circles      (svg g element, created by this class)
  *   --links        (svg g element, created by this class)
  */
+
+
 class GraphWindow{
     public graph:Graph;
     public readonly container:HTMLElement;
     public readonly innerSVG:SVGElement;
+    public algo:GraphAlgorithm.Algorithm|undefined;
     
     private readonly forceToX:d3.ForceX<Vertex>=d3.forceX().strength(0.15);
     private readonly forceToY:d3.ForceY<Vertex>=d3.forceY().strength(0.15);
@@ -124,6 +127,13 @@ class GraphWindow{
     private width:number=500;
     private height:number=500;
     private _isMouseOverContainer:boolean=false;
+
+
+    private firstSelectedVertex:number=-1;
+    private secondSelectedVertex:number=-1;
+    private pressNumber:number=0;
+    private pressToSelectVertex:boolean=false;
+    public isCreateEdge:boolean=false;
 
     private onVertexMoved:((v:Vertex)=>void)|undefined=undefined;
 
@@ -250,6 +260,23 @@ class GraphWindow{
         event.subject.fx=event.subject.x;
         event.subject.fy=event.subject.y;
         this.simulationStable=false;
+
+        if(this.pressToSelectVertex){
+            event.subject.circle.classList.toggle("highlight-vertex",true);
+            if(this.pressNumber==1){
+                if(this.firstSelectedVertex!=event.subject.id){
+                    this.removeVerticesHighlight(this.secondSelectedVertex);
+                    this.secondSelectedVertex=event.subject.id;
+                    this.pressNumber=0;
+                }
+            }else{
+                if(this.secondSelectedVertex!=event.subject.id){
+                    this.removeVerticesHighlight(this.firstSelectedVertex);
+                    this.firstSelectedVertex=event.subject.id;
+                    this.pressNumber=1;
+                }
+            }
+        }
     }
 
 
@@ -370,6 +397,61 @@ class GraphWindow{
         this.offsetX=this.offsetY=0;
         this.scaleX=this.scaleY=1;
         return this.setGTransforms();
+    }
+
+
+    public pressToAddEdge(allow:boolean):void{
+        if(allow){
+            this.firstSelectedVertex=-1;
+            this.secondSelectedVertex=-1;
+            this.pressNumber=0;
+            this.pressToSelectVertex=true;
+            window.addEventListener("keypress",this.edgeEditMode);
+        }else{
+            this.pressToSelectVertex=false;
+            this.removeVerticesHighlight(this.firstSelectedVertex);
+            this.removeVerticesHighlight(this.secondSelectedVertex);
+            window.removeEventListener("keypress",this.edgeEditMode);
+        }
+    }
+
+
+    private edgeEditMode:(ke:KeyboardEvent)=>void=(ke):void=>{
+        switch(ke.key){
+        case "KeyC":{
+            this.removeVerticesHighlight(this.firstSelectedVertex);
+            this.removeVerticesHighlight(this.secondSelectedVertex);
+            this.firstSelectedVertex=-1;
+            this.secondSelectedVertex=-1;
+            this.pressNumber=0;
+            break;
+        }
+        case "Enter":{
+            if(this.firstSelectedVertex==-1||this.secondSelectedVertex==-1){
+                return;
+            }
+
+            if(this.isCreateEdge){
+                this.algo?.addEdge(this.firstSelectedVertex,this.secondSelectedVertex);
+            }else{
+                this.algo?.remoEdge(this.firstSelectedVertex,this.secondSelectedVertex);
+            }
+            this.removeVerticesHighlight(this.firstSelectedVertex);
+            this.removeVerticesHighlight(this.secondSelectedVertex);
+            this.firstSelectedVertex=-1;
+            this.secondSelectedVertex=-1;
+            this.pressNumber=0;
+            break;
+        }
+        }
+    };
+
+
+    private removeVerticesHighlight(v:number):void{
+        if(v>=0){
+            const vertex:Vertex=(this.graph.adjacencyList.get(v) as VerticeList).main;
+            (vertex.circle as SVGCircleElement).classList.toggle("highlight-vertex",false);
+        }
     }
 
 

@@ -12,3 +12,9 @@ main{
 .graph-svg{
     border: 2px solid var(--reverse-color1);
 }
+
+
+.highlight-vertex{
+    stroke:var(--reverse-color1);
+    stroke-width: 2;
+}

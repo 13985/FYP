@@ -57,7 +57,7 @@ var GraphAlgorithm;
             });
             return this;
         }
-        wait() {
+        waitfor() {
             return __awaiter(this, void 0, void 0, function* () {
                 for (let timePassed = 0; this.nextStep == false && this.stopAnimating == false && (this.isPause || timePassed < (this.speedControl.valueAsNumber) * 1000);) {
                     const before = Date.now();
@@ -68,6 +68,10 @@ var GraphAlgorithm;
                 this.nextStep = false;
             });
         }
+        addVertex(a) { }
+        removeVertex(a) { }
+        addEdge(from, to) { }
+        remoEdge(from, to) { }
     }
     GraphAlgorithm.Algorithm = Algorithm;
 })(GraphAlgorithm || (GraphAlgorithm = {}));

@@ -315,12 +315,23 @@ input[type="color"]::-webkit-color-swatch-wrapper {
     background-color: red;
 }
 
+
+#edge-edit-mode{
+    display: none;
+}
+
+
+label[for="edge-edit-mode"]{
+    font-size: 1.7rem;
+}
+
 /***********************************************Control / toggable label******************************************************************************/
 
 #camera-move-set:checked + label[for="camera-move-set"], 
 #show-algo-control:checked + label[for="show-algo-control"], 
 #show-algo-state:checked + label[for="show-algo-state"], 
-#partial-results-set:checked + label[for="partial-results-set"]{
+#partial-results-set:checked + label[for="partial-results-set"],
+#edge-edit-mode:checked + label[for="edge-edit-mode"]{
     background-color:color-mix(in srgb,rgb(0, 170, 0) 70%,var(--main-color0) 30%);
 }
 

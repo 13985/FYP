@@ -98,6 +98,11 @@ class GraphWindow {
         this.width = 500;
         this.height = 500;
         this._isMouseOverContainer = false;
+        this.firstSelectedVertex = -1;
+        this.secondSelectedVertex = -1;
+        this.pressNumber = 0;
+        this.pressToSelectVertex = false;
+        this.isCreateEdge = false;
         this.onVertexMoved = undefined;
         this.containerDragStarted = (me) => {
             if (me.button == 2) {
@@ -143,6 +148,36 @@ class GraphWindow {
                 case "KeyS":
                     this.moveGraph(0, 1);
                     break;
+            }
+        };
+        this.edgeEditMode = (ke) => {
+            var _a, _b;
+            switch (ke.key) {
+                case "KeyC": {
+                    this.removeVerticesHighlight(this.firstSelectedVertex);
+                    this.removeVerticesHighlight(this.secondSelectedVertex);
+                    this.firstSelectedVertex = -1;
+                    this.secondSelectedVertex = -1;
+                    this.pressNumber = 0;
+                    break;
+                }
+                case "Enter": {
+                    if (this.firstSelectedVertex == -1 || this.secondSelectedVertex == -1) {
+                        return;
+                    }
+                    if (this.isCreateEdge) {
+                        (_a = this.algo) === null || _a === void 0 ? void 0 : _a.addEdge(this.firstSelectedVertex, this.secondSelectedVertex);
+                    }
+                    else {
+                        (_b = this.algo) === null || _b === void 0 ? void 0 : _b.remoEdge(this.firstSelectedVertex, this.secondSelectedVertex);
+                    }
+                    this.removeVerticesHighlight(this.firstSelectedVertex);
+                    this.removeVerticesHighlight(this.secondSelectedVertex);
+                    this.firstSelectedVertex = -1;
+                    this.secondSelectedVertex = -1;
+                    this.pressNumber = 0;
+                    break;
+                }
             }
         };
         this.graph = g;
@@ -249,6 +284,23 @@ class GraphWindow {
         event.subject.fx = event.subject.x;
         event.subject.fy = event.subject.y;
         this.simulationStable = false;
+        if (this.pressToSelectVertex) {
+            event.subject.circle.classList.toggle("highlight-vertex", true);
+            if (this.pressNumber == 1) {
+                if (this.firstSelectedVertex != event.subject.id) {
+                    this.removeVerticesHighlight(this.secondSelectedVertex);
+                    this.secondSelectedVertex = event.subject.id;
+                    this.pressNumber = 0;
+                }
+            }
+            else {
+                if (this.secondSelectedVertex != event.subject.id) {
+                    this.removeVerticesHighlight(this.firstSelectedVertex);
+                    this.firstSelectedVertex = event.subject.id;
+                    this.pressNumber = 1;
+                }
+            }
+        }
     }
     VertexDragged(event, v) {
         event.subject.fx = event.x;
@@ -307,6 +359,27 @@ class GraphWindow {
         this.offsetX = this.offsetY = 0;
         this.scaleX = this.scaleY = 1;
         return this.setGTransforms();
+    }
+    pressToAddEdge(allow) {
+        if (allow) {
+            this.firstSelectedVertex = -1;
+            this.secondSelectedVertex = -1;
+            this.pressNumber = 0;
+            this.pressToSelectVertex = true;
+            window.addEventListener("keypress", this.edgeEditMode);
+        }
+        else {
+            this.pressToSelectVertex = false;
+            this.removeVerticesHighlight(this.firstSelectedVertex);
+            this.removeVerticesHighlight(this.secondSelectedVertex);
+            window.removeEventListener("keypress", this.edgeEditMode);
+        }
+    }
+    removeVerticesHighlight(v) {
+        if (v >= 0) {
+            const vertex = this.graph.adjacencyList.get(v).main;
+            vertex.circle.classList.toggle("highlight-vertex", false);
+        }
     }
     setGTransforms() {
         this.linksG.attr("transform", `translate(${this.offsetX} ${this.offsetY}) scale(${this.scaleX} ${this.scaleY})`);

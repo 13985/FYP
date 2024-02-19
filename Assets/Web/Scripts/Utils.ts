@@ -17,9 +17,11 @@ namespace GraphAlgorithm{
             this.graph=g;
         }
 
+        public abstract start(onEnd?:()=>void):Promise<void>;
+
         public abstract preprocess():void;
 
-        public abstract animate():void;
+        protected abstract animate():void;
 
         protected beforeAnimate():void{
             this.isAnimating=true;
@@ -61,7 +63,7 @@ namespace GraphAlgorithm{
         }
 
 
-        protected async wait():Promise<void>{
+        protected async waitfor():Promise<void>{
             for(let timePassed:number=0;this.nextStep==false&&this.stopAnimating==false&&(this.isPause||timePassed<((this.speedControl as HTMLInputElement).valueAsNumber)*1000);){
                 const before:number=Date.now();
                 await new Promise((r)=>{setTimeout(r,10);});
@@ -70,6 +72,12 @@ namespace GraphAlgorithm{
             }
             this.nextStep=false;
         }
+
+
+        public addVertex(a:number):void{}
+        public removeVertex(a:number):void{}
+        public addEdge(from:number,to:number):void{}
+        public remoEdge(from:number,to:number):void{}
 
     }
 }

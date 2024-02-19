@@ -90,11 +90,11 @@ window.onload=():void=>{
         graph.from(edgeList);
         gw.resetContainerTransform().updateSimulation();
         setVENumber();
-        kCore.fastIteration().setColor("#FFFF00","#FF0000").setSelects(fromShell,toShell).setAllVerticesColor(true);
+        kCore.preprocess().setColor("#FFFF00","#FF0000").setSelects(fromShell,toShell).setAllVerticesColor(true);
 
         graph.copyTo(resultGraph.clear(true));
         resultGW.resetContainerTransform().updateSimulation();
-        resultKCore.fastIteration().setColor("#FFFF00","#FF0000").setAllVerticesColor(false).displayPolygons(true);
+        resultKCore.preprocess().setColor("#FFFF00","#FF0000").setAllVerticesColor(false).displayPolygons(true);
     }
 
 
@@ -207,9 +207,10 @@ window.onload=():void=>{
 
 
     /****************************************************edge popup *****************************************************/
-    const edgeUpdateSelect:HTMLSelectElement=<HTMLSelectElement>document.getElementById("vertex-update");
-    const edgePopupInput:HTMLInputElement=<HTMLInputElement>document.getElementById("vertex-popup-input");
-    const edgeUpdateButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("vertex-update-button");
+    const edgeUpdateSelect:HTMLSelectElement=<HTMLSelectElement>document.getElementById("edge-update");
+    const edgePopupInput:HTMLInputElement=<HTMLInputElement>document.getElementById("edge-popup-input");
+    const edgeUpdateButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("edge-update-button");
+    const edgeEditMode:HTMLInputElement=<HTMLInputElement>document.getElementById("edge-edit-mode");
 
     edgeUpdateSelect.addEventListener("input",()=>{
         vertexSetColor.style.display=vertexUpdateSelect.value=="color"?"block":"none";
@@ -220,10 +221,25 @@ window.onload=():void=>{
         if(edgePopupInput.value.length==0){
             return;
         }
-        const theVertex:number=parseInt(vertexPopupInput.value);
         switch(edgeUpdateSelect.value){
         case "create":
+            resultGW.isCreateEdge=true;
+            break;
         case "remove":
+            resultGW.isCreateEdge=false;
+            break;
+        }
+    });
+
+
+    edgeEditMode.addEventListener("input",():void=>{
+        resultGW.pressToAddEdge(edgeEditMode.checked);
+        switch(edgeUpdateSelect.value){
+        case "create":
+            resultGW.isCreateEdge=true;
+            break;
+        case "remove":
+            resultGW.isCreateEdge=false;
             break;
         }
     });
@@ -233,24 +249,28 @@ window.onload=():void=>{
         if(edgePopupInput.value.length==0){
             return;
         }
-        const theVertex:number=parseInt(vertexPopupInput.value);
+        const edgeFormat:RegExp=/(\d+\s?,\s?\d+\s?)/g;
+        const edgesString:string[]=edgePopupInput.value.split(edgeFormat);
+        console.log(edgesString);
+
+
         switch(edgeUpdateSelect.value){
         case "create":{
-            const v:Vertex|null=graph.tryAddVertex(theVertex);
-            if(v==null){
-                break;
+            for(const str of edgesString){
+                const numbers:string[]=str.split(/(\d+)/g);
+                const from:number=parseInt(numbers[0]);
+                const to:number=parseInt(numbers[0]);
+                kCore.addEdge(from,to);
             }
-            v.setColor(kCore.shellComponents[0].color);
-            gw.updateSimulation();
-            setVENumber();
             break;
         }
         case "remove":{
-            if(graph.tryRemoveVertex(theVertex)==null){
-                break;
+            for(const str of edgesString){
+                const numbers:string[]=str.split(/(\d+)/g);
+                const from:number=parseInt(numbers[0]);
+                const to:number=parseInt(numbers[0]);
+                kCore.removeEdge(from,to);
             }
-            gw.updateSimulation();
-            setVENumber();
             break;
         }
         }

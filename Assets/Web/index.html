@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="./Styles/main.css">
     <link rel="stylesheet" href="./Styles/footer.css">
     <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="./JS/Utils.js"></script>
     <script src="./JS/Graph.js"></script>
     <script src="./JS/all.js"></script>
     <script src="./JS/KCore.js"></script>
@@ -62,6 +63,8 @@
                             <option class="graph-update-option" value="remove">Remove</option>
                         </select>
                         <input class="vertices-input" id="edge-popup-input" type="text" pattern="(?:\d+\s?,\s?\d+\s?)+" max-length="500"/>
+                        <input type="checkbox" id="edge-edit-mode"/>
+                        <label for="edge-edit-mode">Edit Mode</label>
                         <button type="button" id="edge-update-button" class="nav-li-button">Update</button>
                     </div>
                 </li>
