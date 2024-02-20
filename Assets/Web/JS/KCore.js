@@ -477,14 +477,10 @@ var KCoreAlgorithm;
                     if (cc.vertices.length < 3) {
                         continue;
                     }
-                    else if (cc.polygon == undefined) {
-                        cc.polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-                        ConvesHull.Solve(cc, this.svgContainer);
-                        this.svgContainer.insertBefore(cc.polygon, this.svgContainer.firstChild);
+                    else {
+                        this.setPolygon(cc, sc);
+                        cc.polygon.setAttribute("visibility", value);
                     }
-                    cc.polygon.setAttribute("visibility", value);
-                    cc.polygon.setAttribute("opacity", "0.2");
-                    cc.polygon.setAttribute("fill", sc.color.toString());
                 }
             }
             return this;
@@ -500,15 +496,12 @@ var KCoreAlgorithm;
             }
             const a_idx = this.vertexToInfo.get(a);
             const b_idx = this.vertexToInfo.get(b);
-            let subgraph;
             let theInfo;
             if (a_idx.shell != b_idx.shell) {
                 if (a_idx.shell > b_idx.shell) {
-                    subgraph = this.shellComponents[b_idx.shell].connectedComponents[b_idx.index];
                     theInfo = b_idx;
                 }
                 else {
-                    subgraph = this.shellComponents[a_idx.shell].connectedComponents[a_idx.index];
                     theInfo = a_idx;
                 }
             }
@@ -516,7 +509,6 @@ var KCoreAlgorithm;
                 if (a_idx.index != b_idx.index) {
                     this.mergeComponent(this.shellComponents[a_idx.shell], a_idx.index, b_idx.index);
                 }
-                subgraph = this.shellComponents[a_idx.shell].connectedComponents[a_idx.index];
                 theInfo = a_idx;
             }
             this.KCore_ConnectedComponent(theInfo);
@@ -528,20 +520,16 @@ var KCoreAlgorithm;
             }
             const a_idx = this.vertexToInfo.get(a);
             const b_idx = this.vertexToInfo.get(b);
-            let subgraph;
             let theInfo;
             if (a_idx.shell != b_idx.shell) {
                 if (a_idx.shell > b_idx.shell) { //higher shell not affacted by lower shell vertex
-                    subgraph = this.shellComponents[b_idx.shell].connectedComponents[b_idx.index];
                     theInfo = b_idx;
                 }
                 else {
-                    subgraph = this.shellComponents[a_idx.shell].connectedComponents[a_idx.index];
                     theInfo = a_idx;
                 }
             }
             else { //they must be in the same connected component
-                subgraph = this.shellComponents[a_idx.shell].connectedComponents[a_idx.index];
                 theInfo = a_idx;
             }
             this.KCore_ConnectedComponent(theInfo);
@@ -581,6 +569,7 @@ var KCoreAlgorithm;
             this.unionFind.set(this.graph.vertices.length);
             this.clearHelpers();
             let minDegree = Number.MAX_SAFE_INTEGER;
+            const orginalShell = theInfo.shell; //copy the shell, since info will be change while iteration
             for (const v of cc.vertices) {
                 let d = 0;
                 for (const other of v.list.others) {
@@ -591,12 +580,19 @@ var KCoreAlgorithm;
                 this.degrees.set(v.id, d);
                 minDegree = Math.min(minDegree, d);
             }
+            for (const v of cc.vertices) {
+                if (this.degrees.get(v.id) <= minDegree) {
+                    this.set0.push(v.id);
+                    this.degrees.set(v.id, -1);
+                }
+                else {
+                    this.set1.push(v.id);
+                }
+            }
             let currentShell = minDegree;
             let nextShell = minDegree + 1;
-            let differentShell = 0;
             //atmost 2 iteration after added an edge (degree+1)
             while (true) {
-                ++differentShell;
                 while (this.set0.length > 0) {
                     const v_id = this.set0.pop();
                     const vl = this.graph.adjacencyList.get(v_id);
@@ -622,10 +618,10 @@ var KCoreAlgorithm;
                         }
                     }
                 }
-                currentShell = nextShell;
                 if (this.set1.length <= 0) {
                     break;
                 }
+                currentShell = nextShell;
                 nextShell = currentShell + 1;
                 for (let i = 0; i < this.set1.length;) {
                     const d = this.degrees.get(this.set1[i]);
@@ -638,34 +634,35 @@ var KCoreAlgorithm;
                 }
             }
             this.degrees.clear();
-            if (differentShell <= 1 && minDegree == theInfo.shell) {
+            if (minDegree == currentShell && minDegree == orginalShell) {
                 return; //no new shell is generated in this connected component
             }
             this.unionFind.flatten();
-            this.removeComponent(this.shellComponents[theInfo.shell], theInfo.index);
+            this.removeComponent(this.shellComponents[orginalShell], theInfo.index, true); //the index of info did got changed
             //for storing the vertices
             const oldShell = this.set0;
             const newShell = this.set1;
             oldShell.length = 0;
             newShell.length = 0;
-            for (const v of cc.vertices) {
-                if (v.id != this.unionFind.parents[v.id])
-                    continue;
+            for (const v of cc.vertices) { //separate the vertex into two group depend on if their shell change
                 const info = this.vertexToInfo.get(v.id);
-                if (info.shell > cc.shell) {
+                if (info.shell != cc.shell) {
                     newShell.push(v.id);
                     continue;
                 }
                 else {
                     oldShell.push(v.id);
+                    if (v.id != this.unionFind.parents[v.id])
+                        continue;
                 }
                 const sc = this.shellComponents[info.shell].connectedComponents;
                 const cc_ = new ConnectedComponent(info.shell);
                 info.index = sc.length;
                 cc_.vertices.push(v);
+                this.setPolygon(cc_, this.shellComponents[info.shell]);
                 sc.push(cc_);
             }
-            for (const v of oldShell) {
+            for (const v of oldShell) { //load the vertex that shell doesnt got changed
                 if (v == this.unionFind.parents[v])
                     continue;
                 const info = this.vertexToInfo.get(v);
@@ -673,36 +670,62 @@ var KCoreAlgorithm;
                 this.shellComponents[parentInfo.shell].connectedComponents[parentInfo.index].vertices.push(this.graph.adjacencyList.get(v).main);
                 info.index = parentInfo.index;
             }
+            for (const v of oldShell) { //construct the convex hull
+                if (v != this.unionFind.parents[v])
+                    continue;
+                const info = this.vertexToInfo.get(v);
+                ConvesHull.Solve(this.shellComponents[info.shell].connectedComponents[info.index], this.svgContainer);
+            }
+            //console.log(`new ${newShell}`);
+            //console.log(`old ${oldShell}`);
             const otherCCIndices = oldShell;
             let newShellNumber = 0;
             otherCCIndices.length = 0;
+            const inNewShell = this.degrees;
+            inNewShell.clear();
+            for (const v of newShell) {
+                inNewShell.set(v, 0);
+            }
             for (const v of newShell) {
                 const info = this.vertexToInfo.get(v);
                 newShellNumber = info.shell;
                 const vl = this.graph.adjacencyList.get(v);
-                for (const other of vl.others) {
+                for (const other of vl.others) { //find all connected component on same shell that can merge
+                    if (inNewShell.get(other) != undefined) {
+                        continue;
+                    }
                     const otherInfo = this.vertexToInfo.get(other);
                     if (otherInfo.shell == info.shell) {
                         otherCCIndices.push(otherInfo.index);
                     }
                 }
             }
-            if (otherCCIndices.length <= 1) { //isolated new core
+            if (otherCCIndices.length <= 0) { //isolated new core
                 const cc = new ConnectedComponent(newShellNumber);
+                let index;
                 if (newShellNumber > this.shellComponents.length) {
                     const sc = new ShellComponet();
                     sc.shell = newShellNumber;
+                    const oldLength = this.shellComponents.length;
+                    index = 0;
                     sc.connectedComponents.push(cc);
-                    const oldLength = this.shellComponents.length - 1;
                     ++this.shellComponents.length;
                     this.shellComponents[newShellNumber] = sc;
                     this.setColor(this.shellComponents[0].color.toString(), this.shellComponents[oldLength].color.toString());
                 }
+                else {
+                    index = this.shellComponents[newShellNumber].connectedComponents.length;
+                    this.shellComponents[newShellNumber].connectedComponents.push(cc);
+                }
                 for (const v of newShell) {
                     cc.vertices.push(this.graph.adjacencyList.get(v).main);
+                    this.vertexToInfo.get(v).index = index;
                 }
+                console.log(cc);
+                this.setPolygon(cc, this.shellComponents[newShellNumber]);
+                ConvesHull.Solve(cc, this.svgContainer);
             }
-            else {
+            else { //merge the connected component
                 otherCCIndices.sort((a, b) => {
                     return a - b;
                 });
@@ -717,6 +740,10 @@ var KCoreAlgorithm;
                 const theIndex = otherCCIndices[0];
                 const sc = this.shellComponents[newShellNumber];
                 const cc = sc.connectedComponents[theIndex];
+                for (const v of newShell) {
+                    cc.vertices.push(this.graph.adjacencyList.get(v).main);
+                    this.vertexToInfo.get(v).index = theIndex;
+                }
                 //since the remove component will change the order of connectedComponents, so must iterate backward to prevent cc at larger index swap to the front (since remove larger index wrong affect the cc at smaller indices)
                 for (let i = otherCCIndices.length - 1; i > 0; --i) {
                     const otherCC = this.removeComponent(sc, otherCCIndices[i]);
@@ -725,6 +752,50 @@ var KCoreAlgorithm;
                         info.index = theIndex;
                         cc.vertices.push(v);
                     }
+                }
+                ConvesHull.Solve(cc, this.svgContainer);
+            }
+            this.checkCCs();
+        }
+        setPolygon(cc, sc) {
+            if (cc.vertices.length < 3) {
+                return;
+            }
+            if (cc.polygon == undefined) {
+                cc.polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+                ConvesHull.Solve(cc, this.svgContainer);
+                this.svgContainer.insertBefore(cc.polygon, this.svgContainer.firstChild);
+            }
+            cc.polygon.setAttribute("opacity", "0.3");
+            cc.polygon.setAttribute("fill", sc.color.toString());
+        }
+        checkCCs() {
+            for (let shell = 0; shell < this.shellComponents.length; ++shell) {
+                const sc = this.shellComponents[shell];
+                for (let i = 0; i < sc.connectedComponents.length; ++i) {
+                    const cc = sc.connectedComponents[i];
+                    for (const v of cc.vertices) {
+                        const info = this.vertexToInfo.get(v.id);
+                        if (info.shell != shell || info.index != i) {
+                            console.log(`fail at ${shell} ${i} of ${v.id} (incorrect values: ${info.shell} ${info.index})`);
+                            throw new Error();
+                        }
+                    }
+                }
+            }
+            for (const v of this.graph.vertices) {
+                const info = this.vertexToInfo.get(v.id);
+                const cc = this.shellComponents[info.shell].connectedComponents[info.index];
+                let have = false;
+                for (const _v of cc.vertices) {
+                    if (v.id == _v.id) {
+                        have = true;
+                        break;
+                    }
+                }
+                if (have == false) {
+                    console.log(`fail at ${v.id} (incorrect values: ${info.shell} ${info.index})`);
+                    throw new Error();
                 }
             }
         }

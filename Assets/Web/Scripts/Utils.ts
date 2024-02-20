@@ -74,10 +74,11 @@ namespace GraphAlgorithm{
         }
 
 
-        public addVertex(a:number):void{}
-        public removeVertex(a:number):void{}
-        public addEdge(from:number,to:number):void{}
-        public remoEdge(from:number,to:number):void{}
-
+        public addVertex(a:number):any{}
+        public removeVertex(a:number):any{}
+        public addEdge(from:number,to:number):any{}
+        public removeEdge(from:number,to:number):any{}
+        public setAllVerticesColor(defaultColor:boolean):any{}
+        public setAllEdgesColor(defaultColor:boolean):any{}
     }
 }

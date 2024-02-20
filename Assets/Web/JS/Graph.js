@@ -281,6 +281,7 @@ class Graph {
         return true;
     }
     removeEdge(a, b) {
+        var _a;
         if (this.adjacencyList.get(a) == undefined || this.adjacencyList.get(b) == undefined) {
             return false;
         }
@@ -294,6 +295,7 @@ class Graph {
         this.existsEdges.delete(code);
         this.edges[idx] = e;
         this.edges.pop();
+        (_a = e.line) === null || _a === void 0 ? void 0 : _a.remove();
         const a_vl = this.adjacencyList.get(a);
         const b_vl = this.adjacencyList.get(b);
         a_vl.remove(b);

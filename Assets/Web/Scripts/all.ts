@@ -9,10 +9,11 @@ window.onload=():void=>{
     /***********************************************window 1******************************/
     const gw:GraphWindow=new GraphWindow(graph,"#graph-container","#graph-container>#window0").setWH(500,600);
     const resultGW:GraphWindow=new GraphWindow(resultGraph,"#graph-container","#graph-container>#window1").setWH(500,600);
-    
+    gw.setWH(0,0);
+
     const kCore:KCoreAlgorithm.KCore=new KCoreAlgorithm.KCore(graph,gw.innerSVG as SVGSVGElement);
     const resultKCore:KCoreAlgorithm.KCore=new KCoreAlgorithm.KCore(resultGraph,resultGW.innerSVG as SVGSVGElement);
-    resultGW.setVertexDragStartCallback(resultKCore.refreshPolygons.bind(resultKCore));
+    resultGW.setVertexDragStartCallback(resultKCore.refreshPolygons.bind(resultKCore)).algo=resultKCore;
 
     const scrollbarDarkCSS:string="\
         html::-webkit-scrollbar-button{\
@@ -212,15 +213,7 @@ window.onload=():void=>{
     const edgeUpdateButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("edge-update-button");
     const edgeEditMode:HTMLInputElement=<HTMLInputElement>document.getElementById("edge-edit-mode");
 
-    edgeUpdateSelect.addEventListener("input",()=>{
-        vertexSetColor.style.display=vertexUpdateSelect.value=="color"?"block":"none";
-    });
-
-
-    edgePopupInput.addEventListener("change",()=>{
-        if(edgePopupInput.value.length==0){
-            return;
-        }
+    function setEditAction():void{
         switch(edgeUpdateSelect.value){
         case "create":
             resultGW.isCreateEdge=true;
@@ -229,19 +222,17 @@ window.onload=():void=>{
             resultGW.isCreateEdge=false;
             break;
         }
-    });
+    }
 
+    edgeUpdateSelect.addEventListener("input",()=>{
+        vertexSetColor.style.display=vertexUpdateSelect.value=="color"?"block":"none";
+        setEditAction();
+    });
+    
 
     edgeEditMode.addEventListener("input",():void=>{
         resultGW.pressToAddEdge(edgeEditMode.checked);
-        switch(edgeUpdateSelect.value){
-        case "create":
-            resultGW.isCreateEdge=true;
-            break;
-        case "remove":
-            resultGW.isCreateEdge=false;
-            break;
-        }
+        setEditAction();
     });
 
 
@@ -251,8 +242,6 @@ window.onload=():void=>{
         }
         const edgeFormat:RegExp=/(\d+\s?,\s?\d+\s?)/g;
         const edgesString:string[]=edgePopupInput.value.split(edgeFormat);
-        console.log(edgesString);
-
 
         switch(edgeUpdateSelect.value){
         case "create":{
@@ -260,7 +249,8 @@ window.onload=():void=>{
                 const numbers:string[]=str.split(/(\d+)/g);
                 const from:number=parseInt(numbers[0]);
                 const to:number=parseInt(numbers[0]);
-                kCore.addEdge(from,to);
+                resultKCore.addEdge(from,to);
+                resultGW.updateSimulation();
             }
             break;
         }
@@ -270,6 +260,7 @@ window.onload=():void=>{
                 const from:number=parseInt(numbers[0]);
                 const to:number=parseInt(numbers[0]);
                 kCore.removeEdge(from,to);
+                resultGW.updateSimulation();
             }
             break;
         }

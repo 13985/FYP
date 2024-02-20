@@ -382,6 +382,7 @@ class Graph implements IClone<Graph>{
         this.existsEdges.delete(code);
         this.edges[idx]=e;
         this.edges.pop();
+        e.line?.remove();
 
         const a_vl:VerticeList=this.adjacencyList.get(a) as VerticeList;
         const b_vl:VerticeList=this.adjacencyList.get(b) as VerticeList;

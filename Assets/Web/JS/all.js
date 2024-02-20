@@ -7,9 +7,10 @@ window.onload = () => {
     /***********************************************window 1******************************/
     const gw = new GraphWindow(graph, "#graph-container", "#graph-container>#window0").setWH(500, 600);
     const resultGW = new GraphWindow(resultGraph, "#graph-container", "#graph-container>#window1").setWH(500, 600);
+    gw.setWH(0, 0);
     const kCore = new KCoreAlgorithm.KCore(graph, gw.innerSVG);
     const resultKCore = new KCoreAlgorithm.KCore(resultGraph, resultGW.innerSVG);
-    resultGW.setVertexDragStartCallback(resultKCore.refreshPolygons.bind(resultKCore));
+    resultGW.setVertexDragStartCallback(resultKCore.refreshPolygons.bind(resultKCore)).algo = resultKCore;
     const scrollbarDarkCSS = "\
         html::-webkit-scrollbar-button{\
             background-color:var(--background-dark);\
@@ -186,13 +187,7 @@ window.onload = () => {
     const edgePopupInput = document.getElementById("edge-popup-input");
     const edgeUpdateButton = document.getElementById("edge-update-button");
     const edgeEditMode = document.getElementById("edge-edit-mode");
-    edgeUpdateSelect.addEventListener("input", () => {
-        vertexSetColor.style.display = vertexUpdateSelect.value == "color" ? "block" : "none";
-    });
-    edgePopupInput.addEventListener("change", () => {
-        if (edgePopupInput.value.length == 0) {
-            return;
-        }
+    function setEditAction() {
         switch (edgeUpdateSelect.value) {
             case "create":
                 resultGW.isCreateEdge = true;
@@ -201,17 +196,14 @@ window.onload = () => {
                 resultGW.isCreateEdge = false;
                 break;
         }
+    }
+    edgeUpdateSelect.addEventListener("input", () => {
+        vertexSetColor.style.display = vertexUpdateSelect.value == "color" ? "block" : "none";
+        setEditAction();
     });
     edgeEditMode.addEventListener("input", () => {
         resultGW.pressToAddEdge(edgeEditMode.checked);
-        switch (edgeUpdateSelect.value) {
-            case "create":
-                resultGW.isCreateEdge = true;
-                break;
-            case "remove":
-                resultGW.isCreateEdge = false;
-                break;
-        }
+        setEditAction();
     });
     edgeUpdateButton.addEventListener("click", () => {
         if (edgePopupInput.value.length == 0) {
@@ -219,14 +211,14 @@ window.onload = () => {
         }
         const edgeFormat = /(\d+\s?,\s?\d+\s?)/g;
         const edgesString = edgePopupInput.value.split(edgeFormat);
-        console.log(edgesString);
         switch (edgeUpdateSelect.value) {
             case "create": {
                 for (const str of edgesString) {
                     const numbers = str.split(/(\d+)/g);
                     const from = parseInt(numbers[0]);
                     const to = parseInt(numbers[0]);
-                    kCore.addEdge(from, to);
+                    resultKCore.addEdge(from, to);
+                    resultGW.updateSimulation();
                 }
                 break;
             }
@@ -236,6 +228,7 @@ window.onload = () => {
                     const from = parseInt(numbers[0]);
                     const to = parseInt(numbers[0]);
                     kCore.removeEdge(from, to);
+                    resultGW.updateSimulation();
                 }
                 break;
             }

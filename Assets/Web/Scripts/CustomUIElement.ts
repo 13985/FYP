@@ -434,8 +434,10 @@ class GraphWindow{
             if(this.isCreateEdge){
                 this.algo?.addEdge(this.firstSelectedVertex,this.secondSelectedVertex);
             }else{
-                this.algo?.remoEdge(this.firstSelectedVertex,this.secondSelectedVertex);
+                this.algo?.removeEdge(this.firstSelectedVertex,this.secondSelectedVertex);
             }
+            this.algo?.setAllVerticesColor(false);
+            this.updateSimulation();
             this.removeVerticesHighlight(this.firstSelectedVertex);
             this.removeVerticesHighlight(this.secondSelectedVertex);
             this.firstSelectedVertex=-1;

@@ -71,7 +71,9 @@ var GraphAlgorithm;
         addVertex(a) { }
         removeVertex(a) { }
         addEdge(from, to) { }
-        remoEdge(from, to) { }
+        removeEdge(from, to) { }
+        setAllVerticesColor(defaultColor) { }
+        setAllEdgesColor(defaultColor) { }
     }
     GraphAlgorithm.Algorithm = Algorithm;
 })(GraphAlgorithm || (GraphAlgorithm = {}));
