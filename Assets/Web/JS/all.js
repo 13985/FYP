@@ -76,11 +76,13 @@ window.onload = () => {
         graph.clear(true);
         graph.from(edgeList);
         gw.resetContainerTransform().updateSimulation();
+        const start = new Color(255, 255, 0);
+        const end = new Color(255, 0, 0);
         setVENumber();
-        kCore.preprocess().setColor("#FFFF00", "#FF0000").setSelects(fromShell, toShell).setAllVerticesColor(true);
+        kCore.preprocess().setColor(start, end).setSelects(fromShell, toShell).setAllVerticesColor(true);
         graph.copyTo(resultGraph.clear(true));
         resultGW.resetContainerTransform().updateSimulation();
-        resultKCore.preprocess().setColor("#FFFF00", "#FF0000").setAllVerticesColor(false).displayPolygons(true);
+        resultKCore.preprocess().setColor(start, end).setAllVerticesColor(false).displayPolygons(true);
     }
     loadGraph("0 1\r\n\
     1 2\r\n\

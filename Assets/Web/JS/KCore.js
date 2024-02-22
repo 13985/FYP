@@ -21,7 +21,7 @@ class Color {
         this.r = r;
         this.g = g;
         this.b = b;
-        this.a = 255;
+        this.a = a;
     }
     validate() {
         this.r = Math.max(0, Math.min(this.r, 255));
@@ -157,12 +157,10 @@ var KCoreAlgorithm;
             return this;
         }
         setColor(start, end) {
-            const color0 = Color.fromString(start);
-            const color1 = Color.fromString(end);
             const shellCount = this.shellComponents.length;
             const interval = shellCount - 1;
             for (let i = 0; i < shellCount; ++i) {
-                Color.lerp(this.shellComponents[i].color, color0, color1, i / interval);
+                Color.lerp(this.shellComponents[i].color, start, end, i / interval);
             }
             return this;
         }
@@ -423,7 +421,7 @@ var KCoreAlgorithm;
             else {
                 for (const sc of this.shellComponents) {
                     for (const cc of sc.connectedComponents) {
-                        (_b = cc.polygon) === null || _b === void 0 ? void 0 : _b.setAttribute("fill", sc.color.toString(cc.polygonOpacity));
+                        (_b = cc.polygon) === null || _b === void 0 ? void 0 : _b.setAttribute("fill", sc.color.toString());
                         for (const v of cc.vertices) {
                             v.setColor(sc.color);
                         }
@@ -564,13 +562,17 @@ var KCoreAlgorithm;
                 ccIdx.index = idx0;
             }
         }
+        /**
+         * @proof
+         *
+         */
         KCore_ConnectedComponent(theInfo) {
             const cc = this.shellComponents[theInfo.shell].connectedComponents[theInfo.index];
             this.unionFind.set(this.graph.vertices.length);
             this.clearHelpers();
             let minDegree = Number.MAX_SAFE_INTEGER;
             const orginalShell = theInfo.shell; //copy the shell, since info will be change while iteration
-            for (const v of cc.vertices) {
+            for (const v of cc.vertices) { //find the minimum degree of vertex
                 let d = 0;
                 for (const other of v.list.others) {
                     if (this.vertexToInfo.get(other).shell >= cc.shell) {
@@ -591,8 +593,8 @@ var KCoreAlgorithm;
             }
             let currentShell = minDegree;
             let nextShell = minDegree + 1;
-            //atmost 2 iteration after added an edge (degree+1)
-            while (true) {
+            //atmost 2 iteration after added an edge (degree+1) or remove an egd (degree-1)s
+            while (true) { //run kcore
                 while (this.set0.length > 0) {
                     const v_id = this.set0.pop();
                     const vl = this.graph.adjacencyList.get(v_id);
@@ -686,7 +688,7 @@ var KCoreAlgorithm;
             for (const v of newShell) {
                 inNewShell.set(v, 0);
             }
-            for (const v of newShell) {
+            for (const v of newShell) { //find all other connected components that can be merged
                 const info = this.vertexToInfo.get(v);
                 newShellNumber = info.shell;
                 const vl = this.graph.adjacencyList.get(v);
@@ -703,15 +705,13 @@ var KCoreAlgorithm;
             if (otherCCIndices.length <= 0) { //isolated new core
                 const cc = new ConnectedComponent(newShellNumber);
                 let index;
-                if (newShellNumber > this.shellComponents.length) {
+                if (newShellNumber >= this.shellComponents.length) {
                     const sc = new ShellComponet();
                     sc.shell = newShellNumber;
-                    const oldLength = this.shellComponents.length;
-                    index = 0;
                     sc.connectedComponents.push(cc);
-                    ++this.shellComponents.length;
-                    this.shellComponents[newShellNumber] = sc;
-                    this.setColor(this.shellComponents[0].color.toString(), this.shellComponents[oldLength].color.toString());
+                    index = 0;
+                    this.shellComponents.push(sc);
+                    this.setColor(this.shellComponents[0].color, this.shellComponents[this.shellComponents.length - 2].color);
                 }
                 else {
                     index = this.shellComponents[newShellNumber].connectedComponents.length;
@@ -721,7 +721,6 @@ var KCoreAlgorithm;
                     cc.vertices.push(this.graph.adjacencyList.get(v).main);
                     this.vertexToInfo.get(v).index = index;
                 }
-                console.log(cc);
                 this.setPolygon(cc, this.shellComponents[newShellNumber]);
                 ConvesHull.Solve(cc, this.svgContainer);
             }
@@ -766,8 +765,9 @@ var KCoreAlgorithm;
                 ConvesHull.Solve(cc, this.svgContainer);
                 this.svgContainer.insertBefore(cc.polygon, this.svgContainer.firstChild);
             }
-            cc.polygon.setAttribute("opacity", "0.3");
+            cc.polygon.setAttribute("opacity", cc.polygonOpacity.toString());
             cc.polygon.setAttribute("fill", sc.color.toString());
+            console.log(sc.color);
         }
         checkCCs() {
             for (let shell = 0; shell < this.shellComponents.length; ++shell) {
