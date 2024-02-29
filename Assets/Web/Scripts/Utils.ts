@@ -3,6 +3,7 @@ namespace GraphAlgorithm{
         public graph:Graph;
         public waitTime:number=0;
         public svgContainer:SVGSVGElement;
+        public showDefaultColor:boolean=true;
 
         protected isAnimating:boolean=false;
         protected isPause:boolean=false;

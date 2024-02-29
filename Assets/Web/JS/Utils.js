@@ -13,6 +13,7 @@ var GraphAlgorithm;
     class Algorithm {
         constructor(g, svg) {
             this.waitTime = 0;
+            this.showDefaultColor = true;
             this.isAnimating = false;
             this.isPause = false;
             this.nextStep = false;

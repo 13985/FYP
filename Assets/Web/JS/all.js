@@ -12,6 +12,7 @@ window.onload = () => {
     const kCore = new KCoreAlgorithm.KCore(graph, gw.innerSVG, gw.allG);
     const resultKCore = new KCoreAlgorithm.KCore(resultGraph, resultGW.innerSVG, resultGW.allG);
     resultGW.setVertexDragStartCallback(resultKCore.refreshPolygons.bind(resultKCore)).algo = resultKCore;
+    resultKCore.showDefaultColor = false;
     const scrollbarDarkCSS = "\
         html::-webkit-scrollbar-button{\
             background-color:var(--background-dark);\
@@ -147,9 +148,16 @@ window.onload = () => {
                 vertexSetColor.value = vl.main.getColorHexa();
                 break;
             }
-            case "create":
-            case "remove":
+            case "create": {
+                resultKCore.addVertex(theVertex);
+                resultGW.updateSimulation();
                 break;
+            }
+            case "remove": {
+                resultKCore.removeVertex(theVertex);
+                resultGW.updateSimulation();
+                break;
+            }
         }
     });
     vertexUpdateButton.addEventListener("click", () => {
@@ -159,7 +167,7 @@ window.onload = () => {
         const theVertex = parseInt(vertexPopupInput.value);
         switch (vertexUpdateSelect.value) {
             case "create": {
-                const v = graph.tryAddVertex(theVertex);
+                const v = graph.addVertex(theVertex);
                 if (v == null) {
                     break;
                 }
@@ -169,7 +177,7 @@ window.onload = () => {
                 break;
             }
             case "remove": {
-                if (graph.tryRemoveVertex(theVertex) == null) {
+                if (graph.removeVertex(theVertex) == null) {
                     break;
                 }
                 gw.updateSimulation();

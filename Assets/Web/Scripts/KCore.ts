@@ -411,9 +411,9 @@ namespace KCoreAlgorithm{
             this.degrees.set(target,-1);
             const last:number=this.set1[this.set1.length-1];
             const idx:number=this.inSet1.get(target) as number;
-            this.inSet1.delete(target);
             this.set1[idx]=last;
             this.inSet1.set(last,idx);
+            this.inSet1.delete(target);
             this.set1.pop();
         }
 
@@ -463,6 +463,7 @@ namespace KCoreAlgorithm{
 
 
         public setAllVerticesColor(defaultColor:boolean):KCore{
+            this.showDefaultColor=defaultColor;
             if(defaultColor){
                 for(const v of this.graph.vertices){
                     (v.circle as SVGCircleElement).setAttribute("fill","var(--reverse-color2)");
@@ -600,6 +601,26 @@ namespace KCoreAlgorithm{
         }
 
 
+        public addVertex(a: number) {
+            this.graph.addVertex(a);
+        }
+
+
+        public removeVertex(a: number){
+            if(this.graph.removeVertex(a)==null){
+                return;
+            }
+            const info:ConnectedComponetInfo=this.vertexToInfo.get(a) as ConnectedComponetInfo;
+            const cc:ConnectedComponent=this.shellComponents[info.shell].connectedComponents[info.index];
+            for(let i:number=0;i<cc.vertices.length;++i){
+                if(cc.vertices[i].id==a){
+                    cc.vertices.splice(i,1);
+                }
+            }
+            this.KCore_ConnectedComponent(info);
+        }
+
+
         private removeComponent(shellComponent:ShellComponet,idx:number,setIndex:boolean=false):ConnectedComponent{
             const last:ConnectedComponent=shellComponent.connectedComponents[shellComponent.connectedComponents.length-1];
             const ret:ConnectedComponent=shellComponent.connectedComponents[idx];
@@ -662,6 +683,7 @@ namespace KCoreAlgorithm{
                     this.set0.push(v.id);
                     this.degrees.set(v.id,-1);
                 }else{
+                    this.inSet1.set(v.id,this.set1.length);//i have no idea why sometime this method work without this line
                     this.set1.push(v.id);
                 }
             }
@@ -762,63 +784,74 @@ namespace KCoreAlgorithm{
                 ConvesHull.Solve(cc,this.svgContainer);
             }
 
-            console.log(`new ${newShell}`);
-            console.log(`old ${oldShell}`);
-            const otherCCIndices:number[]=oldShell;
-            const inNewShell:Map<number,number>=this.degrees;
-            inNewShell.clear();
-
-
-            for(const v of newShell){//load the vertices of new shell
-                inNewShell.set(v,0);
-                if(v==this.unionFind.parents[v])continue;
-                const info:ConnectedComponetInfo=this.vertexToInfo.get(v) as ConnectedComponetInfo;
-                const parentInfo:ConnectedComponetInfo=this.vertexToInfo.get(this.unionFind.parents[v]) as ConnectedComponetInfo;
-                this.shellComponents[parentInfo.shell].connectedComponents[parentInfo.index].vertices.push((this.graph.adjacencyList.get(v) as VerticeList).main);
-                info.index=parentInfo.index;
-            }
-
-
-            for(const v of newShell){//find all other connected components that can be merged
-                if(v!=this.unionFind.parents[v]){continue;}
-                const parentInfo:ConnectedComponetInfo=this.vertexToInfo.get(v) as ConnectedComponetInfo;
-                const sc:ShellComponet=this.shellComponents[parentInfo.shell];
-                const cc:ConnectedComponent=sc.connectedComponents[parentInfo.index];//search the component
-
-                otherCCIndices.length=0;
-                otherCCIndices.push(parentInfo.index);
-                for(const v_ of cc.vertices){//for all vertices in this component
-                    const vl:VerticeList=v_.list as VerticeList;
-                    for(const other of vl.others){//find all connected component on same shell that can merge
-                        if(inNewShell.get(other)!=undefined){continue}
-                        const otherInfo:ConnectedComponetInfo=this.vertexToInfo.get(other) as ConnectedComponetInfo;
-                        if(otherInfo.shell==parentInfo.shell){
-                            otherCCIndices.push(otherInfo.index);
+            //console.log(`new ${newShell}`);
+            //console.log(`old ${oldShell}`);
+            if(newShell.length>0){
+                const otherCCIndices:number[]=oldShell;
+                const inNewShell:Map<number,number>=this.degrees;
+                inNewShell.clear();
+    
+                if(this.showDefaultColor==false){
+                    const info=this.vertexToInfo.get(newShell[0]) as ConnectedComponetInfo;
+                    const color:string=this.shellComponents[info.shell].color.toString();
+                    for(const v of newShell){
+                        const vl=this.graph.adjacencyList.get(v) as VerticeList;
+                        vl.main.circle?.setAttribute("fill",color);
+                    }
+                }
+    
+    
+                for(const v of newShell){//load the vertices of new shell
+                    inNewShell.set(v,0);
+                    if(v==this.unionFind.parents[v])continue;
+                    const info:ConnectedComponetInfo=this.vertexToInfo.get(v) as ConnectedComponetInfo;
+                    const parentInfo:ConnectedComponetInfo=this.vertexToInfo.get(this.unionFind.parents[v]) as ConnectedComponetInfo;
+                    this.shellComponents[parentInfo.shell].connectedComponents[parentInfo.index].vertices.push((this.graph.adjacencyList.get(v) as VerticeList).main);
+                    info.index=parentInfo.index;
+                }
+    
+    
+                for(const v of newShell){//find all other connected components that can be merged
+                    if(v!=this.unionFind.parents[v]){continue;}
+                    const parentInfo:ConnectedComponetInfo=this.vertexToInfo.get(v) as ConnectedComponetInfo;
+                    const sc:ShellComponet=this.shellComponents[parentInfo.shell];
+                    const cc:ConnectedComponent=sc.connectedComponents[parentInfo.index];//search the component
+    
+                    otherCCIndices.length=0;
+                    otherCCIndices.push(parentInfo.index);
+                    for(const v_ of cc.vertices){//for all vertices in this component
+                        const vl:VerticeList=v_.list as VerticeList;
+                        for(const other of vl.others){//find all connected component on same shell that can merge
+                            if(inNewShell.get(other)!=undefined){continue}
+                            const otherInfo:ConnectedComponetInfo=this.vertexToInfo.get(other) as ConnectedComponetInfo;
+                            if(otherInfo.shell==parentInfo.shell){
+                                otherCCIndices.push(otherInfo.index);
+                            }
                         }
                     }
-                }
-
-                otherCCIndices.sort((a:number,b:number):number=>{return a-b;});
-                {
-                    let len=0;
-                    for(let i:number=0,j:number;i<otherCCIndices.length;i=j){
-                        for(j=i+1;j<otherCCIndices.length&&otherCCIndices[i]==otherCCIndices[j];++j){}
-                        otherCCIndices[len++]=otherCCIndices[j-1];
+    
+                    otherCCIndices.sort((a:number,b:number):number=>{return a-b;});
+                    {
+                        let len=0;
+                        for(let i:number=0,j:number;i<otherCCIndices.length;i=j){
+                            for(j=i+1;j<otherCCIndices.length&&otherCCIndices[i]==otherCCIndices[j];++j){}
+                            otherCCIndices[len++]=otherCCIndices[j-1];
+                        }
+                        otherCCIndices.length=len;
                     }
-                    otherCCIndices.length=len;
-                }
-                const minIndex:number=otherCCIndices[0];
-                const minCC:ConnectedComponent=this.shellComponents[parentInfo.shell].connectedComponents[minIndex];
-                for(let i:number=otherCCIndices.length-1;i>0;--i){
-                    const otherCC:ConnectedComponent=this.removeComponent(sc,otherCCIndices[i],true);
-                    for(const v of otherCC.vertices){
-                        const info:ConnectedComponetInfo=this.vertexToInfo.get(v.id) as ConnectedComponetInfo;
-                        info.index=minIndex;
-                        minCC.vertices.push(v);
+                    const minIndex:number=otherCCIndices[0];
+                    const minCC:ConnectedComponent=this.shellComponents[parentInfo.shell].connectedComponents[minIndex];
+                    for(let i:number=otherCCIndices.length-1;i>0;--i){
+                        const otherCC:ConnectedComponent=this.removeComponent(sc,otherCCIndices[i],true);
+                        for(const v of otherCC.vertices){
+                            const info:ConnectedComponetInfo=this.vertexToInfo.get(v.id) as ConnectedComponetInfo;
+                            info.index=minIndex;
+                            minCC.vertices.push(v);
+                        }
                     }
+                    this.setPolygon(minCC,sc);
+                    ConvesHull.Solve(minCC,this.svgContainer);
                 }
-                this.setPolygon(minCC,sc);
-                ConvesHull.Solve(minCC,this.svgContainer);
             }
             this.checkCCs();
         }
@@ -831,10 +864,13 @@ namespace KCoreAlgorithm{
             if(cc.polygon==undefined||cc.polygon==null){
                 cc.polygon=document.createElementNS("http://www.w3.org/2000/svg","polygon");
                 ConvesHull.Solve(cc,this.svgContainer);
-                this.polygonsContainer.appendChild(cc.polygon);
+                this.polygonsContainer.insertAdjacentElement("afterbegin",cc.polygon);
             }
             (cc.polygon as SVGElement).setAttribute("opacity",cc.polygonOpacity.toString());
             (cc.polygon as SVGElement).setAttribute("fill",sc.color.toString());
+            if(this.showDefaultColor){
+                (cc.polygon as SVGElement).setAttribute("visibility","hidden");
+            }
         }
 
 

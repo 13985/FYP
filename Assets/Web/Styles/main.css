@@ -94,6 +94,7 @@ div.popup-set-text:hover{
 }
 
 
+.control>.column:hover > div.popup-set-text,
 input.popup-set:checked + div.popup-set-text{
     background-color: var(--reverse-color1);
     color:var(--main-color1);

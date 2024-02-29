@@ -3,7 +3,7 @@ class Vertex {
     constructor(id) {
         this.list = undefined;
         this.id = id;
-        this.radius = 5;
+        this.radius = 5.5;
         this.circle = null;
         this.text = null;
         this.color = new Color(0, 0, 0);
@@ -171,23 +171,6 @@ class Graph {
     vertexCount() {
         return this.adjacencyList.size;
     }
-    removeVertex(v) {
-        const list = this.adjacencyList.get(v);
-        if (list == undefined) {
-            return false;
-        }
-        for (let i = 0; i < list.others.length; ++i) {
-            const _l = this.adjacencyList.get(list.others[i]);
-            for (let j = 0; j < _l.others.length; ++j) {
-                if (_l.others[j] == v) {
-                    _l.others[j] == _l.others[_l.others.length - 1];
-                    _l.others.pop();
-                    break;
-                }
-            }
-        }
-        return true;
-    }
     clear(removeSVG = false) {
         this.adjacencyList.clear();
         if (removeSVG) {
@@ -218,7 +201,8 @@ class Graph {
             }
         }
     }
-    tryRemoveVertex(theVertex) {
+    removeVertex(theVertex) {
+        var _a, _b, _c;
         const vl = this.adjacencyList.get(theVertex);
         if (vl == undefined) {
             return null;
@@ -235,10 +219,12 @@ class Graph {
         }
         this.adjacencyList.delete(theVertex);
         for (let i = 0; i < this.vertices.length; ++i) {
-            if (this.vertices[i].id != vl.main.id) {
+            const v = this.vertices[i];
+            if (v.id != vl.main.id) {
                 continue;
             }
-            //(graph.vertices[i].circle as SVGCircleElement).remove();
+            (_a = v.circle) === null || _a === void 0 ? void 0 : _a.remove();
+            (_b = v.text) === null || _b === void 0 ? void 0 : _b.remove();
             this.vertices.splice(i, 1);
             break;
         }
@@ -249,7 +235,7 @@ class Graph {
                 ++i;
             }
             else {
-                //(e.line as SVGLineElement).remove();
+                (_c = e.line) === null || _c === void 0 ? void 0 : _c.remove();
                 this.edges[i] = this.edges[lengthLeft - 1];
                 --lengthLeft;
             }
@@ -257,7 +243,7 @@ class Graph {
         this.edges.length = lengthLeft;
         return vl.main;
     }
-    tryAddVertex(theVertex) {
+    addVertex(theVertex) {
         if (this.adjacencyList.get(theVertex) != undefined) {
             return null;
         }

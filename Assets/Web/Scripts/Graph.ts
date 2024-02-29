@@ -19,7 +19,7 @@ class Vertex implements d3.SimulationNodeDatum,IClone<Vertex>{
 
     constructor(id:number){
         this.id=id;
-        this.radius=5;
+        this.radius=5.5;
         this.circle=null;
         this.text=null;
         this.color=new Color(0,0,0);
@@ -250,27 +250,6 @@ class Graph implements IClone<Graph>{
     }
 
 
-    public removeVertex(v:number):boolean{
-        const list:VerticeList|undefined=this.adjacencyList.get(v);
-        if(list==undefined){
-            return false;
-        }
-
-        for(let i:number=0;i<list.others.length;++i){
-            const _l:VerticeList=<VerticeList>this.adjacencyList.get(list.others[i]);
-            for(let j:number=0;j<_l.others.length;++j){
-                if(_l.others[j]==v){
-                    _l.others[j]==_l.others[_l.others.length-1];
-                    _l.others.pop();
-                    break;
-                }
-            }
-        }
-
-        return true;
-    }
-
-
     public clear(removeSVG:boolean=false):this{
         this.adjacencyList.clear();
         if(removeSVG){
@@ -305,7 +284,7 @@ class Graph implements IClone<Graph>{
     }
 
 
-    public tryRemoveVertex(theVertex:number):Vertex|null{
+    public removeVertex(theVertex:number):Vertex|null{
         const vl:VerticeList|undefined=this.adjacencyList.get(theVertex);
         if(vl==undefined){
             return null;
@@ -321,8 +300,10 @@ class Graph implements IClone<Graph>{
         }
         this.adjacencyList.delete(theVertex);
         for(let i:number=0;i<this.vertices.length;++i){
-            if(this.vertices[i].id!=vl.main.id){continue;}
-            //(graph.vertices[i].circle as SVGCircleElement).remove();
+            const v:Vertex=this.vertices[i];
+            if(v.id!=vl.main.id){continue;}
+            v.circle?.remove();
+            v.text?.remove();
             this.vertices.splice(i,1);
             break;
         }
@@ -333,7 +314,7 @@ class Graph implements IClone<Graph>{
             if(e.source.id!=theVertex&&e.target.id!=theVertex){
                 ++i;
             }else{
-                //(e.line as SVGLineElement).remove();
+                e.line?.remove();
                 this.edges[i]=this.edges[lengthLeft-1];
                 --lengthLeft;
             }
@@ -343,7 +324,7 @@ class Graph implements IClone<Graph>{
     }
 
 
-    public tryAddVertex(theVertex:number):Vertex|null{
+    public addVertex(theVertex:number):Vertex|null{
         if(this.adjacencyList.get(theVertex)!=undefined){
             return null;
         }

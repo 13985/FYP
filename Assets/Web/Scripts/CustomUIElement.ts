@@ -555,7 +555,6 @@ class GraphWindow{
             }else{
                 this.algo?.removeEdge(this.firstSelectedVertex,this.secondSelectedVertex);
             }
-            this.algo?.setAllVerticesColor(false);
             this.updateSimulation();
             this.removeVerticesHighlight(this.firstSelectedVertex);
             this.removeVerticesHighlight(this.secondSelectedVertex);
