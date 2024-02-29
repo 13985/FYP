@@ -2,6 +2,7 @@ namespace GraphAlgorithm{
     export abstract class Algorithm{
         public graph:Graph;
         public waitTime:number=0;
+        public svgContainer:SVGSVGElement;
 
         protected isAnimating:boolean=false;
         protected isPause:boolean=false;
@@ -13,8 +14,9 @@ namespace GraphAlgorithm{
         protected stopButton:HTMLButtonElement|undefined=undefined;
         protected speedControl:HTMLInputElement|undefined=undefined;
 
-        constructor(g:Graph){
+        constructor(g:Graph,svg:SVGSVGElement){
             this.graph=g;
+            this.svgContainer=svg;
         }
 
         public abstract start(onEnd?:()=>void):Promise<void>;

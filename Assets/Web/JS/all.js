@@ -1,15 +1,16 @@
 "use strict";
 window.onload = () => {
+    GraphWindow.main();
     const themeButton = document.getElementById("theme-button-set");
     const html = document.body.parentNode;
     const graph = new Graph();
     const resultGraph = new Graph();
     /***********************************************window 1******************************/
-    const gw = new GraphWindow(graph, "#graph-container", "#graph-container>#window0").setWH(500, 600);
-    const resultGW = new GraphWindow(resultGraph, "#graph-container", "#graph-container>#window1").setWH(500, 600);
-    gw.setWH(0, 0);
-    const kCore = new KCoreAlgorithm.KCore(graph, gw.innerSVG);
-    const resultKCore = new KCoreAlgorithm.KCore(resultGraph, resultGW.innerSVG);
+    const gw = new GraphWindow(graph).setWH(500, 600);
+    const resultGW = new GraphWindow(resultGraph).setWH(500, 600);
+    gw.display(false);
+    const kCore = new KCoreAlgorithm.KCore(graph, gw.innerSVG, gw.allG);
+    const resultKCore = new KCoreAlgorithm.KCore(resultGraph, resultGW.innerSVG, resultGW.allG);
     resultGW.setVertexDragStartCallback(resultKCore.refreshPolygons.bind(resultKCore)).algo = resultKCore;
     const scrollbarDarkCSS = "\
         html::-webkit-scrollbar-button{\
@@ -237,56 +238,67 @@ window.onload = () => {
         }
     });
     /****************************************************Camera pop up****************************************************/
-    const zoomSlider = document.getElementById("zoom-slider");
-    const zoomNumberInput = document.getElementById("zoom-typing");
-    const zoomMin = 0, zoomMax = 5;
-    function setZoomBound() {
-        const min = zoomMin.toString();
-        const max = zoomMax.toString();
-        zoomSlider.setAttribute("min", min);
-        zoomSlider.setAttribute("max", max);
-        zoomNumberInput.setAttribute("min", min);
-        zoomNumberInput.setAttribute("max", max);
+    /*
+    const zoomSlider:HTMLInputElement=<HTMLInputElement>document.getElementById("zoom-slider");
+    const zoomNumberInput:HTMLInputElement=<HTMLInputElement>document.getElementById("zoom-typing");
+    const zoomMin:number=0,zoomMax:number=5;
+
+    function setZoomBound():void{
+        const min:string=zoomMin.toString();
+        const max:string=zoomMax.toString();
+        zoomSlider.setAttribute("min",min);
+        zoomSlider.setAttribute("max",max);
+        zoomNumberInput.setAttribute("min",min);
+        zoomNumberInput.setAttribute("max",max);
     }
     setZoomBound();
-    zoomSlider.addEventListener('input', () => {
-        zoomNumberInput.value = zoomSlider.value;
+
+    zoomSlider.addEventListener('input',():void=>{
+        zoomNumberInput.value=zoomSlider.value;
         gw.scaleGraph(zoomNumberInput.valueAsNumber);
     });
-    zoomNumberInput.addEventListener('input', () => {
-        zoomSlider.value = zoomNumberInput.value;
+
+    zoomNumberInput.addEventListener('input',():void=>{
+        zoomSlider.value=zoomNumberInput.value;
         gw.scaleGraph(zoomNumberInput.valueAsNumber);
     });
-    var previousMagnifier = 1;
-    zoomNumberInput.valueAsNumber = previousMagnifier;
-    zoomSlider.valueAsNumber = previousMagnifier;
-    const moveCameraButton = document.getElementById("camera-move-set");
-    var moveCameraAllowed = false;
-    moveCameraButton.addEventListener("change", () => {
-        moveCameraAllowed = !moveCameraAllowed;
+
+    var previousMagnifier:number=1;
+    zoomNumberInput.valueAsNumber=previousMagnifier;
+    zoomSlider.valueAsNumber=previousMagnifier;
+
+
+    const moveCameraButton:HTMLInputElement=<HTMLInputElement>document.getElementById("camera-move-set");
+    var moveCameraAllowed:boolean=false;
+    moveCameraButton.addEventListener("change",():void=>{
+        moveCameraAllowed=!moveCameraAllowed;
         gw.allowMoveGraph(moveCameraAllowed);
     });
-    const moveSpeedControl = document.getElementById("move-speed-control");
-    moveSpeedControl.max = (20).toString();
-    moveSpeedControl.min = (0.1).toString();
-    moveSpeedControl.valueAsNumber = 2;
-    gw.moveSpeed = 2;
-    moveSpeedControl.addEventListener("input", () => {
-        gw.moveSpeed = moveSpeedControl.valueAsNumber;
+
+    const moveSpeedControl:HTMLInputElement=document.getElementById("move-speed-control") as HTMLInputElement;
+    moveSpeedControl.max=(20).toString();
+    moveSpeedControl.min=(0.1).toString();
+    moveSpeedControl.valueAsNumber=2;
+    gw.moveSpeed=2;
+    moveSpeedControl.addEventListener("input",():void=>{
+        gw.moveSpeed=moveSpeedControl.valueAsNumber;
     });
-    const teleportButton = document.getElementById("camera-teleport-button");
-    const teleportVertexInput = document.getElementById("camera-teleport-input");
-    teleportButton.addEventListener("click", () => {
-        if (teleportVertexInput.value.length == 0) {
+
+    const teleportButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("camera-teleport-button");
+    const teleportVertexInput:HTMLInputElement=<HTMLInputElement>document.getElementById("camera-teleport-input");
+
+    teleportButton.addEventListener("click",()=>{
+        if(teleportVertexInput.value.length==0){
             return;
         }
-        const val = parseInt(teleportVertexInput.value);
-        const vl = graph.adjacencyList.get(val);
-        if (vl == undefined) {
+        const val:number=parseInt(teleportVertexInput.value);
+        const vl:VerticeList|undefined=graph.adjacencyList.get(val);
+        if(vl==undefined){
             return;
         }
-        gw.setCenter(vl.main.x, vl.main.y);
+        gw.setCenter(vl.main.x as number,vl.main.y as number);
     });
+    */
     /****************************************************Algo popup **********************************************/
     const visualizationControl = new FloatingPanel("#algo-control");
     const showAlgoControl = document.getElementById("show-algo-control");

@@ -78,7 +78,11 @@ class FloatingPanel {
  *   --links        (svg g element, created by this class)
  */
 class GraphWindow {
-    constructor(g, containerSelector, innerSVGSelector) {
+    static main() {
+        GraphWindow.template = document.getElementById("graph-window-template").content;
+    }
+    constructor(g) {
+        var _a, _b, _c, _d;
         this.forceToX = d3.forceX().strength(0.15);
         this.forceToY = d3.forceY().strength(0.15);
         this.simulation = d3.forceSimulation()
@@ -92,6 +96,7 @@ class GraphWindow {
         this.scaleX = 0;
         this.scaleY = 0;
         this.isDraggingContainer = false;
+        this.moveCameraAllowed = false;
         this.mouseX = 0;
         this.mouseY = 0;
         this.magnifier = 1;
@@ -183,21 +188,104 @@ class GraphWindow {
             }
         };
         this.graph = g;
-        this.container = document.querySelector(containerSelector);
-        this.innerSVG = document.querySelector(innerSVGSelector);
-        const svg = d3.select(innerSVGSelector)
+        document.getElementById("graph-container").appendChild(GraphWindow.template.cloneNode(true));
+        this.container = document.getElementById("graph-container").lastElementChild;
+        this.innerSVG = this.container.querySelector("svg.graph-svg");
+        this.allG = this.innerSVG.querySelector("g.all");
+        const svg = d3.select(this.innerSVG)
             .attr("width", this.width)
             .attr("height", this.height)
             .attr("viewbox", [0, 0, this.width, this.height]);
-        this.linksG = svg.append("g")
+        const innerG = svg.select("g.all");
+        this.linksG = innerG.append("g")
             .attr("stroke", "#444")
             .attr("stroke-opacity", 0.6);
-        this.circlesG = svg.append("g");
+        this.circlesG = innerG.append("g");
         this.setGraph(g);
         this.forceToX.x(this.width / 2);
         this.forceToY.y(this.height / 2);
         this.container.addEventListener("mouseleave", () => { this._isMouseOverContainer = false; });
         this.container.addEventListener("mouseenter", () => { this._isMouseOverContainer = true; });
+        {
+            const popup = this.container.querySelector(".control>.camera");
+            const idstr = `bfquiwcycvyqw-${GraphWindow.ID}`;
+            let innerId = 0;
+            (_a = popup.querySelector("input.popup-set")) === null || _a === void 0 ? void 0 : _a.setAttribute("id", idstr);
+            (_b = popup.querySelector(".popup-set-text>label")) === null || _b === void 0 ? void 0 : _b.setAttribute("for", idstr);
+            const menu = popup.querySelector(".popup-menu");
+            const zoomSlider = menu.querySelector('input[type="range"].zoom');
+            const zoomNumberInput = menu.querySelector('input[type="number"].zoom');
+            {
+                const zoomMin = 0, zoomMax = 5;
+                const min = zoomMin.toString();
+                const max = zoomMax.toString();
+                zoomSlider.setAttribute("min", min);
+                zoomSlider.setAttribute("max", max);
+                zoomNumberInput.setAttribute("min", min);
+                zoomNumberInput.setAttribute("max", max);
+            }
+            zoomSlider.addEventListener('input', () => {
+                zoomNumberInput.value = zoomSlider.value;
+                this.scaleGraph(zoomNumberInput.valueAsNumber);
+            });
+            zoomNumberInput.addEventListener('input', () => {
+                zoomSlider.value = zoomNumberInput.value;
+                this.scaleGraph(zoomNumberInput.valueAsNumber);
+            });
+            const previousMagnifier = 1;
+            zoomNumberInput.valueAsNumber = previousMagnifier;
+            zoomSlider.valueAsNumber = previousMagnifier;
+            const moveCameraButton = menu.querySelector("input.move");
+            const moveCameraLabel = menu.querySelector("label.move");
+            moveCameraButton.setAttribute("id", `${idstr}-${innerId}`);
+            moveCameraLabel.setAttribute("for", `${idstr}-${innerId}`);
+            moveCameraButton.addEventListener("change", () => {
+                this.allowMoveGraph();
+            });
+            ++innerId;
+            const moveSpeedControl = menu.querySelector("input.speed");
+            const moveSpeedLabel = menu.querySelector("label.speed");
+            moveSpeedControl.setAttribute("id", `${idstr}-${innerId}`);
+            moveSpeedLabel.setAttribute("for", `${idstr}-${innerId}`);
+            moveSpeedControl.max = (20).toString();
+            moveSpeedControl.min = (0.1).toString();
+            moveSpeedControl.valueAsNumber = 2;
+            this.moveSpeed = 2;
+            moveSpeedControl.addEventListener("input", () => {
+                this.moveSpeed = moveSpeedControl.valueAsNumber;
+            });
+            const teleportButton = menu.querySelector("button.teleport");
+            const teleportVertexInput = menu.querySelector("input.teleport");
+            teleportButton.addEventListener("click", () => {
+                if (teleportVertexInput.value.length == 0) {
+                    return;
+                }
+                const val = parseInt(teleportVertexInput.value);
+                const vl = this.graph.adjacencyList.get(val);
+                if (vl == undefined) {
+                    return;
+                }
+                this.setCenter(vl.main.x, vl.main.y);
+            });
+        }
+        {
+            const popup = this.container.querySelector(".control>.vertex");
+            const idstr = `enyrdhbae-${GraphWindow.ID}`;
+            let innerId = 0;
+            (_c = popup.querySelector("input.popup-set")) === null || _c === void 0 ? void 0 : _c.setAttribute("id", idstr);
+            (_d = popup.querySelector(".popup-set-text>label")) === null || _d === void 0 ? void 0 : _d.setAttribute("for", idstr);
+            const menu = popup.querySelector(".popup-menu");
+            const showIdLabel = menu.querySelector("label.show-id");
+            const showIdCheckBox = menu.querySelector("input.show-id");
+            showIdLabel.setAttribute("for", `${idstr}-${innerId}`);
+            showIdCheckBox.setAttribute("id", `${idstr}-${innerId}`);
+            ++innerId;
+            showIdCheckBox.checked = true;
+            showIdCheckBox.addEventListener("input", () => {
+                this.displayVertexIds(showIdCheckBox.checked);
+            });
+        }
+        ++GraphWindow.ID;
     }
     setGraph(g) {
         this.graph = g;
@@ -206,6 +294,9 @@ class GraphWindow {
     setVertexDragStartCallback(callback = undefined) {
         this.onVertexMoved = callback;
         return this;
+    }
+    display(show) {
+        this.container.classList.toggle("hide", !show);
     }
     setWH(width, height) {
         this.width = width;
@@ -233,9 +324,14 @@ class GraphWindow {
                 .attr("y2", (e) => e.target.y);
             node.attr("cx", (v) => v.x)
                 .attr("cy", (v) => v.y);
-            if (this.simulationStable == false && this.onVertexMoved != undefined) {
+            if (this.simulationStable == false) {
+                if (this.onVertexMoved != undefined) {
+                    for (const v of this.graph.vertices) {
+                        this.onVertexMoved(v);
+                    }
+                }
                 for (const v of this.graph.vertices) {
-                    this.onVertexMoved(v);
+                    v.updateTextPosition();
                 }
             }
         };
@@ -269,13 +365,16 @@ class GraphWindow {
             .on("start", this.vertexDragstarted.bind(this))
             .on("drag", this.VertexDragged.bind(this))
             .on("end", this.vertexDragended.bind(this)))
-            .each(function (v, _idx, _circles) {
-            v.circle = this;
+            .each((v, idx, circles) => {
+            v.circle = circles[idx];
+            const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            v.text = text;
+            this.circlesG.node().append(text);
+            v.updateTextPosition();
+            text.innerHTML = v.id.toString();
+            text.classList.add("text");
+            text.classList.add("vertex");
         }).merge(node);
-        node.append("title").
-            text(function (n, _i) {
-            return n.id.toString();
-        });
         this.simulation.alpha(1).restart();
         return this;
     }
@@ -320,8 +419,9 @@ class GraphWindow {
     isMouseOverContainer() {
         return this._isMouseOverContainer;
     }
-    allowMoveGraph(allow) {
-        if (allow) {
+    allowMoveGraph() {
+        this.moveCameraAllowed = !this.moveCameraAllowed;
+        if (this.moveCameraAllowed) {
             this.innerSVG.addEventListener("mousedown", this.containerDragStarted);
             this.innerSVG.addEventListener("mousemove", this.containerDragged);
             this.innerSVG.addEventListener("mouseup", this.containerDragEnded);
@@ -384,8 +484,15 @@ class GraphWindow {
         }
     }
     setGTransforms() {
-        this.linksG.attr("transform", `translate(${this.offsetX} ${this.offsetY}) scale(${this.scaleX} ${this.scaleY})`);
-        this.circlesG.attr("transform", `translate(${this.offsetX} ${this.offsetY}) scale(${this.scaleX} ${this.scaleY})`);
+        this.allG.setAttribute("transform", `translate(${this.offsetX} ${this.offsetY}) scale(${this.scaleX} ${this.scaleY})`);
         return this;
     }
+    displayVertexIds(show) {
+        var _a;
+        const value = show ? "visible" : "hidden";
+        for (const v of this.graph.vertices) {
+            (_a = v.text) === null || _a === void 0 ? void 0 : _a.setAttribute("visibility", value);
+        }
+    }
 }
+GraphWindow.ID = 0;

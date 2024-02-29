@@ -1,5 +1,7 @@
 
 window.onload=():void=>{
+    GraphWindow.main();
+
     const themeButton:HTMLInputElement=<HTMLInputElement>document.getElementById("theme-button-set");
     const html:HTMLElement=<HTMLElement>document.body.parentNode;
     
@@ -7,12 +9,12 @@ window.onload=():void=>{
     const resultGraph:Graph=new Graph();
 
     /***********************************************window 1******************************/
-    const gw:GraphWindow=new GraphWindow(graph,"#graph-container","#graph-container>#window0").setWH(500,600);
-    const resultGW:GraphWindow=new GraphWindow(resultGraph,"#graph-container","#graph-container>#window1").setWH(500,600);
-    gw.setWH(0,0);
+    const gw:GraphWindow=new GraphWindow(graph).setWH(500,600);
+    const resultGW:GraphWindow=new GraphWindow(resultGraph).setWH(500,600);
+    gw.display(false);
 
-    const kCore:KCoreAlgorithm.KCore=new KCoreAlgorithm.KCore(graph,gw.innerSVG as SVGSVGElement);
-    const resultKCore:KCoreAlgorithm.KCore=new KCoreAlgorithm.KCore(resultGraph,resultGW.innerSVG as SVGSVGElement);
+    const kCore:KCoreAlgorithm.KCore=new KCoreAlgorithm.KCore(graph,gw.innerSVG as SVGSVGElement,gw.allG);
+    const resultKCore:KCoreAlgorithm.KCore=new KCoreAlgorithm.KCore(resultGraph,resultGW.innerSVG as SVGSVGElement,resultGW.allG);
     resultGW.setVertexDragStartCallback(resultKCore.refreshPolygons.bind(resultKCore)).algo=resultKCore;
 
     const scrollbarDarkCSS:string="\
@@ -272,6 +274,7 @@ window.onload=():void=>{
 
     
     /****************************************************Camera pop up****************************************************/
+    /*
     const zoomSlider:HTMLInputElement=<HTMLInputElement>document.getElementById("zoom-slider");
     const zoomNumberInput:HTMLInputElement=<HTMLInputElement>document.getElementById("zoom-typing");
     const zoomMin:number=0,zoomMax:number=5;
@@ -331,8 +334,7 @@ window.onload=():void=>{
         }
         gw.setCenter(vl.main.x as number,vl.main.y as number);
     });
-
-
+    */
     /****************************************************Algo popup **********************************************/
     const visualizationControl:FloatingPanel=new FloatingPanel("#algo-control");
     const showAlgoControl=<HTMLInputElement>document.getElementById("show-algo-control");

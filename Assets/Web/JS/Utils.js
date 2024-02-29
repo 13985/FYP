@@ -11,7 +11,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 var GraphAlgorithm;
 (function (GraphAlgorithm) {
     class Algorithm {
-        constructor(g) {
+        constructor(g, svg) {
             this.waitTime = 0;
             this.isAnimating = false;
             this.isPause = false;
@@ -22,6 +22,7 @@ var GraphAlgorithm;
             this.stopButton = undefined;
             this.speedControl = undefined;
             this.graph = g;
+            this.svgContainer = svg;
         }
         beforeAnimate() {
             this.isAnimating = true;

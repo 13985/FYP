@@ -133,8 +133,8 @@ var KCoreAlgorithm;
         }
     }
     class KCore extends GraphAlgorithm.Algorithm {
-        constructor(g, svg) {
-            super(g);
+        constructor(g, svg, polygonsContainer) {
+            super(g, svg);
             this.shellComponents = [];
             this.opacity = "0.3";
             /******************helper data structures*****************/
@@ -149,7 +149,7 @@ var KCoreAlgorithm;
             this.maxOption = null;
             this.minOption = null;
             this.state_currentShell = 0;
-            this.svgContainer = svg;
+            this.polygonsContainer = polygonsContainer;
         }
         setGraph(g) {
             this.graph = g;
@@ -689,12 +689,13 @@ var KCoreAlgorithm;
                 if (v != this.unionFind.parents[v])
                     continue;
                 const info = this.vertexToInfo.get(v);
-                const cc = this.shellComponents[info.shell].connectedComponents[info.index];
-                this.setPolygon(cc, this.shellComponents[info.shell]);
+                const sc = this.shellComponents[info.shell];
+                const cc = sc.connectedComponents[info.index];
+                this.setPolygon(cc, sc);
                 ConvesHull.Solve(cc, this.svgContainer);
             }
-            //console.log(`new ${newShell}`);
-            //console.log(`old ${oldShell}`);
+            console.log(`new ${newShell}`);
+            console.log(`old ${oldShell}`);
             const otherCCIndices = oldShell;
             const inNewShell = this.degrees;
             inNewShell.clear();
@@ -759,7 +760,7 @@ var KCoreAlgorithm;
             if (cc.polygon == undefined || cc.polygon == null) {
                 cc.polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
                 ConvesHull.Solve(cc, this.svgContainer);
-                this.svgContainer.insertBefore(cc.polygon, this.svgContainer.firstChild);
+                this.polygonsContainer.appendChild(cc.polygon);
             }
             cc.polygon.setAttribute("opacity", cc.polygonOpacity.toString());
             cc.polygon.setAttribute("fill", sc.color.toString());

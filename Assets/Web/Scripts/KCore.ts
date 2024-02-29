@@ -152,6 +152,7 @@ namespace KCoreAlgorithm{
         public minOption:HTMLSelectElement|null;
 
         private opacity:string="0.3";
+        private readonly polygonsContainer:SVGGElement;
 
         /******************helper data structures*****************/
         private readonly degrees:Map<number,number>=new Map();
@@ -161,19 +162,18 @@ namespace KCoreAlgorithm{
         private readonly unionFind=new UnionFind();
 
         private readonly vertexToInfo:Map<number,ConnectedComponetInfo>=new Map();
-        private readonly svgContainer:SVGSVGElement;
 
         /******************visualization control******************/
         public readonly IsAnimationRunning:()=>boolean=():boolean=>this.isAnimating;
 
         private state_currentShell:number;
 
-        constructor(g:Graph,svg:SVGSVGElement){
-            super(g);
+        constructor(g:Graph,svg:SVGSVGElement,polygonsContainer:SVGGElement){
+            super(g,svg);
             this.maxOption=null;
             this.minOption=null;
             this.state_currentShell=0;
-            this.svgContainer=svg;
+            this.polygonsContainer=polygonsContainer;
         }
 
 
@@ -680,8 +680,7 @@ namespace KCoreAlgorithm{
                         let degree:number|undefined=this.degrees.get(neighbor);
                         if(degree==undefined){
                             continue;
-                        }
-                        else if(degree<0){
+                        }else if(degree<0){
                             if((this.vertexToInfo.get(neighbor) as ConnectedComponetInfo).shell==currentShell){
                                 this.unionFind.union(neighbor,v_id);
                             }
@@ -757,13 +756,14 @@ namespace KCoreAlgorithm{
             for(const v of oldShell){//construct the convex hull
                 if(v!=this.unionFind.parents[v])continue;
                 const info:ConnectedComponetInfo=this.vertexToInfo.get(v) as ConnectedComponetInfo;
-                const cc:ConnectedComponent=this.shellComponents[info.shell].connectedComponents[info.index];
-                this.setPolygon(cc,this.shellComponents[info.shell]);
+                const sc:ShellComponet=this.shellComponents[info.shell];
+                const cc:ConnectedComponent=sc.connectedComponents[info.index];
+                this.setPolygon(cc,sc);
                 ConvesHull.Solve(cc,this.svgContainer);
             }
 
-            //console.log(`new ${newShell}`);
-            //console.log(`old ${oldShell}`);
+            console.log(`new ${newShell}`);
+            console.log(`old ${oldShell}`);
             const otherCCIndices:number[]=oldShell;
             const inNewShell:Map<number,number>=this.degrees;
             inNewShell.clear();
@@ -784,6 +784,7 @@ namespace KCoreAlgorithm{
                 const parentInfo:ConnectedComponetInfo=this.vertexToInfo.get(v) as ConnectedComponetInfo;
                 const sc:ShellComponet=this.shellComponents[parentInfo.shell];
                 const cc:ConnectedComponent=sc.connectedComponents[parentInfo.index];//search the component
+
                 otherCCIndices.length=0;
                 otherCCIndices.push(parentInfo.index);
                 for(const v_ of cc.vertices){//for all vertices in this component
@@ -830,7 +831,7 @@ namespace KCoreAlgorithm{
             if(cc.polygon==undefined||cc.polygon==null){
                 cc.polygon=document.createElementNS("http://www.w3.org/2000/svg","polygon");
                 ConvesHull.Solve(cc,this.svgContainer);
-                this.svgContainer.insertBefore(cc.polygon,this.svgContainer.firstChild);
+                this.polygonsContainer.appendChild(cc.polygon);
             }
             (cc.polygon as SVGElement).setAttribute("opacity",cc.polygonOpacity.toString());
             (cc.polygon as SVGElement).setAttribute("fill",sc.color.toString());

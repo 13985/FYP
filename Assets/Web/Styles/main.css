@@ -9,12 +9,128 @@ main{
 }
 
 
-.graph-svg{
+.highlight-vertex{
+    stroke:var(--reverse-color1);
+    stroke-width: 2;
+}
+
+
+/**********************************************************control************************************************/
+
+
+.graph-window{
+    width: min-content;
     border: 2px solid var(--reverse-color1);
 }
 
 
-.highlight-vertex{
-    stroke:var(--reverse-color1);
-    stroke-width: 2;
+.hide{
+    display: none;
+}
+
+
+.graph-window>.control{
+    border: none;
+    border-bottom: 2px solid var(--reverse-color1);
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+}
+
+
+.graph-window *{
+    transition: transform 0.2s, background-color var(--g-transition-time), border-color var(--g-transition-time), color var(--g-transition-time);
+}
+
+
+.control>*{
+    min-width: 25%;
+    max-width: 33.3%;
+}
+
+
+input.popup-set{
+
+}
+
+
+.text,
+.popup-set-text{
+    text-align: center;
+    color: var(--reverse-color1);
+    font-size: 2.1rem;
+    transition: color 0.05s;
+}
+
+
+.popup-set-text{
+    padding: 0.2rem;    
+}
+
+
+.text{
+    display:block;
+    padding:0.1rem 0;
+    border: 2px solid var(--reverse-color1);
+    font-size: 1.7rem;
+}
+
+
+div.popup-set-text{
+    text-decoration: overline;
+}
+
+
+div.popup-set-text>label{
+    transition: color 0.1s;
+}
+
+
+div.popup-set-text:hover{
+    background-color: var(--reverse-color1);
+    color:var(--main-color1);
+    border-color: var(--reverse-color1);
+}
+
+
+input.popup-set:checked + div.popup-set-text{
+    background-color: var(--reverse-color1);
+    color:var(--main-color1);
+    border-color: var(--reverse-color1);
+    text-decoration: underline;
+}
+
+
+.popup-menu:hover,
+div.popup-set-text:hover + .popup-menu,
+input.popup-set:checked ~ .popup-menu{
+    height: fit-content;
+    transform: scaleY(1);
+}
+
+
+.popup-menu{
+    height: 0;
+    transform: scaleY(0);
+    transform-origin: top center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+
+.popup-menu>*{
+    width: 92%;
+    margin:0.6rem 0 0 0;
+}
+
+
+input.toggle:checked + .text{
+    background-color:color-mix(in srgb,rgb(0, 170, 0) 70%,var(--main-color0) 30%);
+}
+
+.vertex.text{
+    font-size:12px;
+    fill:var(--reverse-color0);
 }

@@ -100,6 +100,13 @@ type MouseEventCallback=(me:MouseEvent)=>void;
 
 
 class GraphWindow{
+    private static template:DocumentFragment;
+    private static ID:number=0;
+
+    public static main():void{
+        GraphWindow.template=(document.getElementById("graph-window-template") as HTMLTemplateElement).content;
+    }
+
     public graph:Graph;
     public readonly container:HTMLElement;
     public readonly innerSVG:SVGElement;
@@ -113,21 +120,23 @@ class GraphWindow{
     .force("y",this.forceToY);
     private simulationStable:boolean=false;
 
-    private readonly linksG:d3.Selection<SVGGElement,unknown,HTMLElement,undefined>;
-    private readonly circlesG:d3.Selection<SVGGElement,unknown,HTMLElement,undefined>;
+    private readonly linksG:d3.Selection<SVGGElement,unknown,null,undefined>;
+    private readonly circlesG:d3.Selection<SVGGElement,unknown,null,undefined>;
+    public readonly allG:SVGGElement;
+
     public moveSpeed:number=1;
     private offsetX:number=0;
     private offsetY:number=0;
     private scaleX:number=0;
     private scaleY:number=0;
     private isDraggingContainer:boolean=false;
+    private moveCameraAllowed:boolean=false;
     private mouseX:number=0;
     private mouseY:number=0;
     private magnifier:number=1;
     private width:number=500;
     private height:number=500;
     private _isMouseOverContainer:boolean=false;
-
 
     private firstSelectedVertex:number=-1;
     private secondSelectedVertex:number=-1;
@@ -137,19 +146,25 @@ class GraphWindow{
 
     private onVertexMoved:((v:Vertex)=>void)|undefined=undefined;
 
-    constructor(g:Graph,containerSelector:string,innerSVGSelector:string){
+    constructor(g:Graph){
         this.graph=g;
-        this.container=document.querySelector(containerSelector) as HTMLElement;
-        this.innerSVG=document.querySelector(innerSVGSelector) as SVGElement;
-        const svg:d3.Selection<SVGElement,any,HTMLElement,undefined>=d3.select<SVGElement,any>(innerSVGSelector)
+
+        (document.getElementById("graph-container") as HTMLElement).appendChild(GraphWindow.template.cloneNode(true));
+        this.container=(document.getElementById("graph-container") as HTMLElement).lastElementChild as HTMLElement;
+        this.innerSVG=this.container.querySelector("svg.graph-svg") as SVGElement;
+        this.allG=this.innerSVG.querySelector("g.all") as SVGGElement;
+
+        const svg:d3.Selection<SVGElement,any,null,undefined>=d3.select<SVGElement,any>(this.innerSVG)
         .attr("width",this.width)
         .attr("height",this.height)
         .attr("viewbox",[0,0,this.width,this.height]);
 
-        this.linksG=(svg.append("g") as d3.Selection<SVGGElement,unknown,HTMLElement,undefined>)
+        const innerG:d3.Selection<SVGGElement,any,null,undefined>=svg.select("g.all");
+
+        this.linksG=(innerG.append("g") as d3.Selection<SVGGElement,unknown,null,undefined>)
         .attr("stroke", "#444")
         .attr("stroke-opacity", 0.6);
-        this.circlesG=svg.append("g") as d3.Selection<SVGGElement,unknown,HTMLElement,undefined>;
+        this.circlesG=innerG.append("g") as d3.Selection<SVGGElement,unknown,null,undefined>;
         this.setGraph(g);
 
         this.forceToX.x(this.width/2);
@@ -157,6 +172,97 @@ class GraphWindow{
 
         this.container.addEventListener("mouseleave",():void=>{this._isMouseOverContainer=false;});
         this.container.addEventListener("mouseenter",():void=>{this._isMouseOverContainer=true;});
+
+        {
+            const popup=this.container.querySelector(".control>.camera") as HTMLElement;
+            const idstr:string=`bfquiwcycvyqw-${GraphWindow.ID}`;
+            let innerId:number=0;
+            popup.querySelector("input.popup-set")?.setAttribute("id",idstr);
+            popup.querySelector(".popup-set-text>label")?.setAttribute("for",idstr);
+
+            const menu=popup.querySelector(".popup-menu") as HTMLElement;
+
+            const zoomSlider:HTMLInputElement=<HTMLInputElement>menu.querySelector('input[type="range"].zoom');
+            const zoomNumberInput:HTMLInputElement=<HTMLInputElement>menu.querySelector('input[type="number"].zoom');
+            {
+                const zoomMin:number=0,zoomMax:number=5;
+                const min:string=zoomMin.toString();
+                const max:string=zoomMax.toString();
+                zoomSlider.setAttribute("min",min);
+                zoomSlider.setAttribute("max",max);
+                zoomNumberInput.setAttribute("min",min);
+                zoomNumberInput.setAttribute("max",max);
+            }
+
+            zoomSlider.addEventListener('input',():void=>{
+                zoomNumberInput.value=zoomSlider.value;
+                this.scaleGraph(zoomNumberInput.valueAsNumber);
+            });
+
+            zoomNumberInput.addEventListener('input',():void=>{
+                zoomSlider.value=zoomNumberInput.value;
+                this.scaleGraph(zoomNumberInput.valueAsNumber);
+            });
+
+            const previousMagnifier:number=1;
+            zoomNumberInput.valueAsNumber=previousMagnifier;
+            zoomSlider.valueAsNumber=previousMagnifier;
+
+            const moveCameraButton=<HTMLInputElement>menu.querySelector("input.move");
+            const moveCameraLabel=menu.querySelector("label.move") as HTMLLabelElement;
+            moveCameraButton.setAttribute("id",`${idstr}-${innerId}`);
+            moveCameraLabel.setAttribute("for",`${idstr}-${innerId}`);
+            moveCameraButton.addEventListener("change",():void=>{
+                this.allowMoveGraph();
+            });
+            ++innerId;
+
+            const moveSpeedControl=menu.querySelector("input.speed") as HTMLInputElement;
+            const moveSpeedLabel=menu.querySelector("label.speed") as HTMLLabelElement
+            moveSpeedControl.setAttribute("id",`${idstr}-${innerId}`);
+            moveSpeedLabel.setAttribute("for",`${idstr}-${innerId}`);
+            moveSpeedControl.max=(20).toString();
+            moveSpeedControl.min=(0.1).toString();
+            moveSpeedControl.valueAsNumber=2;
+            this.moveSpeed=2;
+            moveSpeedControl.addEventListener("input",():void=>{
+                this.moveSpeed=moveSpeedControl.valueAsNumber;
+            });
+
+            const teleportButton=<HTMLButtonElement>menu.querySelector("button.teleport");
+            const teleportVertexInput=<HTMLInputElement>menu.querySelector("input.teleport");
+
+            teleportButton.addEventListener("click",()=>{
+                if(teleportVertexInput.value.length==0){
+                    return;
+                }
+                const val:number=parseInt(teleportVertexInput.value);
+                const vl:VerticeList|undefined=this.graph.adjacencyList.get(val);
+                if(vl==undefined){
+                    return;
+                }
+                this.setCenter(vl.main.x as number,vl.main.y as number);
+            });
+        }
+        {
+            const popup=this.container.querySelector(".control>.vertex") as HTMLElement;
+            const idstr:string=`enyrdhbae-${GraphWindow.ID}`;
+            let innerId:number=0;
+            popup.querySelector("input.popup-set")?.setAttribute("id",idstr);
+            popup.querySelector(".popup-set-text>label")?.setAttribute("for",idstr);
+
+            const menu=popup.querySelector(".popup-menu") as HTMLElement;
+            const showIdLabel=menu.querySelector("label.show-id") as HTMLLabelElement;
+            const showIdCheckBox=menu.querySelector("input.show-id") as HTMLInputElement;
+            showIdLabel.setAttribute("for",`${idstr}-${innerId}`);
+            showIdCheckBox.setAttribute("id",`${idstr}-${innerId}`);
+            ++innerId;
+            showIdCheckBox.checked=true;
+            showIdCheckBox.addEventListener("input",():void=>{
+                this.displayVertexIds(showIdCheckBox.checked);
+            });
+        }
+        ++GraphWindow.ID;
     }
 
 
@@ -169,6 +275,11 @@ class GraphWindow{
     public setVertexDragStartCallback(callback:((v:Vertex)=>void)|undefined=undefined):GraphWindow{
         this.onVertexMoved=callback;
         return this;
+    }
+
+
+    public display(show:boolean):void{
+        this.container.classList.toggle("hide",!show);
     }
 
 
@@ -200,9 +311,14 @@ class GraphWindow{
             .attr("y2",(e:Edge):number=><number>e.target.y);
             node.attr("cx",(v:Vertex):number=>(<number>v.x))
             .attr("cy",(v:Vertex):number=>(<number>v.y));
-            if(this.simulationStable==false&&this.onVertexMoved!=undefined){
+            if(this.simulationStable==false){
+                if(this.onVertexMoved!=undefined){
+                    for(const v of this.graph.vertices){
+                        this.onVertexMoved(v);
+                    }
+                }
                 for(const v of this.graph.vertices){
-                    this.onVertexMoved(v);
+                    v.updateTextPosition();
                 }
             }
         }
@@ -241,15 +357,17 @@ class GraphWindow{
             .on("drag", this.VertexDragged.bind(this))
             .on("end", this.vertexDragended.bind(this))
         )
-        .each(function(v:Vertex,_idx:number,_circles:SVGCircleElement[]|ArrayLike<SVGCircleElement>):void{
-            v.circle=this;
+        .each((v:Vertex,idx:number,circles:SVGCircleElement[]|ArrayLike<SVGCircleElement>):void=>{
+            v.circle=circles[idx];
+            const text:SVGTextElement=document.createElementNS("http://www.w3.org/2000/svg","text");
+            v.text=text;
+            (this.circlesG.node() as SVGGElement).append(text);
+            v.updateTextPosition();
+            text.innerHTML=v.id.toString();
+            text.classList.add("text");
+            text.classList.add("vertex");
         }).merge(node);
-        
-        node.append("title").
-        text(function(n:Vertex,_i:number):string{
-            return n.id.toString();
-        });
-
+    
         this.simulation.alpha(1).restart();
         return this;
     }
@@ -300,8 +418,9 @@ class GraphWindow{
     }
 
 
-    public allowMoveGraph(allow:boolean):GraphWindow{
-        if(allow){
+    public allowMoveGraph():GraphWindow{
+        this.moveCameraAllowed=!this.moveCameraAllowed;
+        if(this.moveCameraAllowed){
             this.innerSVG.addEventListener("mousedown",this.containerDragStarted);
             this.innerSVG.addEventListener("mousemove",this.containerDragged);
             this.innerSVG.addEventListener("mouseup",this.containerDragEnded);
@@ -458,8 +577,15 @@ class GraphWindow{
 
 
     private setGTransforms():GraphWindow{
-        this.linksG.attr("transform",`translate(${this.offsetX} ${this.offsetY}) scale(${this.scaleX} ${this.scaleY})`);
-        this.circlesG.attr("transform",`translate(${this.offsetX} ${this.offsetY}) scale(${this.scaleX} ${this.scaleY})`);
+        this.allG.setAttribute("transform",`translate(${this.offsetX} ${this.offsetY}) scale(${this.scaleX} ${this.scaleY})`);
         return this;
+    }
+
+
+    private displayVertexIds(show:boolean):void{
+        const value:string=show?"visible":"hidden";
+        for(const v of this.graph.vertices){
+            v.text?.setAttribute("visibility",value);
+        }
     }
 }

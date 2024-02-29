@@ -5,6 +5,7 @@ class Vertex {
         this.id = id;
         this.radius = 5;
         this.circle = null;
+        this.text = null;
         this.color = new Color(0, 0, 0);
     }
     clone() {
@@ -17,8 +18,12 @@ class Vertex {
         v.fx = this.fx;
         v.fy = this.fy;
         v.index = this.index;
-        v.circle = null;
         return v;
+    }
+    updateTextPosition() {
+        var _a, _b;
+        (_a = this.text) === null || _a === void 0 ? void 0 : _a.setAttribute("x", `${this.x + this.radius}`);
+        (_b = this.text) === null || _b === void 0 ? void 0 : _b.setAttribute("y", `${this.y + this.radius}`);
     }
     setColor(color) {
         this.color = color.clone();
@@ -293,9 +298,9 @@ class Graph {
         const e = this.edges[this.edges.length - 1];
         this.existsEdges.set(Graph.getEdgeHashCode(e.source.id, e.target.id), idx);
         this.existsEdges.delete(code);
+        (_a = this.edges[idx].line) === null || _a === void 0 ? void 0 : _a.remove();
         this.edges[idx] = e;
         this.edges.pop();
-        (_a = e.line) === null || _a === void 0 ? void 0 : _a.remove();
         const a_vl = this.adjacencyList.get(a);
         const b_vl = this.adjacencyList.get(b);
         a_vl.remove(b);
@@ -314,6 +319,7 @@ class Graph {
         const value = visible ? "visible" : "hidden";
         const vl = this.adjacencyList.get(v_id);
         vl.main.circle.setAttribute("visibility", value);
+        vl.main.text.setAttribute("visibility", value);
         for (const n of vl.others) {
             const code = Graph.getEdgeHashCode(v_id, n);
             const e = this.edges[this.existsEdges.get(code)];

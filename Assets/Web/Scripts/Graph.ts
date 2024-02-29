@@ -13,6 +13,7 @@ class Vertex implements d3.SimulationNodeDatum,IClone<Vertex>{
     public fy?:number;
     public index?:number;
     public circle:SVGCircleElement|null;
+    public text:SVGTextElement|null;
     private color:Color;
     public list:VerticeList|undefined=undefined;
 
@@ -20,6 +21,7 @@ class Vertex implements d3.SimulationNodeDatum,IClone<Vertex>{
         this.id=id;
         this.radius=5;
         this.circle=null;
+        this.text=null;
         this.color=new Color(0,0,0);
     }
 
@@ -33,8 +35,13 @@ class Vertex implements d3.SimulationNodeDatum,IClone<Vertex>{
         v.fx=this.fx;
         v.fy=this.fy;
         v.index=this.index;
-        v.circle=null;
         return v;
+    }
+
+
+    public updateTextPosition():void{
+        this.text?.setAttribute("x",`${(this.x as number)+this.radius}`);
+        this.text?.setAttribute("y",`${(this.y as number)+this.radius}`);
     }
 
 
@@ -380,9 +387,9 @@ class Graph implements IClone<Graph>{
         const e:Edge=this.edges[this.edges.length-1];
         this.existsEdges.set(Graph.getEdgeHashCode(e.source.id,e.target.id),idx);
         this.existsEdges.delete(code);
+        this.edges[idx].line?.remove();
         this.edges[idx]=e;
         this.edges.pop();
-        e.line?.remove();
 
         const a_vl:VerticeList=this.adjacencyList.get(a) as VerticeList;
         const b_vl:VerticeList=this.adjacencyList.get(b) as VerticeList;
@@ -406,6 +413,7 @@ class Graph implements IClone<Graph>{
         const value:string=visible?"visible":"hidden";
         const vl:VerticeList=this.adjacencyList.get(v_id) as VerticeList;
         (vl.main.circle as SVGElement).setAttribute("visibility",value);
+        (vl.main.text as SVGElement).setAttribute("visibility",value);
         for(const n of vl.others){
             const code:string=Graph.getEdgeHashCode(v_id,n);
             const e:Edge=this.edges[this.existsEdges.get(code) as number];
