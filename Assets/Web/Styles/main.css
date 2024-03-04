@@ -1,5 +1,6 @@
 main{
     height: auto;
+    padding: 2vh 0;
 }
 
 
@@ -114,6 +115,10 @@ input.popup-set:checked ~ .popup-menu{
 .popup-menu{
     height: 0;
     transform: scaleY(0);
+    /*
+    transform: scaleY(1);
+    height: fit-content;
+    */
     transform-origin: top center;
     display: flex;
     flex-direction: column;
@@ -124,6 +129,12 @@ input.popup-set:checked ~ .popup-menu{
 .popup-menu>*{
     width: 92%;
     margin:0.6rem 0 0 0;
+    border: 2px solid var(--reverse-color1);
+}
+
+
+.popup-menu>hr{
+    border: 1.2px solid var(--reverse-color1);
 }
 
 
@@ -131,7 +142,13 @@ input.toggle:checked + .text{
     background-color:color-mix(in srgb,rgb(0, 170, 0) 70%,var(--main-color0) 30%);
 }
 
+
 .vertex.text{
     font-size:12px;
     fill:var(--reverse-color0);
+}
+
+
+button.teleport{
+    color:var(--reverse-color1);
 }

@@ -337,6 +337,7 @@ label[for="edge-edit-mode"]{
 
 /***********************************************Camera pop up************************************************************************/
 
+.popup-menu input[type="range"],
 #zoom-slider, #move-speed-control{
     -webkit-appearance: none;
     -moz-appearance: none;
@@ -349,6 +350,7 @@ label[for="edge-edit-mode"]{
 }
 
 
+.popup-menu input[type="range"]::-webkit-slider-thumb,
 #zoom-slider::-webkit-slider-thumb, #move-speed-control::-webkit-slider-thumb{
     -webkit-appearance: none;
     -moz-appearance: none;
@@ -361,6 +363,7 @@ label[for="edge-edit-mode"]{
 }
 
 
+.popup-menu input[type="range"]::-webkit-slider-thumb:hover,
 #zoom-slider::-webkit-slider-thumb:hover, #move-speed-control::-webkit-slider-thumb:hover{
     background-color: var(--reverse-color3);
 }

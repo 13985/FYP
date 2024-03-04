@@ -57,6 +57,11 @@ class FloatingPanel{
     }
 
 
+    public contentElement():HTMLElement{
+        return this.contentDiv;
+    }
+
+
     public close():void{
         this.isDragging=false;
         this.outerOffsetX=0;
@@ -88,15 +93,6 @@ class FloatingPanel{
 
 
 type MouseEventCallback=(me:MouseEvent)=>void;
-
-/**
- * @field 
- * hierarchy:
- * container        (html element)
- * --innerSVG       (svg element)
- *   --circles      (svg g element, created by this class)
- *   --links        (svg g element, created by this class)
- */
 
 
 class GraphWindow{
@@ -506,8 +502,8 @@ class GraphWindow{
     public setCenter(x:number,y:number):GraphWindow{
         const centerX:number=this.width/2;
         const centerY:number=this.height/2;
-        this.offsetX=centerX-(x as number);
-        this.offsetY=centerY-(y as number);
+        this.offsetX=centerX-x*this.scaleX;
+        this.offsetY=centerY-y*this.scaleY;
         return this.setGTransforms();
     }
 

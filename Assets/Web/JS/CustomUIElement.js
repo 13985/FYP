@@ -452,8 +452,8 @@ class GraphWindow {
     setCenter(x, y) {
         const centerX = this.width / 2;
         const centerY = this.height / 2;
-        this.offsetX = centerX - x;
-        this.offsetY = centerY - y;
+        this.offsetX = centerX - x*this.scaleX;
+        this.offsetY = centerY - y*this.scaleY;
         return this.setGTransforms();
     }
     resetContainerTransform() {

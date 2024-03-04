@@ -1,5 +1,51 @@
 namespace GraphAlgorithm{
     export abstract class Algorithm{
+        public static statePanel:HTMLElement;
+        private static currentAlgorithm?:Algorithm;
+
+        public static changeAlgorithm(algo:Algorithm):void{
+            if(Algorithm.currentAlgorithm){
+
+            }
+            Algorithm.currentAlgorithm=algo;
+        }
+
+
+        public static async start(onEnd?:()=>void):Promise<void>{
+            Algorithm.currentAlgorithm?.start(onEnd);
+        }
+
+
+        public static preprocess():void{
+            Algorithm.currentAlgorithm?.preprocess();
+        }
+
+
+        public static addVertex(a:number):any{
+            Algorithm.currentAlgorithm?.addVertex(a);
+        }
+
+        public static removeVertex(a:number):any{
+            Algorithm.currentAlgorithm?.removeVertex(a);
+        }
+
+        public static addEdge(from:number,to:number):any{
+            Algorithm.currentAlgorithm?.addEdge(from,to);
+        }
+
+        public static removeEdge(from:number,to:number):any{
+            Algorithm.currentAlgorithm?.removeEdge(from,to);
+        }
+
+        public static setAllVerticesColor(defaultColor:boolean):any{
+            Algorithm.currentAlgorithm?.setAllVerticesColor(defaultColor);
+        }
+
+        public static setAllEdgesColor(defaultColor:boolean):any{
+            Algorithm.currentAlgorithm?.setAllEdgesColor(defaultColor);
+        }
+
+
         public graph:Graph;
         public waitTime:number=0;
         public svgContainer:SVGSVGElement;
@@ -15,6 +61,7 @@ namespace GraphAlgorithm{
         protected stopButton:HTMLButtonElement|undefined=undefined;
         protected speedControl:HTMLInputElement|undefined=undefined;
 
+
         constructor(g:Graph,svg:SVGSVGElement){
             this.graph=g;
             this.svgContainer=svg;
@@ -23,6 +70,8 @@ namespace GraphAlgorithm{
         public abstract start(onEnd?:()=>void):Promise<void>;
 
         public abstract preprocess():void;
+
+        public abstract createState():void;
 
         protected abstract animate():void;
 
@@ -34,6 +83,7 @@ namespace GraphAlgorithm{
         protected afterAnimate():void{
             this.isAnimating=true;
             this.isPause=this.nextStep=this.stopAnimating=false;
+            Algorithm.statePanel.innerHTML="";
         }
 
 
@@ -83,5 +133,11 @@ namespace GraphAlgorithm{
         public removeEdge(from:number,to:number):any{}
         public setAllVerticesColor(defaultColor:boolean):any{}
         public setAllEdgesColor(defaultColor:boolean):any{}
+    }
+
+
+    export interface ICommand{
+        undo():void;
+        redo():void;
     }
 }

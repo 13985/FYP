@@ -114,7 +114,7 @@ class Color implements IClone<Color>{
 }
 
 namespace KCoreAlgorithm{
-    export class ConnectedComponent{
+    class ConnectedComponent{
         public vertices:Array<Vertex>=[];
         public shell:number=-1;
         public polygonOpacity:number=0.4;
@@ -126,7 +126,7 @@ namespace KCoreAlgorithm{
     }
 
 
-    export class ShellComponet{
+    class ShellComponet{
         public connectedComponents:Array<ConnectedComponent>=[];
         public shell:number=-1;
         public color:Color=new Color(0,0,0);
@@ -142,6 +142,261 @@ namespace KCoreAlgorithm{
             this.index=i;
         }
     }
+
+
+    class SetMajor implements GraphAlgorithm.ICommand{
+        public vertex:Vertex;
+        public shell:number;
+        public color:string;
+
+        constructor(vertex:Vertex,shell:number,color:string){
+            this.vertex=vertex;
+            this.shell=shell;
+            this.color=color;
+        }
+
+
+        public undo():void{
+
+        }
+
+        public redo():void{
+            
+        }
+    }
+
+
+    class HideMajor implements GraphAlgorithm.ICommand{
+        public undo():void{
+
+        }
+
+        public redo():void{
+            
+        }
+    }
+
+
+    class setNeighbor implements GraphAlgorithm.ICommand{
+        public undo():void{
+
+        }
+
+        public redo():void{
+            
+        }
+    }
+
+
+    class hideNeighbor implements GraphAlgorithm.ICommand{
+        public undo():void{
+
+        }
+
+        public redo():void{
+            
+        }
+    }
+
+
+    class VertexStateInfo{
+        public step:number;
+        public degree:number;
+        public shell:number;
+        public opacity:string;
+
+        public constructor(step?:number,degree?:number,shell?:number,opacity?:string){
+            this.degree=degree!=undefined?degree:0;
+            this.step=step!=undefined?step:1;
+            this.opacity=opacity!=undefined?opacity:"";
+            this.shell=shell!=undefined?shell:-1;
+        }
+
+        public isProcessed():boolean{
+            return this.shell>=0;
+        }
+    }
+
+
+    class DisplayStateInfo{
+        public step:number=0;
+
+    }
+
+
+    /**
+     * @brief
+     * maintain a data structure as (5 vertex, step=20):
+     * v id: info at step X
+     * 0:1 3 5 9 10 15
+     * 1:6 7 8 9 10 11 15 16 17 19
+     * 2:0 1 2 3 7 9 15 16 18
+     * 3:0 3 4 7 8 9 
+     * 4:0 8 16 17 18 19
+     * 
+     * query state of vertex at target_step: lower bound search (search the state with step<=target_step)
+     * eg
+     * query states of vertex 1 at
+     * step 10-->return state at step 9
+     * step 3--->return state at step 3
+     * 
+     * query all states at 
+     * step 15--->return
+     * 0:15
+     * 1:15
+     * 2:15
+     * 3:9
+     * 4:8
+     * step 19--->return
+     * 0:15
+     * 1:19
+     * 2:18
+     * 3:9
+     * 4:19
+     * 
+     * if state was changed, then push a new state into array of that vertex, specify the step
+     * @todo
+     * change it to generic
+     */
+    class State{
+        public maxStep:number=0;
+        public vertexStates:Map<number,Array<VertexStateInfo>>=new Map();//for O(vertices.length * log(maxStep)) random step
+        public displayStates:Array<DisplayStateInfo>=[];
+        private returnbuffer:VertexStateInfo[]=[];
+        private currentStep:number=0;
+        private indices:number[]=[];//for O(vertices.length) prev step/next step
+
+        private graph:Graph;
+
+
+        constructor(graph:Graph){
+            this.graph=graph;
+        }
+
+
+        public init(graph?:Graph):void{
+            if(graph!=undefined){
+                this.graph=graph;
+            }
+            this.graph.adjacencyList.forEach((vl:VerticeList,v_id:number):void=>{
+                const vsi:VertexStateInfo=new VertexStateInfo();
+                vsi.degree=vl.others.length;
+                vsi.step=0;
+                this.vertexStates.set(v_id,[vsi]);
+            });
+            this.returnbuffer.length=this.graph.vertices.length;
+            this.indices.length=this.graph.vertices.length;
+            this.displayStates=[];
+            this.resetStep();
+        }
+
+
+        
+        public onInitEnd(step:number):void{
+            this.maxStep=step;
+        }
+
+
+        public clear():void{
+            this.maxStep=0;
+            this.vertexStates.clear();
+        }
+
+
+        public resetStep():void{
+            this.currentStep=0;
+            for(let i:number=0;i<this.indices.length;++i){
+                this.indices[i]=0;
+            }
+        }
+
+
+        /**
+         * @returns order is same as graph.vertices
+         * ie 
+         * vertex at idx 0<=>info at idx 0
+         * vertex at idx 1<=>info at idx 1
+         * vertex at idx 2<=>info at idx 2
+         * ...
+         */
+        public nextStep():VertexStateInfo[]|null{
+            if(this.currentStep>=this.maxStep){
+                return null;
+            }
+            ++this.currentStep;
+
+            for(let v_idx:number=0;v_idx<this.graph.vertices.length;++v_idx){
+                const idx:number=this.indices[v_idx];
+                const stateInfos:VertexStateInfo[]=this.vertexStates.get(this.graph.vertices[v_idx].id) as VertexStateInfo[];
+                const nextIdx:number=idx+1;
+                if(nextIdx<stateInfos.length&&stateInfos[nextIdx].step<=this.currentStep){
+                    this.indices[v_idx]=nextIdx;
+                    this.returnbuffer[v_idx]=stateInfos[nextIdx];
+                }else{
+                    this.returnbuffer[v_idx]=stateInfos[idx];
+                }
+            }
+            return this.returnbuffer;
+        }
+
+
+        public previousStep():VertexStateInfo[]|null{
+            if(this.currentStep<=0){
+                return null;
+            }
+            --this.currentStep;
+
+            for(let v_idx:number=0;v_idx<this.graph.vertices.length;++v_idx){
+                const idx:number=this.indices[v_idx];
+                const stateInfos:VertexStateInfo[]=this.vertexStates.get(this.graph.vertices[v_idx].id) as VertexStateInfo[];
+                const nextIdx:number=idx-1;
+                if(stateInfos[idx].step>this.currentStep){
+                    this.indices[v_idx]=nextIdx;
+                    this.returnbuffer[v_idx]=stateInfos[nextIdx];
+                }else{
+                    this.returnbuffer[v_idx]=stateInfos[idx];
+                }
+            }
+            return this.returnbuffer;
+        }
+
+
+        public randomStep(targetStep:number):VertexStateInfo[]|null{
+            if(targetStep<0||targetStep>=this.maxStep){
+                return null;
+            }
+            this.currentStep=targetStep;
+            
+            for(let v_idx:number=0;v_idx<this.graph.vertices.length;++v_idx){
+                const stateInfos=this.vertexStates.get(this.graph.vertices[v_idx].id) as Array<VertexStateInfo>;
+                this.returnbuffer[v_idx]=stateInfos[0];
+                this.indices[v_idx]=0;
+
+                for(let le:number=0,ri:number=stateInfos.length;le<ri;){
+                    const mid:number=(le+ri)/2;
+                    const theStep:number=stateInfos[mid].step;
+                    if(theStep==this.currentStep){
+                        this.returnbuffer[v_idx]=stateInfos[mid];
+                        this.indices[v_idx]=mid;
+                        break;
+                    }else if(theStep<this.currentStep){
+                        this.returnbuffer[v_idx]=stateInfos[mid];
+                        this.indices[v_idx]=mid;
+                        le=mid+1;
+                    }else{
+                        ri=mid;
+                    }
+                }
+            }
+            return this.returnbuffer;
+        }
+
+
+        public addState(vertexId:number,info:VertexStateInfo):void{
+            (this.vertexStates.get(vertexId) as VertexStateInfo[]).push(info);
+        }
+    }
+
     
     export class KCore extends GraphAlgorithm.Algorithm{
         private static readonly processed:number=-2;
@@ -151,7 +406,7 @@ namespace KCoreAlgorithm{
         public maxOption:HTMLSelectElement|null;
         public minOption:HTMLSelectElement|null;
 
-        private opacity:string="0.3";
+        private static readonly opacity:string="0.3";
         private readonly polygonsContainer:SVGGElement;
 
         /******************helper data structures*****************/
@@ -167,6 +422,8 @@ namespace KCoreAlgorithm{
         public readonly IsAnimationRunning:()=>boolean=():boolean=>this.isAnimating;
 
         private state_currentShell:number;
+        private states?:State;
+
 
         constructor(g:Graph,svg:SVGSVGElement,polygonsContainer:SVGGElement){
             super(g,svg);
@@ -197,6 +454,77 @@ namespace KCoreAlgorithm{
         }
 
 
+        public createState():void{
+            this.states=new State(this.graph);
+            this.states.init();
+
+            this.clearHelpers();
+            let currentShell=0,nextShell=1;
+            let step:number=0;
+
+            this.graph.adjacencyList.forEach((vl:VerticeList,k:number):void=>{
+                if(vl.others.length<=0){
+                    this.set0.push(k);
+                    this.degrees.set(k,-1);
+                }else{
+                    this.inSet1.set(k,this.set1.length);
+                    this.set1.push(k);
+                    this.degrees.set(k,vl.others.length);
+                    nextShell=Math.min(nextShell,vl.others.length);
+                }
+                this.vertexToInfo.set(vl.main.id,new ConnectedComponetInfo(0,0));
+            });
+            
+            while(true){
+                while(this.set0.length>0){
+                    const v_id:number=<number>this.set0.pop();
+                    const vl:VerticeList=<VerticeList>this.graph.adjacencyList.get(v_id);
+                    (this.vertexToInfo.get(v_id) as ConnectedComponetInfo).shell=currentShell;
+                    ++step;
+                    this.states.addState(v_id,new VertexStateInfo(step,undefined,currentShell,"1"));
+
+                    for(const neighbor of vl.others){
+                        let degree:number=(this.degrees.get(neighbor) as number);
+                        if(degree<0){
+                            if((this.vertexToInfo.get(neighbor) as ConnectedComponetInfo).shell==currentShell){
+                                this.unionFind.union(neighbor,v_id);
+                            }
+                            continue;
+                        }
+                        ++step;
+                        this.states.addState(neighbor,new VertexStateInfo(step,degree,undefined,"1"));
+
+                        --degree;
+                        ++step;
+                        this.states.addState(neighbor,new VertexStateInfo(step,degree,undefined,KCore.opacity));
+
+                        if(degree<=currentShell){
+                            this.removeFromSet1(neighbor);
+                        }else{
+                            nextShell=Math.min(nextShell,degree);
+                            this.degrees.set(neighbor,degree);
+                        }
+                    }
+                }
+                
+                currentShell=nextShell;
+                if(this.set1.length<=0){
+                    break;
+                }
+                nextShell=currentShell+1;
+                for(let i:number=0;i<this.set1.length;){
+                    const d:number=this.degrees.get(this.set1[i]) as number;
+                    if(d<=currentShell){
+                        this.removeFromSet1(this.set1[i]);
+                    }else{
+                        ++i;
+                    }
+                }
+            }
+            this.states.onInitEnd(step);
+        }
+
+
         public preprocess():KCore{
             this.unionFind.set(this.graph.vertices.length);
             for(const sc of this.shellComponents){
@@ -204,10 +532,11 @@ namespace KCoreAlgorithm{
                     cc.polygon?.remove();
                 }
             }
-
+            
             this.shellComponents.length=0;
             this.vertexToInfo.clear();
             this.clearHelpers();
+
             let currentShell=0,nextShell=1;
 
             this.graph.adjacencyList.forEach((vl:VerticeList,k:number):void=>{
@@ -297,7 +626,7 @@ namespace KCoreAlgorithm{
             this.isAnimating=true;
             this.isPause=this.stopAnimating=this.nextStep=false;
             for(const v of this.graph.vertices){
-                (v.circle as SVGCircleElement).setAttribute("opacity",this.opacity);
+                (v.circle as SVGCircleElement).setAttribute("opacity",KCore.opacity);
             }
             this.setAllVerticesColor(true);
             this.hideVerticesOutsideShells();
@@ -368,13 +697,13 @@ namespace KCoreAlgorithm{
                             nextShell=Math.min(nextShell,degree);
                             this.degrees.set(neighbor,degree);
                         }
-                        (neighbor_v.circle as SVGCircleElement).setAttribute("opacity",this.opacity);
+                        (neighbor_v.circle as SVGCircleElement).setAttribute("opacity",KCore.opacity);
                         await this.wait(currentShell);
                         if(this.stopAnimating){
                             return;
                         }
                     }
-                    (vl.main.circle as SVGCircleElement).setAttribute("opacity",this.opacity);
+                    (vl.main.circle as SVGCircleElement).setAttribute("opacity",KCore.opacity);
 
                 }
                 if(this.stopAnimating){

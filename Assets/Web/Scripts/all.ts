@@ -367,6 +367,7 @@ window.onload=():void=>{
         }
     });
     statePanel.setCloseCallback(():void=>{showStatePanel.checked=false;});
+    GraphAlgorithm.Algorithm.statePanel=statePanel.contentElement();
 
     const runButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("run-algo");
     const stopButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("stop-algo");
