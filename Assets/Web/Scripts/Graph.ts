@@ -90,7 +90,7 @@ class Edge implements d3.SimulationLinkDatum<Vertex>{
     }
 }
 
-
+/*
 class VerticeList_{
     public main:Vertex;
     public others:Array<number>;
@@ -114,6 +114,7 @@ class VerticeList_{
         this.otherEdges.push(e);
     }
 }
+*/
 
 
 class VerticeList implements IClone<VerticeList>{

@@ -55,22 +55,31 @@ class Edge {
         }
     }
 }
-class VerticeList_ {
-    constructor(v) {
-        this.main = v;
-        this.otherEdges = [];
-        this.others = [];
-        this.indexer = new Map();
+/*
+class VerticeList_{
+    public main:Vertex;
+    public others:Array<number>;
+    public otherEdges:Array<Edge>;
+    private indexer:Map<number,number>;
+
+    public constructor(v:Vertex){
+        this.main=v;
+        this.otherEdges=[];
+        this.others=[];
+        this.indexer=new Map<number,number>();
     }
-    addVertex(v, e) {
-        if (this.indexer.get(v.id) != undefined) {
+
+
+    public addVertex(v:Vertex,e:Edge):void{
+        if(this.indexer.get(v.id)!=undefined){
             return;
         }
-        this.indexer.set(v.id, this.others.length);
+        this.indexer.set(v.id,this.others.length);
         this.others.push(v.id);
         this.otherEdges.push(e);
     }
 }
+*/
 class VerticeList {
     constructor(main) {
         this.main = main;

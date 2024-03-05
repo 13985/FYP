@@ -1,10 +1,10 @@
 
 class FloatingPanel{
+    public readonly contentDiv:HTMLDivElement;
+    public readonly originalParent:HTMLElement;
     private readonly outerDiv:HTMLDivElement;
     private readonly topDiv:HTMLDivElement;
-    private readonly contentDiv:HTMLDivElement;
     private readonly closeButton:HTMLButtonElement;
-    private readonly originalParent:HTMLElement;
 
     private previousX:number=0;
     private previousY:number=0;
@@ -78,8 +78,8 @@ class FloatingPanel{
 
     public open():void{
         const rect:DOMRect=this.outerDiv.getBoundingClientRect();
-        this.outerOffsetX=rect.left+window.scrollX;
-        this.outerOffsetY=rect.top+window.scrollY;
+        this.outerOffsetX=rect.left;
+        this.outerOffsetY=rect.top;
         this.outerDiv.style.left=`${this.outerOffsetX}px`;
         this.outerDiv.style.top=`${this.outerOffsetY}px`;
         this.originalParent.removeChild(this.outerDiv);
@@ -87,7 +87,6 @@ class FloatingPanel{
         setTimeout(():void=>{
             this.outerDiv.classList.toggle("floating-panel-open");
         },1);//no idea why it needs to wait some time
-        
     }
 }
 

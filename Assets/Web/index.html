@@ -110,33 +110,42 @@
                         <div style="position:relative;top:0;left:0">
                             <input type="checkbox" id="show-algo-control">
                             <label for="show-algo-control">Control</label>
+                            
                             <div class="floating-panel" id="algo-control">
                                 <div class="panel-top">
                                     <button type="button">X</button>
                                 </div>
-                                <div class="panel-content">
-                                    <input type="range" id="algo-speed-control"/>
+                                <div class="panel-content algo-control">
+                                    <input type="range" class="progress-bar" min="0"/>
                                     <div class="row-display">
-                                        <button type="button" id="algo-pause">&gt;</button>
-                                        <button type="button" id="algo-nextStep">&gt;&gt;</button>
+                                        <div class="row-display">
+                                            <span class="speed-text">Speed:</span><input type="range" class="speed-control" min="0"/>
+                                        </div>
+                                        <button type="button" class="button previousStep" title="previous step">&lt;&lt;</button>
+                                        <button type="button" class="button pause" title="pause/play">&gt;</button>
+                                        <button type="button" class="button nextStep" title="next step">&gt;&gt;</button>
                                     </div>
                                 </div>
                             </div>
+
                         </div>
                         <div style="position:relative;top:0;left:0">
                             <input type="checkbox" id="show-algo-state">
                             <label for="show-algo-state">State</label>
+
                             <div class="floating-panel" id="state-panel">
                                 <div class="panel-top">
                                     <button type="button">X</button>
                                 </div>
                                 <div class="panel-content"></div>
                             </div>
+                            
                         </div>
                     </div>
                 </li>
             </ul>
         </nav>
+
         <div class="divider-vertical"></div>
         <div class="theme-button">
             <input type="checkbox" id="theme-button-set">
@@ -145,6 +154,7 @@
             </label>
         </div>
     </header>
+
     <main id="graph-container">
         <template id="graph-window-template">
             <div class="graph-window">
@@ -184,6 +194,7 @@
             </div>
         </template>
     </main>
+    
     <footer class="row-display">
         <nav>
             <ul id="footer-nav-ul" class="row-display">

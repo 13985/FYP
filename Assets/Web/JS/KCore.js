@@ -16,94 +16,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-class Color {
-    constructor(r, g, b, a = 255) {
-        this.r = r;
-        this.g = g;
-        this.b = b;
-        this.a = a;
-    }
-    validate() {
-        this.r = Math.max(0, Math.min(this.r, 255));
-        this.g = Math.max(0, Math.min(this.g, 255));
-        this.b = Math.max(0, Math.min(this.b, 255));
-        this.a = Math.max(0, Math.min(this.a, 255));
-        return this;
-    }
-    toString(a) {
-        return `rgb(${this.r},${this.g},${this.b},${a == undefined ? this.a : a})`;
-    }
-    toHexa() {
-        return `#${Color.toHexaHelper(this.r)}${Color.toHexaHelper(this.g)}${Color.toHexaHelper(this.b)}`;
-    }
-    static toHexaHelper(val) {
-        let first = Math.floor(val).toString(16);
-        if (first.length <= 1) {
-            return `0${first}`;
-        }
-        else {
-            return first;
-        }
-    }
-    assignFrom(other) {
-        this.r = other.r;
-        this.g = other.g;
-        this.b = other.b;
-        this.a = other.a;
-        return this;
-    }
-    clone() {
-        return new Color(this.r, this.g, this.b, this.a);
-    }
-    static fromString(val) {
-        let r, g, b, a;
-        if (val[0].startsWith("#")) {
-            if (val.length == 7) {
-                r = parseInt(val.substring(1, 3), 16);
-                g = parseInt(val.substring(3, 5), 16);
-                b = parseInt(val.substring(5, 7), 16);
-                a = 255;
-            }
-            else if (val.length == 9) {
-                r = parseInt(val.substring(1, 3), 16);
-                g = parseInt(val.substring(3, 5), 16);
-                b = parseInt(val.substring(5, 7), 16);
-                a = parseInt(val.substring(7, 9), 16);
-            }
-            else {
-                return new Color(-1, -1, -1);
-            }
-        }
-        else if (val.startsWith("rgb(")) {
-            const numbers = val.split(/\d+/g).map((val) => parseFloat(val));
-            if (numbers.length == 3) {
-                r = numbers[0];
-                g = numbers[1];
-                b = numbers[2];
-                a = 255;
-            }
-            else if (numbers.length == 4) {
-                r = numbers[0];
-                g = numbers[1];
-                b = numbers[2];
-                a = numbers[3];
-            }
-            else {
-                return new Color(-1, -1, -1);
-            }
-        }
-        else {
-            return new Color(-1, -1, -1);
-        }
-        return new Color(r, g, b, a).validate();
-    }
-    static lerp(ret, start, end, t) {
-        ret.r = start.r * (1 - t) + end.r * t;
-        ret.g = start.g * (1 - t) + end.g * t;
-        ret.b = start.b * (1 - t) + end.b * t;
-        ret.a = start.a * (1 - t) + end.a * t;
-    }
-}
 var KCoreAlgorithm;
 (function (KCoreAlgorithm) {
     class ConnectedComponent {
@@ -115,7 +27,6 @@ var KCoreAlgorithm;
             this.shell = shell;
         }
     }
-    KCoreAlgorithm.ConnectedComponent = ConnectedComponent;
     class ShellComponet {
         constructor() {
             this.connectedComponents = [];
@@ -123,7 +34,6 @@ var KCoreAlgorithm;
             this.color = new Color(0, 0, 0);
         }
     }
-    KCoreAlgorithm.ShellComponet = ShellComponet;
     class ConnectedComponetInfo {
         constructor(s, i) {
             this.shell = 0;
@@ -132,23 +42,56 @@ var KCoreAlgorithm;
             this.index = i;
         }
     }
+    class VertexStateInfo {
+        constructor(step, degree, shell, opacity) {
+            this.degree = degree != undefined ? degree : 0;
+            this.step = step != undefined ? step : 1;
+            this.opacity = opacity != undefined ? opacity : "";
+            this.shell = shell != undefined ? shell : -1;
+        }
+        isProcessed() {
+            return this.shell >= 0;
+        }
+    }
+    class DisplayStateInfo {
+        constructor() {
+            this.step = 0;
+        }
+    }
+    /**
+     * @complexity
+     * space: O(V+E)
+     */
+    class State extends GraphAlgorithm.StateManager {
+        constructor(graph) {
+            super(graph);
+            this.init();
+        }
+        init(graph) {
+            super.init(graph);
+            this.graph.adjacencyList.forEach((vl, v_id) => {
+                const vsi = new VertexStateInfo();
+                vsi.degree = vl.others.length;
+                vsi.step = 0;
+                this.vertexStates.set(v_id, [vsi]);
+            });
+        }
+    }
     class KCore extends GraphAlgorithm.Algorithm {
         constructor(g, svg, polygonsContainer) {
             super(g, svg);
             this.shellComponents = [];
-            this.opacity = "0.3";
-            /******************helper data structures*****************/
+            /**************************helper data structures**********************/
             this.degrees = new Map();
             this.inSet1 = new Map();
             this.set0 = [];
             this.set1 = [];
             this.unionFind = new UnionFind();
             this.vertexToInfo = new Map();
-            /******************visualization control******************/
+            /**************************visualization control***********************/
             this.IsAnimationRunning = () => this.isAnimating;
             this.maxOption = null;
             this.minOption = null;
-            this.state_currentShell = 0;
             this.polygonsContainer = polygonsContainer;
         }
         setGraph(g) {
@@ -165,6 +108,75 @@ var KCoreAlgorithm;
                 Color.lerp(this.shellComponents[i].color, start, end, i / interval);
             }
             return this;
+        }
+        createState() {
+            if (this.states) {
+                this.states.init(this.graph);
+            }
+            else {
+                this.states = new State(this.graph);
+            }
+            this.clearHelpers();
+            let currentShell = 0, nextShell = 1;
+            let step = 0;
+            this.graph.adjacencyList.forEach((vl, k) => {
+                if (vl.others.length <= 0) {
+                    this.set0.push(k);
+                    this.degrees.set(k, -1);
+                }
+                else {
+                    this.inSet1.set(k, this.set1.length);
+                    this.set1.push(k);
+                    this.degrees.set(k, vl.others.length);
+                    nextShell = Math.min(nextShell, vl.others.length);
+                }
+                this.vertexToInfo.set(vl.main.id, new ConnectedComponetInfo(0, 0));
+            });
+            while (true) {
+                while (this.set0.length > 0) {
+                    const v_id = this.set0.pop();
+                    const vl = this.graph.adjacencyList.get(v_id);
+                    this.vertexToInfo.get(v_id).shell = currentShell;
+                    ++step;
+                    this.states.addState(v_id, new VertexStateInfo(step, undefined, currentShell, "1"));
+                    for (const neighbor of vl.others) {
+                        let degree = this.degrees.get(neighbor);
+                        if (degree < 0) {
+                            if (this.vertexToInfo.get(neighbor).shell == currentShell) {
+                                this.unionFind.union(neighbor, v_id);
+                            }
+                            continue;
+                        }
+                        ++step;
+                        this.states.addState(neighbor, new VertexStateInfo(step, degree, undefined, "1"));
+                        --degree;
+                        ++step;
+                        this.states.addState(neighbor, new VertexStateInfo(step, degree, undefined, KCore.opacity));
+                        if (degree <= currentShell) {
+                            this.removeFromSet1(neighbor);
+                        }
+                        else {
+                            nextShell = Math.min(nextShell, degree);
+                            this.degrees.set(neighbor, degree);
+                        }
+                    }
+                }
+                currentShell = nextShell;
+                if (this.set1.length <= 0) {
+                    break;
+                }
+                nextShell = currentShell + 1;
+                for (let i = 0; i < this.set1.length;) {
+                    const d = this.degrees.get(this.set1[i]);
+                    if (d <= currentShell) {
+                        this.removeFromSet1(this.set1[i]);
+                    }
+                    else {
+                        ++i;
+                    }
+                }
+            }
+            this.states.onInitEnd(step);
         }
         preprocess() {
             var _a;
@@ -254,117 +266,57 @@ var KCoreAlgorithm;
             }
             return this;
         }
-        start(onEnd) {
-            return __awaiter(this, void 0, void 0, function* () {
-                if (this.isAnimating) {
-                    return;
-                }
-                this.isAnimating = true;
-                this.isPause = this.stopAnimating = this.nextStep = false;
-                for (const v of this.graph.vertices) {
-                    v.circle.setAttribute("opacity", this.opacity);
-                }
-                this.setAllVerticesColor(true);
-                this.hideVerticesOutsideShells();
-                yield this.animate();
-                for (const v of this.graph.vertices) {
-                    v.circle.setAttribute("opacity", "1");
-                }
-                ;
-                this.isPause = this.isAnimating = this.stopAnimating = this.nextStep = false;
-                this.displayVerticesInRange(0, this.shellComponents.length, true);
-                onEnd === null || onEnd === void 0 ? void 0 : onEnd.call(null);
-            });
+        beforeAnimate() {
+            for (const v of this.graph.vertices) {
+                v.circle.setAttribute("opacity", KCore.opacity);
+            }
+            this.setAllSVGsColor(true);
+            this.hideVerticesOutsideShells();
+        }
+        afterAnimate() {
+            for (const v of this.graph.vertices) {
+                v.circle.setAttribute("opacity", "1");
+            }
+            ;
+            this.displayVerticesInRange(0, this.shellComponents.length, true);
         }
         stop() {
             this.stopAnimating = true;
         }
         animate() {
             return __awaiter(this, void 0, void 0, function* () {
-                this.clearHelpers();
-                let currentShell = 0, nextShell = 1;
-                this.graph.adjacencyList.forEach((vl, k) => {
-                    if (vl.others.length <= 0) {
-                        this.set0.push(k);
-                        this.degrees.set(k, -1);
-                    }
-                    else {
-                        this.inSet1.set(k, this.set1.length);
-                        this.set1.push(k);
-                        this.degrees.set(k, vl.others.length);
-                        nextShell = Math.min(nextShell, vl.others.length);
-                    }
-                });
+                if (this.states == undefined) {
+                    return;
+                }
+                let vertexInfos;
+                this.states.resetStep();
+                this.setAllSVGsColor(true);
                 while (true) {
-                    while (this.set0.length > 0) {
-                        const v_id = this.set0.pop();
-                        const vl = this.graph.adjacencyList.get(v_id);
-                        this.degrees.set(v_id, KCore.processed);
-                        vl.main.circle.setAttribute("opacity", "1");
-                        vl.main.setColor(this.shellComponents[currentShell].color);
-                        yield this.wait(currentShell);
-                        if (this.stopAnimating) {
-                            return;
-                        }
-                        for (const neighbor of vl.others) {
-                            let degree = this.degrees.get(neighbor);
-                            if (degree < 0) {
-                                continue;
-                            }
-                            const neighbor_v = this.graph.adjacencyList.get(neighbor).main;
-                            neighbor_v.circle.setAttribute("opacity", "1");
-                            if (this.stopAnimating) {
+                    const vsc = yield this.waitfor();
+                    switch (vsc) {
+                        case 0 /* GraphAlgorithm.VideoControlStatus.noAction */:
+                        case 1 /* GraphAlgorithm.VideoControlStatus.nextStep */:
+                            if ((vertexInfos = this.states.nextStep()) == null) {
                                 return;
                             }
-                            yield this.wait(currentShell);
-                            if (this.stopAnimating) {
-                                return;
+                            GraphAlgorithm.Algorithm.progressBar.valueAsNumber = this.states.currentStep;
+                            this.setAnimationDisplay(vertexInfos);
+                            break;
+                        case 2 /* GraphAlgorithm.VideoControlStatus.prevStep */:
+                            if ((vertexInfos = this.states.previousStep()) == null) {
+                                break;
                             }
-                            --degree;
-                            if (degree <= currentShell) {
-                                this.removeFromSet1(neighbor);
+                            GraphAlgorithm.Algorithm.progressBar.valueAsNumber = this.states.currentStep;
+                            this.setAnimationDisplay(vertexInfos);
+                            break;
+                        case 3 /* GraphAlgorithm.VideoControlStatus.randomStep */:
+                            if ((vertexInfos = this.states.randomStep(this.currentStep)) == null) {
+                                vertexInfos = this.states.resetStep();
                             }
-                            else {
-                                nextShell = Math.min(nextShell, degree);
-                                this.degrees.set(neighbor, degree);
-                            }
-                            neighbor_v.circle.setAttribute("opacity", this.opacity);
-                            yield this.wait(currentShell);
-                            if (this.stopAnimating) {
-                                return;
-                            }
-                        }
-                        vl.main.circle.setAttribute("opacity", this.opacity);
-                    }
-                    if (this.stopAnimating) {
-                        return;
-                    }
-                    currentShell = nextShell;
-                    if (this.set1.length <= 0) {
-                        break;
-                    }
-                    nextShell = currentShell + 1;
-                    for (let i = 0; i < this.set1.length;) {
-                        const d = this.degrees.get(this.set1[i]);
-                        if (d <= currentShell) {
-                            this.removeFromSet1(this.set1[i]);
-                        }
-                        else {
-                            ++i;
-                        }
+                            this.setAnimationDisplay(vertexInfos);
+                            break;
                     }
                 }
-            });
-        }
-        wait(currentShell) {
-            const _super = Object.create(null, {
-                waitfor: { get: () => super.waitfor }
-            });
-            return __awaiter(this, void 0, void 0, function* () {
-                if (currentShell >= parseInt(this.minOption.value) && currentShell <= parseInt(this.maxOption.value)) {
-                    yield _super.waitfor.call(this);
-                }
-                this.nextStep = false;
             });
         }
         removeFromSet1(target) {
@@ -414,7 +366,24 @@ var KCoreAlgorithm;
             }
             select.value = Math.max(start, Math.min(end - 1, val)).toString();
         }
-        setAllVerticesColor(defaultColor) {
+        setAnimationDisplay(vertexInfos) {
+            var _a, _b, _c;
+            if (vertexInfos == null) {
+                return;
+            }
+            for (let i = 0; i < this.graph.vertices.length; ++i) {
+                const vertex = this.graph.vertices[i];
+                const info = vertexInfos[i];
+                (_a = vertex.circle) === null || _a === void 0 ? void 0 : _a.setAttribute("opacity", info.opacity);
+                if (info.isProcessed()) {
+                    (_b = vertex.circle) === null || _b === void 0 ? void 0 : _b.setAttribute("fill", this.shellComponents[info.shell].color.toString());
+                }
+                else {
+                    (_c = vertex.circle) === null || _c === void 0 ? void 0 : _c.setAttribute("fill", "var(--reverse-color2)");
+                }
+            }
+        }
+        setAllSVGsColor(defaultColor) {
             var _a, _b;
             this.showDefaultColor = defaultColor;
             if (defaultColor) {
@@ -473,8 +442,8 @@ var KCoreAlgorithm;
         }
         hideVerticesOutsideShells() {
             const min = parseInt(this.minOption.value), max = parseInt(this.maxOption.value);
-            this.displayVerticesInRange(min, max + 1, true); //set the edges visible first (some edge may connected to outside shell)
             this.displayVerticesInRange(0, min, false); //then for the edge connected to outside shell, hide them
+            this.displayVerticesInRange(min, max + 1, true); //set the edges visible first (some edge may connected to outside shell)
             this.displayVerticesInRange(max + 1, this.shellComponents.length, false);
         }
         displayPolygons(show) {
@@ -587,10 +556,6 @@ var KCoreAlgorithm;
                 ccIdx.index = idx0;
             }
         }
-        /**
-         * @proof
-         *
-         */
         KCore_ConnectedComponent(theInfo) {
             var _a;
             const cc = this.shellComponents[theInfo.shell].connectedComponents[theInfo.index];
@@ -829,6 +794,7 @@ var KCoreAlgorithm;
         }
     }
     KCore.processed = -2;
+    KCore.opacity = "0.3";
     KCoreAlgorithm.KCore = KCore;
     class Point {
         constructor(x, y) {
@@ -939,11 +905,4 @@ class UnionFind {
             this.parents[i] = this.find(i);
         }
     }
-}
-function delay(ms) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return new Promise((resolve, _reject) => {
-            setTimeout(resolve, ms);
-        });
-    });
 }

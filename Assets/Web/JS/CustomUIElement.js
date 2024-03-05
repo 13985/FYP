@@ -44,6 +44,9 @@ class FloatingPanel {
         });
         return this;
     }
+    contentElement() {
+        return this.contentDiv;
+    }
     close() {
         this.isDragging = false;
         this.outerOffsetX = 0;
@@ -58,8 +61,8 @@ class FloatingPanel {
     }
     open() {
         const rect = this.outerDiv.getBoundingClientRect();
-        this.outerOffsetX = rect.left + window.scrollX;
-        this.outerOffsetY = rect.top + window.scrollY;
+        this.outerOffsetX = rect.left;
+        this.outerOffsetY = rect.top;
         this.outerDiv.style.left = `${this.outerOffsetX}px`;
         this.outerDiv.style.top = `${this.outerOffsetY}px`;
         this.originalParent.removeChild(this.outerDiv);
@@ -69,14 +72,6 @@ class FloatingPanel {
         }, 1); //no idea why it needs to wait some time
     }
 }
-/**
- * @field
- * hierarchy:
- * container        (html element)
- * --innerSVG       (svg element)
- *   --circles      (svg g element, created by this class)
- *   --links        (svg g element, created by this class)
- */
 class GraphWindow {
     static main() {
         GraphWindow.template = document.getElementById("graph-window-template").content;
@@ -452,8 +447,8 @@ class GraphWindow {
     setCenter(x, y) {
         const centerX = this.width / 2;
         const centerY = this.height / 2;
-        this.offsetX = centerX - x*this.scaleX;
-        this.offsetY = centerY - y*this.scaleY;
+        this.offsetX = centerX - x * this.scaleX;
+        this.offsetY = centerY - y * this.scaleY;
         return this.setGTransforms();
     }
     resetContainerTransform() {

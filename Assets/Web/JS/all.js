@@ -81,10 +81,10 @@ window.onload = () => {
         const start = new Color(255, 255, 0);
         const end = new Color(255, 0, 0);
         setVENumber();
-        kCore.preprocess().setColor(start, end).setSelects(fromShell, toShell).setAllVerticesColor(true);
+        kCore.preprocess().setColor(start, end).setSelects(fromShell, toShell).setAllSVGsColor(true);
         graph.copyTo(resultGraph.clear(true));
         resultGW.resetContainerTransform().updateSimulation();
-        resultKCore.preprocess().setColor(start, end).setAllVerticesColor(false).displayPolygons(true);
+        resultKCore.preprocess().setColor(start, end).setAllSVGsColor(false).displayPolygons(true);
     }
     loadGraph("0 1\r\n\
     1 2\r\n\
@@ -319,7 +319,6 @@ window.onload = () => {
         }
     });
     visualizationControl.setCloseCallback(() => { showAlgoControl.checked = false; });
-    kCore.setSpeedInput(document.getElementById("algo-speed-control")).setButtons(document.getElementById("algo-pause"), document.getElementById("algo-nextStep"));
     const statePanel = new FloatingPanel("#state-panel");
     const showStatePanel = document.getElementById("show-algo-state");
     showStatePanel.addEventListener("input", () => {
@@ -331,21 +330,8 @@ window.onload = () => {
         }
     });
     statePanel.setCloseCallback(() => { showStatePanel.checked = false; });
-    const runButton = document.getElementById("run-algo");
-    const stopButton = document.getElementById("stop-algo");
-    runButton.addEventListener("click", () => {
-        kCore.start(() => {
-            stopButton.disabled = true;
-            runButton.disabled = false;
-        });
-        stopButton.disabled = false;
-        runButton.disabled = true;
-    });
-    stopButton.addEventListener("click", () => {
-        stopButton.disabled = true;
-        runButton.disabled = false;
-        kCore.stop();
-    });
+    GraphAlgorithm.Algorithm.statePanel = statePanel.contentElement();
+    //const runButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("run-algo"),stopButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("stop-algo");
     const partialResultCheckBos = document.getElementById("partial-results-set");
     partialResultCheckBos.addEventListener("input", () => {
         if (kCore.IsAnimationRunning() == false) {
@@ -354,4 +340,9 @@ window.onload = () => {
         }
         kCore.displayPartialResult(partialResultCheckBos.checked);
     });
+    /******************************************************after initialization************************************/
+    GraphAlgorithm.Algorithm.setVisualizationVideoControl(visualizationControl.contentDiv);
+    GraphAlgorithm.Algorithm.setVisualizationControl(document.getElementById("run-algo"), document.getElementById("stop-algo"));
+    GraphAlgorithm.Algorithm.changeAlgorithm(kCore);
+    kCore.createState();
 };

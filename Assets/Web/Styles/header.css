@@ -431,77 +431,104 @@ label[for="partial-results-set"]{
 
 /************************algo Control panel******************************/
 
-#algo-control{
-    width:30vw;
-    height:17vh;
+#algo-control.floating-panel{
+    width:40vw;
+    min-width: 300px;
     top:calc(100% + 2px);
     left:-2px;
+    
+    /*
+    transform: scale(1,1);
+    display: block;
+    position: static;
+    margin: auto;
+    opacity: 1;
+    */
 }
 
 
-#algo-control>.panel-content{
-    padding-top: 1vh;
+.algo-control.panel-content{
+    padding:6px 10px;
+    gap: 4px;
 }
 
 
-#algo-control>.panel-content>*{
-    margin:0;
+.algo-control.panel-content>*{
+    min-height: 2rem;
 }
 
 
-#algo-control>.panel-content>.row-display{
-    width:100%;
-    height:60%;
-    justify-content: space-evenly;
+.algo-control.panel-content>.row-display{
+    min-height: 2.5rem;
 }
 
 
-#algo-control>.panel-content>.row-display>*{
-    width:30%;
+.algo-control.panel-content>.row-display>*{
+    height:100%;
 }
 
 
-#algo-speed-control{
+.panel-content.algo-control input[type="range"]{
     appearance: none;
     background-color: var(--main-color1);
-    width:90%;
-    height:40%;
     border: 2px solid var(--reverse-color1);
     overflow: hidden;
 }
 
 
-#algo-speed-control::-webkit-slider-thumb{
+.panel-content.algo-control input[type="range"]::-webkit-slider-thumb{
     appearance: none;
     background-color: var(--reverse-color1);
-    height:1.7rem;
-    width:1.7rem;
-    box-shadow: -1000px 0 0 1000px var(--main-color3);
+    box-shadow: -1000px 0 0 1000px var(--main-color4);
 }
 
 
-#algo-pause,#algo-nextStep{
+.panel-content.algo-control input[type="range"]::-webkit-slider-thumb:active{
+    background-color: color-mix(in srgb, red 50%, var(--reverse-color1) 50%);
+}
+
+
+.algo-control.panel-content>input.progress-bar{
+    width: 100%;
+}
+
+
+.panel-content.algo-control input.progress-bar::-webkit-slider-thumb{
+    width:1.9rem;
+    height:1.9rem;
+}
+
+
+.panel-content.algo-control input.speed-control{
+    margin-right: 2vw;
+}
+
+
+.panel-content.algo-control input.speed-control::-webkit-slider-thumb{
+    height: 1.6rem;
+    width: 1.6rem;
+}
+
+
+.algo-control.panel-content .button{
     background-color:transparent;
-    max-height:60%;
+    margin: 0 0.2rem;
     border:2px solid var(--reverse-color1);
     text-align: center;
     color:var(--reverse-color1);
 }
 
 
-#algo-pause:hover,#algo-nextStep:hover{
-    background-color: color-mix(in srgb, red 70%, var(--reverse-color1) 30%);
+.algo-control.panel-content .button:hover{
+    background-color: color-mix(in srgb, rgb(255, 48, 48) 80%, var(--reverse-color1) 20%);
 }
 
 
-#algo-pause{
-
+.algo-control.panel-content span.speed-text{
+    font-size: 1.6rem;
+    transition: color 0s;
 }
 
-
-#algo-nextStep{
-
-}
 
 /******************************state panel********************/
 

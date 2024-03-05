@@ -96,11 +96,11 @@ window.onload=():void=>{
         const start:Color=new Color(255,255,0);
         const end:Color=new Color(255,0,0);
         setVENumber();
-        kCore.preprocess().setColor(start,end).setSelects(fromShell,toShell).setAllVerticesColor(true);
+        kCore.preprocess().setColor(start,end).setSelects(fromShell,toShell).setAllSVGsColor(true);
 
         graph.copyTo(resultGraph.clear(true));
         resultGW.resetContainerTransform().updateSimulation();
-        resultKCore.preprocess().setColor(start,end).setAllVerticesColor(false).displayPolygons(true);
+        resultKCore.preprocess().setColor(start,end).setAllSVGsColor(false).displayPolygons(true);
     }
 
 
@@ -355,8 +355,6 @@ window.onload=():void=>{
     });
     visualizationControl.setCloseCallback(():void=>{showAlgoControl.checked=false;});
 
-    kCore.setSpeedInput(document.getElementById("algo-speed-control") as HTMLInputElement).setButtons(document.getElementById("algo-pause") as HTMLButtonElement,document.getElementById("algo-nextStep") as HTMLButtonElement);
-
     const statePanel:FloatingPanel=new FloatingPanel("#state-panel");
     const showStatePanel:HTMLInputElement=<HTMLInputElement>document.getElementById("show-algo-state");
     showStatePanel.addEventListener("input",():void=>{
@@ -369,22 +367,7 @@ window.onload=():void=>{
     statePanel.setCloseCallback(():void=>{showStatePanel.checked=false;});
     GraphAlgorithm.Algorithm.statePanel=statePanel.contentElement();
 
-    const runButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("run-algo");
-    const stopButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("stop-algo");
-    runButton.addEventListener("click",()=>{
-        kCore.start(():void=>{
-            stopButton.disabled=true;
-            runButton.disabled=false;
-        });
-        stopButton.disabled=false;
-        runButton.disabled=true;
-    });
-    stopButton.addEventListener("click",()=>{
-        stopButton.disabled=true;
-        runButton.disabled=false;
-        kCore.stop();
-    });
-
+    //const runButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("run-algo"),stopButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("stop-algo");
 
     const partialResultCheckBos:HTMLInputElement=document.getElementById("partial-results-set") as HTMLInputElement;
     partialResultCheckBos.addEventListener("input",():void=>{
@@ -394,4 +377,11 @@ window.onload=():void=>{
         }
         kCore.displayPartialResult(partialResultCheckBos.checked);
     });
+
+
+    /******************************************************after initialization************************************/
+    GraphAlgorithm.Algorithm.setVisualizationVideoControl(visualizationControl.contentDiv);
+    GraphAlgorithm.Algorithm.setVisualizationControl(<HTMLButtonElement>document.getElementById("run-algo"),<HTMLButtonElement>document.getElementById("stop-algo"));
+    GraphAlgorithm.Algorithm.changeAlgorithm(kCore);
+    kCore.createState();
 }
