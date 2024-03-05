@@ -6,9 +6,9 @@ window.onload = () => {
     const graph = new Graph();
     const resultGraph = new Graph();
     /***********************************************window 1******************************/
-    const gw = new GraphWindow(graph).setWH(500, 600);
-    const resultGW = new GraphWindow(resultGraph).setWH(500, 600);
-    gw.display(false);
+    const gw = new GraphWindow(graph).setWH(550, 600);
+    const resultGW = new GraphWindow(resultGraph).setWH(550, 600);
+    //gw.display(false);
     const kCore = new KCoreAlgorithm.KCore(graph, gw.innerSVG, gw.allG);
     const resultKCore = new KCoreAlgorithm.KCore(resultGraph, resultGW.innerSVG, resultGW.allG);
     resultGW.setVertexDragStartCallback(resultKCore.refreshPolygons.bind(resultKCore)).algo = resultKCore;

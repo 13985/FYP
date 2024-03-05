@@ -24,8 +24,8 @@ namespace GraphAlgorithm{
 
         public static setVisualizationVideoControl(videoControl:HTMLElement):void{
             Algorithm.prevStepButton=videoControl.querySelector("button.previousStep") as HTMLButtonElement;
-            Algorithm.nextStepButton=videoControl.querySelector("button.pause") as HTMLButtonElement;
-            Algorithm.pauseButton=videoControl.querySelector("button.nextStep") as HTMLButtonElement;
+            Algorithm.nextStepButton=videoControl.querySelector("button.nextStep") as HTMLButtonElement;
+            Algorithm.pauseButton=videoControl.querySelector("button.pause") as HTMLButtonElement;
 
             Algorithm.progressBar=videoControl.querySelector("input.progress-bar") as HTMLInputElement;
             Algorithm.speedControl=videoControl.querySelector("input.speed-control") as HTMLInputElement;
@@ -38,8 +38,8 @@ namespace GraphAlgorithm{
         public static setVisualizationControl(run:HTMLButtonElement,stop:HTMLButtonElement):void{
             Algorithm.runButton=run;
             Algorithm.stopButton=stop;
-            Algorithm.stopButton.disabled=false;
-            Algorithm.runButton.disabled=true;
+            Algorithm.stopButton.disabled=true;
+            Algorithm.runButton.disabled=false;
 
             Algorithm.runButton.addEventListener("click",():void=>{
                 if(Algorithm.visualizationTarget){
@@ -126,20 +126,21 @@ namespace GraphAlgorithm{
             this.isPause=this.stopAnimating=false;
             this.videoControlStatus=VideoControlStatus.noAction;
 
-            Algorithm.stopButton.disabled=true;
-            Algorithm.runButton.disabled=false;
+            Algorithm.stopButton.disabled=false;
+            Algorithm.runButton.disabled=true;
+            Algorithm.progressBar.valueAsNumber=0;
 
             this.beforeAnimate();
             await this.animate();
             this.afterAnimate();
 
-            this.isAnimating=true;
+            this.isAnimating=false;
             this.isPause=this.stopAnimating=false;
             this.videoControlStatus=VideoControlStatus.noAction;
             Algorithm.statePanel.innerHTML="";
 
-            Algorithm.stopButton.disabled=false;
-            Algorithm.runButton.disabled=true;
+            Algorithm.stopButton.disabled=true;
+            Algorithm.runButton.disabled=false;
             if(onEnd){onEnd();}
         }
 
@@ -370,7 +371,7 @@ namespace GraphAlgorithm{
                 this.indices[v_idx]=0;
 
                 for(let le:number=0,ri:number=stateInfos.length;le<ri;){
-                    const mid:number=(le+ri)/2;
+                    const mid:number=Math.floor((le+ri)/2);
                     const theStep:number=stateInfos[mid].step;
                     if(theStep==this.currentStep){
                         this.returnbuffer[v_idx]=stateInfos[mid];

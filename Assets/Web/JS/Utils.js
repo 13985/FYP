@@ -13,8 +13,8 @@ var GraphAlgorithm;
     class Algorithm {
         static setVisualizationVideoControl(videoControl) {
             Algorithm.prevStepButton = videoControl.querySelector("button.previousStep");
-            Algorithm.nextStepButton = videoControl.querySelector("button.pause");
-            Algorithm.pauseButton = videoControl.querySelector("button.nextStep");
+            Algorithm.nextStepButton = videoControl.querySelector("button.nextStep");
+            Algorithm.pauseButton = videoControl.querySelector("button.pause");
             Algorithm.progressBar = videoControl.querySelector("input.progress-bar");
             Algorithm.speedControl = videoControl.querySelector("input.speed-control");
             Algorithm.speedControl.min = "0.05";
@@ -24,8 +24,8 @@ var GraphAlgorithm;
         static setVisualizationControl(run, stop) {
             Algorithm.runButton = run;
             Algorithm.stopButton = stop;
-            Algorithm.stopButton.disabled = false;
-            Algorithm.runButton.disabled = true;
+            Algorithm.stopButton.disabled = true;
+            Algorithm.runButton.disabled = false;
             Algorithm.runButton.addEventListener("click", () => {
                 if (Algorithm.visualizationTarget) {
                     Algorithm.visualizationTarget.start();
@@ -121,17 +121,18 @@ var GraphAlgorithm;
                 this.isAnimating = true;
                 this.isPause = this.stopAnimating = false;
                 this.videoControlStatus = 0 /* VideoControlStatus.noAction */;
-                Algorithm.stopButton.disabled = true;
-                Algorithm.runButton.disabled = false;
+                Algorithm.stopButton.disabled = false;
+                Algorithm.runButton.disabled = true;
+                Algorithm.progressBar.valueAsNumber = 0;
                 this.beforeAnimate();
                 yield this.animate();
                 this.afterAnimate();
-                this.isAnimating = true;
+                this.isAnimating = false;
                 this.isPause = this.stopAnimating = false;
                 this.videoControlStatus = 0 /* VideoControlStatus.noAction */;
                 Algorithm.statePanel.innerHTML = "";
-                Algorithm.stopButton.disabled = false;
-                Algorithm.runButton.disabled = true;
+                Algorithm.stopButton.disabled = true;
+                Algorithm.runButton.disabled = false;
                 if (onEnd) {
                     onEnd();
                 }
@@ -299,7 +300,7 @@ var GraphAlgorithm;
                 this.returnbuffer[v_idx] = stateInfos[0];
                 this.indices[v_idx] = 0;
                 for (let le = 0, ri = stateInfos.length; le < ri;) {
-                    const mid = (le + ri) / 2;
+                    const mid = Math.floor((le + ri) / 2);
                     const theStep = stateInfos[mid].step;
                     if (theStep == this.currentStep) {
                         this.returnbuffer[v_idx] = stateInfos[mid];

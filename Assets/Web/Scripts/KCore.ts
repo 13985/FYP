@@ -47,7 +47,7 @@ namespace KCoreAlgorithm{
         public constructor(step?:number,degree?:number,shell?:number,opacity?:string){
             this.degree=degree!=undefined?degree:0;
             this.step=step!=undefined?step:1;
-            this.opacity=opacity!=undefined?opacity:"";
+            this.opacity=opacity!=undefined?opacity:KCore.opacity;
             this.shell=shell!=undefined?shell:-1;
         }
 
@@ -93,7 +93,7 @@ namespace KCoreAlgorithm{
         public maxOption:HTMLSelectElement|null;
         public minOption:HTMLSelectElement|null;
 
-        private static readonly opacity:string="0.3";
+        public static readonly opacity:string="0.3";
         private readonly polygonsContainer:SVGGElement;
 
         /**************************helper data structures**********************/
@@ -193,6 +193,8 @@ namespace KCoreAlgorithm{
                             this.degrees.set(neighbor,degree);
                         }
                     }
+                    ++step;
+                    this.states.addState(v_id,new VertexStateInfo(step,undefined,currentShell,KCore.opacity));
                 }
                 
                 currentShell=nextShell;
@@ -308,6 +310,7 @@ namespace KCoreAlgorithm{
 
 
         protected beforeAnimate():void{
+            GraphAlgorithm.Algorithm.progressBar.setAttribute("max",(this.states as State).maxStep.toString());
             for(const v of this.graph.vertices){
                 (v.circle as SVGCircleElement).setAttribute("opacity",KCore.opacity);
             }
@@ -316,27 +319,17 @@ namespace KCoreAlgorithm{
         }
 
 
-        protected afterAnimate(): void {
-            for(const v of this.graph.vertices){
-                (v.circle as SVGCircleElement).setAttribute("opacity","1");
-            };
-            this.displayVerticesInRange(0,this.shellComponents.length,true);
-        }
-
-
-        public stop():void{
-            this.stopAnimating=true;
-        }
-
-
         protected async animate():Promise<void>{
             if(this.states==undefined){return;}
             let vertexInfos:VertexStateInfo[]|null;
             this.states.resetStep();
-            this.setAllSVGsColor(true);
 
             while(true){
                 const vsc:GraphAlgorithm.VideoControlStatus=await this.waitfor();
+                if(this.stopAnimating){
+                    return;
+                }
+
                 switch(vsc){
                 case GraphAlgorithm.VideoControlStatus.noAction:
                 case GraphAlgorithm.VideoControlStatus.nextStep:
@@ -361,6 +354,14 @@ namespace KCoreAlgorithm{
                     break;
                 }
             }
+        }
+
+
+        protected afterAnimate(): void {
+            for(const v of this.graph.vertices){
+                (v.circle as SVGCircleElement).setAttribute("opacity","1");
+            };
+            this.displayVerticesInRange(0,this.shellComponents.length,true);
         }
 
 

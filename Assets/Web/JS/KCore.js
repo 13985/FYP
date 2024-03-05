@@ -46,7 +46,7 @@ var KCoreAlgorithm;
         constructor(step, degree, shell, opacity) {
             this.degree = degree != undefined ? degree : 0;
             this.step = step != undefined ? step : 1;
-            this.opacity = opacity != undefined ? opacity : "";
+            this.opacity = opacity != undefined ? opacity : KCore.opacity;
             this.shell = shell != undefined ? shell : -1;
         }
         isProcessed() {
@@ -160,6 +160,8 @@ var KCoreAlgorithm;
                             this.degrees.set(neighbor, degree);
                         }
                     }
+                    ++step;
+                    this.states.addState(v_id, new VertexStateInfo(step, undefined, currentShell, KCore.opacity));
                 }
                 currentShell = nextShell;
                 if (this.set1.length <= 0) {
@@ -267,21 +269,12 @@ var KCoreAlgorithm;
             return this;
         }
         beforeAnimate() {
+            GraphAlgorithm.Algorithm.progressBar.setAttribute("max", this.states.maxStep.toString());
             for (const v of this.graph.vertices) {
                 v.circle.setAttribute("opacity", KCore.opacity);
             }
             this.setAllSVGsColor(true);
             this.hideVerticesOutsideShells();
-        }
-        afterAnimate() {
-            for (const v of this.graph.vertices) {
-                v.circle.setAttribute("opacity", "1");
-            }
-            ;
-            this.displayVerticesInRange(0, this.shellComponents.length, true);
-        }
-        stop() {
-            this.stopAnimating = true;
         }
         animate() {
             return __awaiter(this, void 0, void 0, function* () {
@@ -290,9 +283,11 @@ var KCoreAlgorithm;
                 }
                 let vertexInfos;
                 this.states.resetStep();
-                this.setAllSVGsColor(true);
                 while (true) {
                     const vsc = yield this.waitfor();
+                    if (this.stopAnimating) {
+                        return;
+                    }
                     switch (vsc) {
                         case 0 /* GraphAlgorithm.VideoControlStatus.noAction */:
                         case 1 /* GraphAlgorithm.VideoControlStatus.nextStep */:
@@ -318,6 +313,13 @@ var KCoreAlgorithm;
                     }
                 }
             });
+        }
+        afterAnimate() {
+            for (const v of this.graph.vertices) {
+                v.circle.setAttribute("opacity", "1");
+            }
+            ;
+            this.displayVerticesInRange(0, this.shellComponents.length, true);
         }
         removeFromSet1(target) {
             this.set0.push(target);
