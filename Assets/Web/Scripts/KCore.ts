@@ -139,7 +139,7 @@ namespace KCoreAlgorithm{
         }
 
 
-        public createState():void{
+        public createState():this{
             if(this.states){
                 this.states.init(this.graph);
             }else{
@@ -212,10 +212,11 @@ namespace KCoreAlgorithm{
                 }
             }
             this.states.onInitEnd(step);
+            return this;
         }
 
 
-        public preprocess():KCore{
+        public preprocess():this{
             this.unionFind.set(this.graph.vertices.length);
             for(const sc of this.shellComponents){
                 for(const cc of sc.connectedComponents){
@@ -307,57 +308,50 @@ namespace KCoreAlgorithm{
 
             return this;
         }
-
-
-        protected beforeAnimate():void{
+        
+        
+        protected async animate():Promise<void>{
             GraphAlgorithm.Algorithm.progressBar.setAttribute("max",(this.states as State).maxStep.toString());
             for(const v of this.graph.vertices){
                 (v.circle as SVGCircleElement).setAttribute("opacity",KCore.opacity);
             }
             this.setAllSVGsColor(true);
             this.hideVerticesOutsideShells();
-        }
 
-
-        protected async animate():Promise<void>{
             if(this.states==undefined){return;}
             let vertexInfos:VertexStateInfo[]|null;
             this.states.resetStep();
 
-            while(true){
+            AnimtaionLoop:while(true){
                 const vsc:GraphAlgorithm.VideoControlStatus=await this.waitfor();
-                if(this.stopAnimating){
-                    return;
-                }
-
                 switch(vsc){
+                case GraphAlgorithm.VideoControlStatus.stop:
+                    break AnimtaionLoop;
                 case GraphAlgorithm.VideoControlStatus.noAction:
                 case GraphAlgorithm.VideoControlStatus.nextStep:
                     if((vertexInfos=this.states.nextStep())==null){
-                        return;
+                        break AnimtaionLoop;
                     }
-                    GraphAlgorithm.Algorithm.progressBar.valueAsNumber=this.states.currentStep;                    
                     this.setAnimationDisplay(vertexInfos);
                     break;
                 case GraphAlgorithm.VideoControlStatus.prevStep:
                     if((vertexInfos=this.states.previousStep())==null){
+                        this.currentStep=0;
                         break;
                     }
-                    GraphAlgorithm.Algorithm.progressBar.valueAsNumber=this.states.currentStep;
                     this.setAnimationDisplay(vertexInfos);
                     break;
                 case GraphAlgorithm.VideoControlStatus.randomStep:
                     if((vertexInfos=this.states.randomStep(this.currentStep))==null){
-                        vertexInfos=this.states.resetStep();
+                        vertexInfos=this.states.randomStep(0);
+                        this.currentStep=0;
                     }
                     this.setAnimationDisplay(vertexInfos);
                     break;
                 }
+                GraphAlgorithm.Algorithm.progressBar.valueAsNumber=this.states.currentStep;
             }
-        }
 
-
-        protected afterAnimate(): void {
             for(const v of this.graph.vertices){
                 (v.circle as SVGCircleElement).setAttribute("opacity","1");
             };

@@ -3,7 +3,7 @@ namespace GraphAlgorithm{
 
 
     export const enum VideoControlStatus{
-        noAction=0,nextStep=1,prevStep=2,randomStep=3
+        noAction=0,nextStep=1,prevStep=2,randomStep=3,stop=4
     }
 
 
@@ -49,7 +49,7 @@ namespace GraphAlgorithm{
 
             Algorithm.stopButton.addEventListener("click",():void=>{
                 if(Algorithm.visualizationTarget){
-                    Algorithm.visualizationTarget.stopAnimating=true;
+                    Algorithm.visualizationTarget.videoControlStatus=VideoControlStatus.stop;
                 }
             });
         }
@@ -100,18 +100,14 @@ namespace GraphAlgorithm{
             Algorithm.visualizationTarget?.setAllEdgesColor(defaultColor);
         }
 
-
         public graph:Graph;
-        public waitTime:number=0;
         public svgContainer:SVGSVGElement;
         public showDefaultColor:boolean=true;
 
-
-        private videoControlStatus:VideoControlStatus=VideoControlStatus.noAction;
+        private videoControlStatus:VideoControlStatus=VideoControlStatus.noAction;//if the user is fast enough he can cancel the "stop animation" action by replace it to be another action (pressing other button/input)
 
         protected isAnimating:boolean=false;
         protected isPause:boolean=false;
-        protected stopAnimating:boolean=false;
         protected currentStep:number=0;
 
 
@@ -120,22 +116,21 @@ namespace GraphAlgorithm{
             this.svgContainer=svg;
         }
 
+
         public async start(onEnd?:()=>void):Promise<void>{
             if(this.isAnimating){return;}
             this.isAnimating=true;
-            this.isPause=this.stopAnimating=false;
+            this.isPause=false;
             this.videoControlStatus=VideoControlStatus.noAction;
 
             Algorithm.stopButton.disabled=false;
             Algorithm.runButton.disabled=true;
             Algorithm.progressBar.valueAsNumber=0;
 
-            this.beforeAnimate();
             await this.animate();
-            this.afterAnimate();
 
             this.isAnimating=false;
-            this.isPause=this.stopAnimating=false;
+            this.isPause=false;
             this.videoControlStatus=VideoControlStatus.noAction;
             Algorithm.statePanel.innerHTML="";
 
@@ -144,15 +139,11 @@ namespace GraphAlgorithm{
             if(onEnd){onEnd();}
         }
 
-        public abstract preprocess():void;
+        public abstract preprocess():this;
 
-        public abstract createState():void;
+        public abstract createState():this;
 
         protected abstract animate():void;
-
-        protected abstract beforeAnimate():void;
-
-        protected abstract afterAnimate():void;
 
         protected readonly onPrevStepPressed:NormalFunction=():void=>{
             this.videoControlStatus=VideoControlStatus.prevStep;
@@ -195,7 +186,7 @@ namespace GraphAlgorithm{
 
 
         protected async waitfor():Promise<VideoControlStatus>{
-            for(let timePassed:number=0;this.videoControlStatus==VideoControlStatus.noAction&&this.stopAnimating==false&&(this.isPause||timePassed<((Algorithm.speedControl as HTMLInputElement).valueAsNumber)*1000);){
+            for(let timePassed:number=0;this.videoControlStatus==VideoControlStatus.noAction&&(this.isPause||timePassed<((Algorithm.speedControl as HTMLInputElement).valueAsNumber)*1000);){
                 const before:number=Date.now();
                 await new Promise((r)=>{setTimeout(r,5);});
                 const after:number=Date.now();
@@ -293,19 +284,17 @@ namespace GraphAlgorithm{
         }
 
 
-        public resetStep():DataState[]{
+        public resetStep():void{
             this.currentStep=0;
             for(let i:number=0;i<this.indices.length;++i){
                 this.indices[i]=0;
             }
-            if(this.vertexStates.size<=0){
-                return this.returnbuffer;
-            }
+            /*
             for(let v_idx:number=0;v_idx<this.graph.vertices.length;++v_idx){
                 const stateInfos:DataState[]=this.vertexStates.get(this.graph.vertices[v_idx].id) as DataState[];
                 this.returnbuffer[v_idx]=stateInfos[0];
             }
-            return this.returnbuffer;
+            */
         }
 
 

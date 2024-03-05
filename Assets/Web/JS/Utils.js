@@ -33,7 +33,7 @@ var GraphAlgorithm;
             });
             Algorithm.stopButton.addEventListener("click", () => {
                 if (Algorithm.visualizationTarget) {
-                    Algorithm.visualizationTarget.stopAnimating = true;
+                    Algorithm.visualizationTarget.videoControlStatus = 4 /* VideoControlStatus.stop */;
                 }
             });
         }
@@ -83,12 +83,10 @@ var GraphAlgorithm;
             (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.setAllEdgesColor(defaultColor);
         }
         constructor(g, svg) {
-            this.waitTime = 0;
             this.showDefaultColor = true;
-            this.videoControlStatus = 0 /* VideoControlStatus.noAction */;
+            this.videoControlStatus = 0 /* VideoControlStatus.noAction */; //if the user is fast enough he can cancel the "stop animation" action by replace it to be another action (pressing other button/input)
             this.isAnimating = false;
             this.isPause = false;
-            this.stopAnimating = false;
             this.currentStep = 0;
             this.onPrevStepPressed = () => {
                 this.videoControlStatus = 2 /* VideoControlStatus.prevStep */;
@@ -119,16 +117,14 @@ var GraphAlgorithm;
                     return;
                 }
                 this.isAnimating = true;
-                this.isPause = this.stopAnimating = false;
+                this.isPause = false;
                 this.videoControlStatus = 0 /* VideoControlStatus.noAction */;
                 Algorithm.stopButton.disabled = false;
                 Algorithm.runButton.disabled = true;
                 Algorithm.progressBar.valueAsNumber = 0;
-                this.beforeAnimate();
                 yield this.animate();
-                this.afterAnimate();
                 this.isAnimating = false;
-                this.isPause = this.stopAnimating = false;
+                this.isPause = false;
                 this.videoControlStatus = 0 /* VideoControlStatus.noAction */;
                 Algorithm.statePanel.innerHTML = "";
                 Algorithm.stopButton.disabled = true;
@@ -152,7 +148,7 @@ var GraphAlgorithm;
         }
         waitfor() {
             return __awaiter(this, void 0, void 0, function* () {
-                for (let timePassed = 0; this.videoControlStatus == 0 /* VideoControlStatus.noAction */ && this.stopAnimating == false && (this.isPause || timePassed < (Algorithm.speedControl.valueAsNumber) * 1000);) {
+                for (let timePassed = 0; this.videoControlStatus == 0 /* VideoControlStatus.noAction */ && (this.isPause || timePassed < (Algorithm.speedControl.valueAsNumber) * 1000);) {
                     const before = Date.now();
                     yield new Promise((r) => { setTimeout(r, 5); });
                     const after = Date.now();
@@ -235,14 +231,12 @@ var GraphAlgorithm;
             for (let i = 0; i < this.indices.length; ++i) {
                 this.indices[i] = 0;
             }
-            if (this.vertexStates.size <= 0) {
-                return this.returnbuffer;
+            /*
+            for(let v_idx:number=0;v_idx<this.graph.vertices.length;++v_idx){
+                const stateInfos:DataState[]=this.vertexStates.get(this.graph.vertices[v_idx].id) as DataState[];
+                this.returnbuffer[v_idx]=stateInfos[0];
             }
-            for (let v_idx = 0; v_idx < this.graph.vertices.length; ++v_idx) {
-                const stateInfos = this.vertexStates.get(this.graph.vertices[v_idx].id);
-                this.returnbuffer[v_idx] = stateInfos[0];
-            }
-            return this.returnbuffer;
+            */
         }
         /**
          * @returns order is same as graph.vertices

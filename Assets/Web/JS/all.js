@@ -81,7 +81,7 @@ window.onload = () => {
         const start = new Color(255, 255, 0);
         const end = new Color(255, 0, 0);
         setVENumber();
-        kCore.preprocess().setColor(start, end).setSelects(fromShell, toShell).setAllSVGsColor(true);
+        kCore.preprocess().setColor(start, end).setSelects(fromShell, toShell).setAllSVGsColor(true).createState();
         graph.copyTo(resultGraph.clear(true));
         resultGW.resetContainerTransform().updateSimulation();
         resultKCore.preprocess().setColor(start, end).setAllSVGsColor(false).displayPolygons(true);

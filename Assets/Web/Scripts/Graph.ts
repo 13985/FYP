@@ -225,6 +225,7 @@ class Graph implements IClone<Graph>{
 
 
     public copyTo(g:Graph):void{
+        g.clear(true);
         for(let i:number=0;i<this.vertices.length;++i){
             const id:number=this.vertices[i].id;
             const list:VerticeList=<VerticeList>this.adjacencyList.get(id);
@@ -254,8 +255,9 @@ class Graph implements IClone<Graph>{
     public clear(removeSVG:boolean=false):this{
         this.adjacencyList.clear();
         if(removeSVG){
-            for(let i:number=0;i<this.vertices.length;++i){
-                (this.vertices[i].circle as SVGCircleElement).remove();
+            for(const v of this.vertices){
+                (v.circle as SVGElement).remove();
+                (v.text as SVGElement).remove();
             }
             for(let i:number=0;i<this.edges.length;++i){
                 (this.edges[i].line as SVGLineElement).remove();

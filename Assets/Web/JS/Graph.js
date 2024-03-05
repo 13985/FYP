@@ -163,6 +163,7 @@ class Graph {
         return g;
     }
     copyTo(g) {
+        g.clear(true);
         for (let i = 0; i < this.vertices.length; ++i) {
             const id = this.vertices[i].id;
             const list = this.adjacencyList.get(id);
@@ -183,8 +184,9 @@ class Graph {
     clear(removeSVG = false) {
         this.adjacencyList.clear();
         if (removeSVG) {
-            for (let i = 0; i < this.vertices.length; ++i) {
-                this.vertices[i].circle.remove();
+            for (const v of this.vertices) {
+                v.circle.remove();
+                v.text.remove();
             }
             for (let i = 0; i < this.edges.length; ++i) {
                 this.edges[i].line.remove();

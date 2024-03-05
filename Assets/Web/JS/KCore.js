@@ -179,6 +179,7 @@ var KCoreAlgorithm;
                 }
             }
             this.states.onInitEnd(step);
+            return this;
         }
         preprocess() {
             var _a;
@@ -268,58 +269,54 @@ var KCoreAlgorithm;
             }
             return this;
         }
-        beforeAnimate() {
-            GraphAlgorithm.Algorithm.progressBar.setAttribute("max", this.states.maxStep.toString());
-            for (const v of this.graph.vertices) {
-                v.circle.setAttribute("opacity", KCore.opacity);
-            }
-            this.setAllSVGsColor(true);
-            this.hideVerticesOutsideShells();
-        }
         animate() {
             return __awaiter(this, void 0, void 0, function* () {
+                GraphAlgorithm.Algorithm.progressBar.setAttribute("max", this.states.maxStep.toString());
+                for (const v of this.graph.vertices) {
+                    v.circle.setAttribute("opacity", KCore.opacity);
+                }
+                this.setAllSVGsColor(true);
+                this.hideVerticesOutsideShells();
                 if (this.states == undefined) {
                     return;
                 }
                 let vertexInfos;
                 this.states.resetStep();
-                while (true) {
+                AnimtaionLoop: while (true) {
                     const vsc = yield this.waitfor();
-                    if (this.stopAnimating) {
-                        return;
-                    }
                     switch (vsc) {
+                        case 4 /* GraphAlgorithm.VideoControlStatus.stop */:
+                            break AnimtaionLoop;
                         case 0 /* GraphAlgorithm.VideoControlStatus.noAction */:
                         case 1 /* GraphAlgorithm.VideoControlStatus.nextStep */:
                             if ((vertexInfos = this.states.nextStep()) == null) {
-                                return;
+                                break AnimtaionLoop;
                             }
-                            GraphAlgorithm.Algorithm.progressBar.valueAsNumber = this.states.currentStep;
                             this.setAnimationDisplay(vertexInfos);
                             break;
                         case 2 /* GraphAlgorithm.VideoControlStatus.prevStep */:
                             if ((vertexInfos = this.states.previousStep()) == null) {
+                                this.currentStep = 0;
                                 break;
                             }
-                            GraphAlgorithm.Algorithm.progressBar.valueAsNumber = this.states.currentStep;
                             this.setAnimationDisplay(vertexInfos);
                             break;
                         case 3 /* GraphAlgorithm.VideoControlStatus.randomStep */:
                             if ((vertexInfos = this.states.randomStep(this.currentStep)) == null) {
-                                vertexInfos = this.states.resetStep();
+                                vertexInfos = this.states.randomStep(0);
+                                this.currentStep = 0;
                             }
                             this.setAnimationDisplay(vertexInfos);
                             break;
                     }
+                    GraphAlgorithm.Algorithm.progressBar.valueAsNumber = this.states.currentStep;
                 }
+                for (const v of this.graph.vertices) {
+                    v.circle.setAttribute("opacity", "1");
+                }
+                ;
+                this.displayVerticesInRange(0, this.shellComponents.length, true);
             });
-        }
-        afterAnimate() {
-            for (const v of this.graph.vertices) {
-                v.circle.setAttribute("opacity", "1");
-            }
-            ;
-            this.displayVerticesInRange(0, this.shellComponents.length, true);
         }
         removeFromSet1(target) {
             this.set0.push(target);

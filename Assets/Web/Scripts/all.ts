@@ -96,7 +96,7 @@ window.onload=():void=>{
         const start:Color=new Color(255,255,0);
         const end:Color=new Color(255,0,0);
         setVENumber();
-        kCore.preprocess().setColor(start,end).setSelects(fromShell,toShell).setAllSVGsColor(true);
+        kCore.preprocess().setColor(start,end).setSelects(fromShell,toShell).setAllSVGsColor(true).createState();
 
         graph.copyTo(resultGraph.clear(true));
         resultGW.resetContainerTransform().updateSimulation();
