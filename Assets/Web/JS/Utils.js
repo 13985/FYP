@@ -10,28 +10,92 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 var GraphAlgorithm;
 (function (GraphAlgorithm) {
+    //only one video control i believe....
+    let VideoControl;
+    (function (VideoControl) {
+    })(VideoControl = GraphAlgorithm.VideoControl || (GraphAlgorithm.VideoControl = {}));
+    //one panel for code description and pseudo code
+    let DescriptionDisplay;
+    (function (DescriptionDisplay) {
+        class PseudoCode {
+            constructor(code, step) {
+                this.code = code;
+                this.step = step;
+            }
+        }
+        DescriptionDisplay.PseudoCode = PseudoCode;
+        let codesUl;
+        let pseudoCodes;
+        function main(panel_) {
+            DescriptionDisplay.panel = panel_;
+            codesUl = DescriptionDisplay.panel.contentDiv.querySelector("ul.pseudo-codes");
+            DescriptionDisplay.codeDescription = DescriptionDisplay.panel.contentDiv.querySelector("p.code.description");
+            DescriptionDisplay.stepDescription = DescriptionDisplay.panel.contentDiv.querySelector("p.step.description");
+        }
+        DescriptionDisplay.main = main;
+        function reset() {
+            for (const pc of pseudoCodes) {
+                pc.li.classList.toggle("current-code", false);
+            }
+            DescriptionDisplay.stepDescription.innerText = "";
+        }
+        DescriptionDisplay.reset = reset;
+        function clearPanel() {
+            DescriptionDisplay.codeDescription.innerHTML = "";
+            DescriptionDisplay.stepDescription.innerHTML = "";
+            codesUl.innerHTML = "";
+            pseudoCodes = null;
+        }
+        DescriptionDisplay.clearPanel = clearPanel;
+        function setCodes(theCodes) {
+            pseudoCodes = theCodes;
+            for (const code of theCodes) {
+                const liStr = `
+                <li class="pseudo-code">
+                    <i class="step-number">${code.step != undefined ? code.step : ""}</i>
+                    <code>${code.code}</code>
+                </li>
+                `;
+                codesUl.insertAdjacentHTML("beforeend", liStr);
+                code.li = codesUl.lastElementChild;
+            }
+        }
+        DescriptionDisplay.setCodes = setCodes;
+        function highlightCode(step) {
+            for (const pc of pseudoCodes) {
+                pc.li.classList.toggle("current-code", pc.step != undefined && pc.step == step);
+            }
+        }
+        DescriptionDisplay.highlightCode = highlightCode;
+    })(DescriptionDisplay = GraphAlgorithm.DescriptionDisplay || (GraphAlgorithm.DescriptionDisplay = {}));
     class Algorithm {
         static setVisualizationVideoControl(videoControl) {
-            Algorithm.prevStepButton = videoControl.querySelector("button.previousStep");
-            Algorithm.nextStepButton = videoControl.querySelector("button.nextStep");
-            Algorithm.pauseButton = videoControl.querySelector("button.pause");
-            Algorithm.progressBar = videoControl.querySelector("input.progress-bar");
-            Algorithm.speedControl = videoControl.querySelector("input.speed-control");
-            Algorithm.speedControl.min = "0.05";
-            Algorithm.speedControl.max = "5";
-            Algorithm.speedControl.step = "0.001";
+            VideoControl.videoControl = videoControl;
+            VideoControl.prevStepButton = videoControl.contentDiv.querySelector("button.previousStep");
+            VideoControl.nextStepButton = videoControl.contentDiv.querySelector("button.nextStep");
+            VideoControl.pauseButton = videoControl.contentDiv.querySelector("button.pause");
+            VideoControl.progressBar = videoControl.contentDiv.querySelector("input.progress-bar");
+            VideoControl.speedControl = videoControl.contentDiv.querySelector("input.speed-control");
+            VideoControl.speedControl.min = "0.05";
+            VideoControl.speedControl.max = "5";
+            VideoControl.speedControl.step = "0.001";
+        }
+        static setStateDisplayPanel(panel) {
+            DescriptionDisplay.main(panel);
         }
         static setVisualizationControl(run, stop) {
-            Algorithm.runButton = run;
-            Algorithm.stopButton = stop;
-            Algorithm.stopButton.disabled = true;
-            Algorithm.runButton.disabled = false;
-            Algorithm.runButton.addEventListener("click", () => {
+            VideoControl.runButton = run;
+            VideoControl.stopButton = stop;
+            VideoControl.stopButton.disabled = true;
+            VideoControl.runButton.disabled = false;
+            VideoControl.runButton.addEventListener("click", () => {
                 if (Algorithm.visualizationTarget) {
                     Algorithm.visualizationTarget.start();
+                    VideoControl.videoControl.open();
+                    DescriptionDisplay.panel.open();
                 }
             });
-            Algorithm.stopButton.addEventListener("click", () => {
+            VideoControl.stopButton.addEventListener("click", () => {
                 if (Algorithm.visualizationTarget) {
                     Algorithm.visualizationTarget.videoControlStatus = 4 /* VideoControlStatus.stop */;
                 }
@@ -76,7 +140,7 @@ var GraphAlgorithm;
         }
         static setAllVerticesColor(defaultColor) {
             var _a;
-            (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.setAllSVGsColor(defaultColor);
+            (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.setVisualElementsColor(defaultColor);
         }
         static setAllEdgesColor(defaultColor) {
             var _a;
@@ -97,15 +161,15 @@ var GraphAlgorithm;
             this.onPauseButtonPressed = () => {
                 if (this.isPause) {
                     this.isPause = false;
-                    Algorithm.pauseButton.innerText = ">";
+                    VideoControl.pauseButton.innerText = ">";
                 }
                 else {
                     this.isPause = true;
-                    Algorithm.pauseButton.innerText = "||";
+                    VideoControl.pauseButton.innerText = "||";
                 }
             };
             this.onProgressChanged = () => {
-                this.currentStep = Algorithm.progressBar.valueAsNumber;
+                this.currentStep = VideoControl.progressBar.valueAsNumber;
                 this.videoControlStatus = 3 /* VideoControlStatus.randomStep */;
             };
             this.graph = g;
@@ -119,36 +183,37 @@ var GraphAlgorithm;
                 this.isAnimating = true;
                 this.isPause = false;
                 this.videoControlStatus = 0 /* VideoControlStatus.noAction */;
-                Algorithm.stopButton.disabled = false;
-                Algorithm.runButton.disabled = true;
-                Algorithm.progressBar.valueAsNumber = 0;
+                DescriptionDisplay.reset();
+                VideoControl.stopButton.disabled = false;
+                VideoControl.runButton.disabled = true;
+                VideoControl.progressBar.valueAsNumber = 0;
                 yield this.animate();
                 this.isAnimating = false;
                 this.isPause = false;
                 this.videoControlStatus = 0 /* VideoControlStatus.noAction */;
-                Algorithm.statePanel.innerHTML = "";
-                Algorithm.stopButton.disabled = true;
-                Algorithm.runButton.disabled = false;
+                VideoControl.stopButton.disabled = true;
+                VideoControl.runButton.disabled = false;
                 if (onEnd) {
                     onEnd();
                 }
             });
         }
         registerSelf() {
-            Algorithm.pauseButton.addEventListener("click", this.onPauseButtonPressed);
-            Algorithm.nextStepButton.addEventListener("click", this.onNextStepPressed);
-            Algorithm.prevStepButton.addEventListener("click", this.onPrevStepPressed);
-            Algorithm.progressBar.addEventListener("input", this.onProgressChanged);
+            VideoControl.pauseButton.addEventListener("click", this.onPauseButtonPressed);
+            VideoControl.nextStepButton.addEventListener("click", this.onNextStepPressed);
+            VideoControl.prevStepButton.addEventListener("click", this.onPrevStepPressed);
+            VideoControl.progressBar.addEventListener("input", this.onProgressChanged);
         }
         unregisterSelf() {
-            Algorithm.pauseButton.removeEventListener("click", this.onPauseButtonPressed);
-            Algorithm.nextStepButton.removeEventListener("click", this.onNextStepPressed);
-            Algorithm.prevStepButton.removeEventListener("click", this.onPrevStepPressed);
-            Algorithm.progressBar.removeEventListener("input", this.onProgressChanged);
+            VideoControl.pauseButton.removeEventListener("click", this.onPauseButtonPressed);
+            VideoControl.nextStepButton.removeEventListener("click", this.onNextStepPressed);
+            VideoControl.prevStepButton.removeEventListener("click", this.onPrevStepPressed);
+            VideoControl.progressBar.removeEventListener("input", this.onProgressChanged);
+            DescriptionDisplay.clearPanel();
         }
         waitfor() {
             return __awaiter(this, void 0, void 0, function* () {
-                for (let timePassed = 0; this.videoControlStatus == 0 /* VideoControlStatus.noAction */ && (this.isPause || timePassed < (Algorithm.speedControl.valueAsNumber) * 1000);) {
+                for (let timePassed = 0; this.videoControlStatus == 0 /* VideoControlStatus.noAction */ && (this.isPause || timePassed < (VideoControl.speedControl.valueAsNumber) * 1000);) {
                     const before = Date.now();
                     yield new Promise((r) => { setTimeout(r, 5); });
                     const after = Date.now();
@@ -163,7 +228,6 @@ var GraphAlgorithm;
         removeVertex(a) { }
         addEdge(from, to) { }
         removeEdge(from, to) { }
-        setAllSVGsColor(defaultColor) { }
         setAllEdgesColor(defaultColor) { }
     }
     GraphAlgorithm.Algorithm = Algorithm;
@@ -200,14 +264,23 @@ var GraphAlgorithm;
      * @complexity
      * same as time complexity of the target algorithm (since the step is linerally related to the time complexity)
      */
+    class DescriptionStateInfo {
+        constructor() {
+            this.step = 0;
+            this.stepDescription = "";
+            this.codeStep = 0;
+        }
+    }
+    GraphAlgorithm.DescriptionStateInfo = DescriptionStateInfo;
     class StateManager {
         constructor(graph) {
             this.maxStep = 0;
             this.currentStep = 0;
             this.vertexStates = new Map(); //for O(vertices.length * log(maxStep)) random step
-            this.displayStates = [];
+            this.vertexStatesIndices = []; //for O(vertices.length) prev step/next step
+            this.descriptionStates = [];
+            this.descriptionStatesIndex = 0;
             this.returnbuffer = [];
-            this.indices = []; //for O(vertices.length) prev step/next step
             this.graph = graph;
         }
         init(graph) {
@@ -215,8 +288,8 @@ var GraphAlgorithm;
                 this.graph = graph;
             }
             this.returnbuffer.length = this.graph.vertices.length;
-            this.indices.length = this.graph.vertices.length;
-            this.displayStates.length = 0;
+            this.vertexStatesIndices.length = this.graph.vertices.length;
+            this.descriptionStates.length = 0;
             this.resetStep();
         }
         onInitEnd(step) {
@@ -228,9 +301,10 @@ var GraphAlgorithm;
         }
         resetStep() {
             this.currentStep = 0;
-            for (let i = 0; i < this.indices.length; ++i) {
-                this.indices[i] = 0;
+            for (let i = 0; i < this.vertexStatesIndices.length; ++i) {
+                this.vertexStatesIndices[i] = 0;
             }
+            this.descriptionStatesIndex = 0;
             /*
             for(let v_idx:number=0;v_idx<this.graph.vertices.length;++v_idx){
                 const stateInfos:DataState[]=this.vertexStates.get(this.graph.vertices[v_idx].id) as DataState[];
@@ -252,15 +326,21 @@ var GraphAlgorithm;
             }
             ++this.currentStep;
             for (let v_idx = 0; v_idx < this.graph.vertices.length; ++v_idx) {
-                const idx = this.indices[v_idx];
+                const idx = this.vertexStatesIndices[v_idx];
                 const stateInfos = this.vertexStates.get(this.graph.vertices[v_idx].id);
                 const nextIdx = idx + 1;
                 if (nextIdx < stateInfos.length && stateInfos[nextIdx].step <= this.currentStep) {
-                    this.indices[v_idx] = nextIdx;
+                    this.vertexStatesIndices[v_idx] = nextIdx;
                     this.returnbuffer[v_idx] = stateInfos[nextIdx];
                 }
                 else {
                     this.returnbuffer[v_idx] = stateInfos[idx];
+                }
+            }
+            {
+                const nextIdx = this.descriptionStatesIndex + 1;
+                if (nextIdx < this.descriptionStates.length && this.descriptionStates[nextIdx].step <= this.currentStep) {
+                    this.descriptionStatesIndex = nextIdx;
                 }
             }
             return this.returnbuffer;
@@ -271,15 +351,20 @@ var GraphAlgorithm;
             }
             --this.currentStep;
             for (let v_idx = 0; v_idx < this.graph.vertices.length; ++v_idx) {
-                const idx = this.indices[v_idx];
+                const idx = this.vertexStatesIndices[v_idx];
                 const stateInfos = this.vertexStates.get(this.graph.vertices[v_idx].id);
                 const nextIdx = idx - 1;
                 if (stateInfos[idx].step > this.currentStep) {
-                    this.indices[v_idx] = nextIdx;
+                    this.vertexStatesIndices[v_idx] = nextIdx;
                     this.returnbuffer[v_idx] = stateInfos[nextIdx];
                 }
                 else {
                     this.returnbuffer[v_idx] = stateInfos[idx];
+                }
+            }
+            {
+                if (this.descriptionStates[this.descriptionStatesIndex].step > this.currentStep) {
+                    --this.descriptionStatesIndex;
                 }
             }
             return this.returnbuffer;
@@ -292,18 +377,18 @@ var GraphAlgorithm;
             for (let v_idx = 0; v_idx < this.graph.vertices.length; ++v_idx) {
                 const stateInfos = this.vertexStates.get(this.graph.vertices[v_idx].id);
                 this.returnbuffer[v_idx] = stateInfos[0];
-                this.indices[v_idx] = 0;
+                this.vertexStatesIndices[v_idx] = 0;
                 for (let le = 0, ri = stateInfos.length; le < ri;) {
                     const mid = Math.floor((le + ri) / 2);
                     const theStep = stateInfos[mid].step;
                     if (theStep == this.currentStep) {
                         this.returnbuffer[v_idx] = stateInfos[mid];
-                        this.indices[v_idx] = mid;
+                        this.vertexStatesIndices[v_idx] = mid;
                         break;
                     }
                     else if (theStep < this.currentStep) {
                         this.returnbuffer[v_idx] = stateInfos[mid];
-                        this.indices[v_idx] = mid;
+                        this.vertexStatesIndices[v_idx] = mid;
                         le = mid + 1;
                     }
                     else {
@@ -311,10 +396,31 @@ var GraphAlgorithm;
                     }
                 }
             }
+            for (let le = 0, ri = this.descriptionStates.length; le < ri;) {
+                const mid = Math.floor((le + ri) / 2);
+                const theStep = this.descriptionStates[mid].step;
+                if (theStep == this.currentStep) {
+                    this.descriptionStatesIndex = mid;
+                    break;
+                }
+                else if (theStep < this.currentStep) {
+                    this.descriptionStatesIndex = mid;
+                    le = mid + 1;
+                }
+                else {
+                    ri = mid;
+                }
+            }
             return this.returnbuffer;
         }
-        addState(vertexId, info) {
+        addDataState(vertexId, info) {
             this.vertexStates.get(vertexId).push(info);
+        }
+        addDescriptionState(info) {
+            this.descriptionStates.push(info);
+        }
+        currentDescriptionState() {
+            return this.descriptionStates[this.descriptionStatesIndex];
         }
     }
     GraphAlgorithm.StateManager = StateManager;

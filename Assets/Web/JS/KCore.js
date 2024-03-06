@@ -99,7 +99,7 @@ var KCoreAlgorithm;
             this.preprocess();
             return this;
         }
-        setColor(start_, end_) {
+        setColorGradient(start_, end_) {
             const start = start_.clone(); //copy the value, otherwise if it points to the same space of some shellcomponent[].color, broken
             const end = end_.clone(); //copy the value, otherwise if it points to the same space of some shellcomponent[].color, broken
             const shellCount = this.shellComponents.length;
@@ -116,9 +116,13 @@ var KCoreAlgorithm;
             else {
                 this.states = new State(this.graph);
             }
+            GraphAlgorithm.DescriptionDisplay.clearPanel();
+            GraphAlgorithm.DescriptionDisplay.codeDescription.innerText = KCore.codeDescripton;
+            GraphAlgorithm.DescriptionDisplay.setCodes(KCore.pseudoCodes);
             this.clearHelpers();
             let currentShell = 0, nextShell = 1;
             let step = 0;
+            this.states.addDescriptionState({ step: step, codeStep: 1, stepDescription: "initization" });
             this.graph.adjacencyList.forEach((vl, k) => {
                 if (vl.others.length <= 0) {
                     this.set0.push(k);
@@ -133,25 +137,28 @@ var KCoreAlgorithm;
                 this.vertexToInfo.set(vl.main.id, new ConnectedComponetInfo(0, 0));
             });
             while (true) {
+                ++step;
+                this.states.addDescriptionState({ step: step, codeStep: 2, stepDescription: `set1.length ${this.set1.length}` });
                 while (this.set0.length > 0) {
                     const v_id = this.set0.pop();
                     const vl = this.graph.adjacencyList.get(v_id);
                     this.vertexToInfo.get(v_id).shell = currentShell;
                     ++step;
-                    this.states.addState(v_id, new VertexStateInfo(step, undefined, currentShell, "1"));
+                    this.states.addDataState(v_id, new VertexStateInfo(step, undefined, currentShell, "1"));
+                    this.states.addDescriptionState({ step: step, codeStep: 4, stepDescription: `process vertex ${v_id} in core ${currentShell}` });
                     for (const neighbor of vl.others) {
                         let degree = this.degrees.get(neighbor);
+                        ++step;
+                        this.states.addDescriptionState({ step: step, codeStep: 5, stepDescription: `check neighbor ${neighbor} of vertex ${v_id} in core ${currentShell}<br>processed:${degree < 0}` });
                         if (degree < 0) {
-                            if (this.vertexToInfo.get(neighbor).shell == currentShell) {
-                                this.unionFind.union(neighbor, v_id);
-                            }
                             continue;
                         }
                         ++step;
-                        this.states.addState(neighbor, new VertexStateInfo(step, degree, undefined, "1"));
+                        this.states.addDataState(neighbor, new VertexStateInfo(step, degree, undefined, "1"));
                         --degree;
                         ++step;
-                        this.states.addState(neighbor, new VertexStateInfo(step, degree, undefined, KCore.opacity));
+                        this.states.addDataState(neighbor, new VertexStateInfo(step, degree, undefined, KCore.opacity));
+                        this.states.addDescriptionState({ step: step, codeStep: 7, stepDescription: `decrement degree of ${neighbor} from ${degree + 1} to ${degree}<br>less than or equal to current_core (${currentShell})? ${degree <= currentShell}` });
                         if (degree <= currentShell) {
                             this.removeFromSet1(neighbor);
                         }
@@ -161,12 +168,14 @@ var KCoreAlgorithm;
                         }
                     }
                     ++step;
-                    this.states.addState(v_id, new VertexStateInfo(step, undefined, currentShell, KCore.opacity));
+                    this.states.addDataState(v_id, new VertexStateInfo(step, undefined, currentShell, KCore.opacity));
                 }
                 currentShell = nextShell;
                 if (this.set1.length <= 0) {
                     break;
                 }
+                ++step;
+                this.states.addDescriptionState({ step: step, codeStep: 9, stepDescription: `increment current_core ${currentShell}` });
                 nextShell = currentShell + 1;
                 for (let i = 0; i < this.set1.length;) {
                     const d = this.degrees.get(this.set1[i]);
@@ -179,6 +188,11 @@ var KCoreAlgorithm;
                 }
             }
             this.states.onInitEnd(step);
+            return this;
+        }
+        clearState() {
+            var _a;
+            (_a = this.states) === null || _a === void 0 ? void 0 : _a.clear();
             return this;
         }
         preprocess() {
@@ -271,11 +285,11 @@ var KCoreAlgorithm;
         }
         animate() {
             return __awaiter(this, void 0, void 0, function* () {
-                GraphAlgorithm.Algorithm.progressBar.setAttribute("max", this.states.maxStep.toString());
+                GraphAlgorithm.VideoControl.progressBar.setAttribute("max", this.states.maxStep.toString());
                 for (const v of this.graph.vertices) {
                     v.circle.setAttribute("opacity", KCore.opacity);
                 }
-                this.setAllSVGsColor(true);
+                this.setVisualElementsColor(true);
                 this.hideVerticesOutsideShells();
                 if (this.states == undefined) {
                     return;
@@ -292,24 +306,24 @@ var KCoreAlgorithm;
                             if ((vertexInfos = this.states.nextStep()) == null) {
                                 break AnimtaionLoop;
                             }
-                            this.setAnimationDisplay(vertexInfos);
+                            this.setAnimationDisplay(vertexInfos, this.states.currentDescriptionState());
                             break;
                         case 2 /* GraphAlgorithm.VideoControlStatus.prevStep */:
                             if ((vertexInfos = this.states.previousStep()) == null) {
                                 this.currentStep = 0;
                                 break;
                             }
-                            this.setAnimationDisplay(vertexInfos);
+                            this.setAnimationDisplay(vertexInfos, this.states.currentDescriptionState());
                             break;
                         case 3 /* GraphAlgorithm.VideoControlStatus.randomStep */:
                             if ((vertexInfos = this.states.randomStep(this.currentStep)) == null) {
                                 vertexInfos = this.states.randomStep(0);
                                 this.currentStep = 0;
                             }
-                            this.setAnimationDisplay(vertexInfos);
+                            this.setAnimationDisplay(vertexInfos, this.states.currentDescriptionState());
                             break;
                     }
-                    GraphAlgorithm.Algorithm.progressBar.valueAsNumber = this.states.currentStep;
+                    GraphAlgorithm.VideoControl.progressBar.valueAsNumber = this.states.currentStep;
                 }
                 for (const v of this.graph.vertices) {
                     v.circle.setAttribute("opacity", "1");
@@ -365,7 +379,7 @@ var KCoreAlgorithm;
             }
             select.value = Math.max(start, Math.min(end - 1, val)).toString();
         }
-        setAnimationDisplay(vertexInfos) {
+        setAnimationDisplay(vertexInfos, descriptionInfo) {
             var _a, _b, _c;
             if (vertexInfos == null) {
                 return;
@@ -381,8 +395,10 @@ var KCoreAlgorithm;
                     (_c = vertex.circle) === null || _c === void 0 ? void 0 : _c.setAttribute("fill", "var(--reverse-color2)");
                 }
             }
+            GraphAlgorithm.DescriptionDisplay.highlightCode(descriptionInfo.codeStep);
+            GraphAlgorithm.DescriptionDisplay.stepDescription.innerHTML = descriptionInfo.stepDescription;
         }
-        setAllSVGsColor(defaultColor) {
+        setVisualElementsColor(defaultColor) {
             var _a, _b;
             this.showDefaultColor = defaultColor;
             if (defaultColor) {
@@ -638,7 +654,7 @@ var KCoreAlgorithm;
                 const sc = new ShellComponet();
                 sc.shell = currentShell;
                 this.shellComponents.push(sc);
-                this.setColor(this.shellComponents[0].color, this.shellComponents[this.shellComponents.length - 2].color);
+                this.setColorGradient(this.shellComponents[0].color, this.shellComponents[this.shellComponents.length - 2].color);
                 this.refreshSelect();
             }
             //parents create the connected component
@@ -792,6 +808,25 @@ var KCoreAlgorithm;
             }
         }
     }
+    KCore.codeDescripton = `maintain two set:
+set0: storing all vertices wait for processing
+set1: storing all unprocessed vertices with degree > expored current_core`;
+    KCore.pseudoCodes = [
+        { code: "push all vertices into set1, set current_core = 0;", step: 1 },
+        { code: "while set1 is not empty :{", step: 2 },
+        { code: "   push all vertices with degree <= current_core to set0;", step: 3 },
+        { code: "   for all v in set0 :{", step: 4 },
+        { code: "      check for its all neighbors:{", step: 5 },
+        { code: "         if it is processed: continue;", step: 6 },
+        { code: "         else:{", step: undefined },
+        { code: "            decrement its degree;", step: 7 },
+        { code: "            if its degree <= current_core, push it to set0;", step: 8 },
+        { code: "         }", step: undefined },
+        { code: "      }", step: undefined },
+        { code: "   }", step: undefined },
+        { code: "   current_shell++;", step: 9 },
+        { code: "}", step: undefined },
+    ];
     KCore.processed = -2;
     KCore.opacity = "0.3";
     KCoreAlgorithm.KCore = KCore;

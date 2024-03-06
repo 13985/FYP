@@ -96,55 +96,12 @@ window.onload=():void=>{
         const start:Color=new Color(255,255,0);
         const end:Color=new Color(255,0,0);
         setVENumber();
-        kCore.preprocess().setColor(start,end).setSelects(fromShell,toShell).setAllSVGsColor(true).createState();
+        kCore.preprocess().setColorGradient(start,end).setSelects(fromShell,toShell).setVisualElementsColor(true).createState();
 
         graph.copyTo(resultGraph.clear(true));
         resultGW.resetContainerTransform().updateSimulation();
-        resultKCore.preprocess().setColor(start,end).setAllSVGsColor(false).displayPolygons(true);
+        resultKCore.preprocess().setColorGradient(start,end).setVisualElementsColor(false).displayPolygons(true);
     }
-
-
-    loadGraph("0 1\r\n\
-    1 2\r\n\
-    1 14\r\n\
-    1 15\r\n\
-    2 2\r\n\
-    3 3\r\n\
-    4 3\r\n\
-    5 5\r\n\
-    6 4\r\n\
-    6 7\r\n\
-    7 19\r\n\
-    8 5\r\n\
-    8 3\r\n\
-    9 4\r\n\
-    9 3\r\n\
-    9 13\r\n\
-    9 6\r\n\
-    9 10\r\n\
-    9 12\r\n\
-    10 3\r\n\
-    11 11\r\n\
-    11 12\r\n\
-    11 10\r\n\
-    12 12\r\n\
-    13 15\r\n\
-    13 3\r\n\
-    13 9\r\n\
-    13 4\r\n\
-    14 14\r\n\
-    15 15\r\n\
-    16 16\r\n\
-    17 17\r\n\
-    18 18\r\n\
-    19 19\r\n\
-    20 8\r\n\
-    21 7\r\n\
-    21 22\r\n\
-    22 21\r\n\
-    23 23\r\n\
-    24 24\r\n\
-    ");
 
     /****************************************************Vertex pop up**************************************************/
     const vertexUpdateSelect:HTMLSelectElement=<HTMLSelectElement>document.getElementById("vertex-update");
@@ -344,28 +301,8 @@ window.onload=():void=>{
     });
     */
     /****************************************************Algo popup **********************************************/
-    const visualizationControl:FloatingPanel=new FloatingPanel("#algo-control");
-    const showAlgoControl=<HTMLInputElement>document.getElementById("show-algo-control");
-    showAlgoControl.addEventListener("input",():void=>{
-        if(showAlgoControl.checked){
-            visualizationControl.open();
-        }else{
-            visualizationControl.close();
-        }
-    });
-    visualizationControl.setCloseCallback(():void=>{showAlgoControl.checked=false;});
-
-    const statePanel:FloatingPanel=new FloatingPanel("#state-panel");
-    const showStatePanel:HTMLInputElement=<HTMLInputElement>document.getElementById("show-algo-state");
-    showStatePanel.addEventListener("input",():void=>{
-        if(showStatePanel.checked){
-            statePanel.open();
-        }else{
-            statePanel.close();
-        }
-    });
-    statePanel.setCloseCallback(():void=>{showStatePanel.checked=false;});
-    GraphAlgorithm.Algorithm.statePanel=statePanel.contentElement();
+    const visualizationControl:FloatingPanel=new FloatingPanel("#algo-control",<HTMLInputElement>document.getElementById("show-algo-control"));
+    const statePanel:FloatingPanel=new FloatingPanel("#state-panel",<HTMLInputElement>document.getElementById("show-algo-state"));
 
     //const runButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("run-algo"),stopButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("stop-algo");
 
@@ -380,8 +317,50 @@ window.onload=():void=>{
 
 
     /******************************************************after initialization************************************/
-    GraphAlgorithm.Algorithm.setVisualizationVideoControl(visualizationControl.contentDiv);
+    GraphAlgorithm.Algorithm.setVisualizationVideoControl(visualizationControl);
     GraphAlgorithm.Algorithm.setVisualizationControl(<HTMLButtonElement>document.getElementById("run-algo"),<HTMLButtonElement>document.getElementById("stop-algo"));
+    GraphAlgorithm.Algorithm.setStateDisplayPanel(statePanel);
     GraphAlgorithm.Algorithm.changeAlgorithm(kCore);
-    kCore.createState();
+
+    loadGraph("0 1\r\n\
+    1 2\r\n\
+    1 14\r\n\
+    1 15\r\n\
+    2 2\r\n\
+    3 3\r\n\
+    4 3\r\n\
+    5 5\r\n\
+    6 4\r\n\
+    6 7\r\n\
+    7 19\r\n\
+    8 5\r\n\
+    8 3\r\n\
+    9 4\r\n\
+    9 3\r\n\
+    9 13\r\n\
+    9 6\r\n\
+    9 10\r\n\
+    9 12\r\n\
+    10 3\r\n\
+    11 11\r\n\
+    11 12\r\n\
+    11 10\r\n\
+    12 12\r\n\
+    13 15\r\n\
+    13 3\r\n\
+    13 9\r\n\
+    13 4\r\n\
+    14 14\r\n\
+    15 15\r\n\
+    16 16\r\n\
+    17 17\r\n\
+    18 18\r\n\
+    19 19\r\n\
+    20 8\r\n\
+    21 7\r\n\
+    21 22\r\n\
+    22 21\r\n\
+    23 23\r\n\
+    24 24\r\n\
+    ");
 }

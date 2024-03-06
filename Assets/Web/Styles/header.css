@@ -241,7 +241,6 @@ input[type="color"]::-webkit-color-swatch-wrapper {
     border-top:none;
     display: flex;
     flex-direction: column;
-    align-items: center;
 }
 
 
@@ -433,10 +432,9 @@ label[for="partial-results-set"]{
 
 #algo-control.floating-panel{
     width:40vw;
-    min-width: 300px;
+    min-width: 320px;
     top:calc(100% + 2px);
     left:-2px;
-    
     /*
     transform: scale(1,1);
     display: block;
@@ -444,12 +442,14 @@ label[for="partial-results-set"]{
     margin: auto;
     opacity: 1;
     */
+    z-index:110;
 }
 
 
 .algo-control.panel-content{
     padding:6px 10px;
     gap: 4px;
+    align-items: center;
 }
 
 
@@ -524,6 +524,11 @@ label[for="partial-results-set"]{
 }
 
 
+button.pause{
+    width:3rem;
+}
+
+
 .algo-control.panel-content span.speed-text{
     font-size: 1.6rem;
     transition: color 0s;
@@ -534,8 +539,88 @@ label[for="partial-results-set"]{
 
 
 #state-panel{
-    width:25vw;
-    height:30vh;
+    /*
+    */
+    width: fit-content;
+    height: fit-content;
+    /*
+    display: block;
+    opacity: 1;
+    position:static;
+    transform: scale(1,1);
+    margin: auto;
+    */
+    z-index:100;
+}
+
+
+#state-panel *{
+    transition: color 0s linear , backgorund-color 0s linear , border-color 0s linear;
+}
+
+
+#state-panel>.panel-content{
+    width:clamp(400px,50vw,900px);
+    height: 60vh;
+    overflow-x: auto;
+    overflow-y: auto;
+    resize: both;
+
+    padding: 1rem;
+    align-items: flex-start;
+    gap:1rem;
+}
+
+
+#state-panel>.panel-content>*{
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+
+p.description{
+    font-size: 1.65rem;
+    word-wrap: break-word;
+    word-break: keep-all;
+}
+
+
+p.step{
+    min-height:10vh;
+}
+
+
+ul.pseudo-codes{
+    list-style: none;
+}
+
+
+li.pseudo-code{
+    width:100%;
+    padding: 0.3rem 0;
+}
+
+
+li.pseudo-code>*{
+    display: inline-block;
+    font-size: 1.45rem;
+}
+
+
+.pseudo-code>code{
+    white-space: pre;
+}
+
+
+i.step-number{
+    width:2.1rem;
+    font-weight: 600;
+}
+
+
+li.current-code{
+    background-color: color-mix(in srgb, transparent 70%, red 30%);
 }
 
 

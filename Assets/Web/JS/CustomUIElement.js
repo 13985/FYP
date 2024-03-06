@@ -1,11 +1,24 @@
 "use strict";
 class FloatingPanel {
-    constructor(selector) {
+    constructor(selector, toggler) {
         this.previousX = 0;
         this.previousY = 0;
         this.outerOffsetX = 0;
         this.outerOffsetY = 0;
         this.isDragging = false;
+        this.onMouseMove = (me) => {
+            if (this.isDragging == false) {
+                return;
+            }
+            me.preventDefault();
+            this.outerOffsetX += me.clientX - this.previousX;
+            this.outerOffsetY += me.clientY - this.previousY;
+            this.previousX = me.clientX;
+            this.previousY = me.clientY;
+            this.outerDiv.style.top = `${this.outerOffsetY}px`;
+            this.outerDiv.style.left = `${this.outerOffsetX}px`;
+        };
+        this.toggler = toggler;
         this.outerDiv = document.querySelector(selector);
         this.originalParent = this.outerDiv.parentElement;
         this.topDiv = this.outerDiv.querySelector(".panel-top");
@@ -17,37 +30,27 @@ class FloatingPanel {
                 this.isDragging = true;
                 this.previousX = me.clientX;
                 this.previousY = me.clientY;
+                document.addEventListener("mousemove", this.onMouseMove);
             }
         });
         this.topDiv.addEventListener("mouseup", () => {
             this.isDragging = false;
+            document.removeEventListener("mousemove", this.onMouseMove);
         });
-        this.topDiv.addEventListener("mouseleave", () => {
-            this.isDragging = false;
-        });
-        this.topDiv.addEventListener("mousemove", (me) => {
-            if (this.isDragging == false) {
-                return;
+        this.toggler.addEventListener("input", () => {
+            if (this.toggler.checked) {
+                this.open();
             }
-            me.preventDefault();
-            this.outerOffsetX += me.clientX - this.previousX;
-            this.outerOffsetY += me.clientY - this.previousY;
-            this.previousX = me.clientX;
-            this.previousY = me.clientY;
-            this.outerDiv.style.top = `${this.outerOffsetY}px`;
-            this.outerDiv.style.left = `${this.outerOffsetX}px`;
+            else {
+                this.close();
+            }
         });
-    }
-    setCloseCallback(callback) {
-        this.closeButton.addEventListener("click", () => {
-            callback();
-        });
-        return this;
     }
     contentElement() {
         return this.contentDiv;
     }
     close() {
+        this.toggler.checked = false;
         this.isDragging = false;
         this.outerOffsetX = 0;
         this.outerOffsetY = 0;

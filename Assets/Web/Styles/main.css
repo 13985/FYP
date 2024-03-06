@@ -50,6 +50,11 @@ main{
 }
 
 
+.graph-window>.control{
+    overflow-y: hidden;
+}
+
+
 .control>*{
     min-width: 25%;
     max-width: 33.3%;
@@ -71,7 +76,7 @@ input.popup-set{
 
 
 .popup-set-text{
-    padding: 0.2rem;    
+    padding: 0.2rem;
 }
 
 
@@ -114,6 +119,8 @@ div.popup-set-text:hover + .popup-menu,
 input.popup-set:checked ~ .popup-menu{
     height: fit-content;
     transform: scaleY(1);
+    /*
+    */
 }
 
 

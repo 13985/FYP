@@ -5,49 +5,130 @@ namespace GraphAlgorithm{
     export const enum VideoControlStatus{
         noAction=0,nextStep=1,prevStep=2,randomStep=3,stop=4
     }
+    
+    
+    //only one video control i believe....
+    export namespace VideoControl{
+        export let videoControl:FloatingPanel;
+        export let prevStepButton:HTMLButtonElement;
+        export let nextStepButton:HTMLButtonElement;
+        export let pauseButton:HTMLButtonElement;
+        export let speedControl:HTMLInputElement;
+        export let progressBar:HTMLInputElement;
+
+        export let runButton:HTMLButtonElement;
+        export let stopButton:HTMLButtonElement;
+    }
+
+
+    //one panel for code description and pseudo code
+    export namespace DescriptionDisplay{
+        export class PseudoCode{
+            public readonly code:string;
+            public readonly step?:number;
+            public li?:HTMLLIElement;
+
+            constructor(code:string,step?:number){
+                this.code=code;
+                this.step=step;
+            }
+        }
+
+        export let panel:FloatingPanel;
+        export let codeDescription:HTMLParagraphElement;
+        export let stepDescription:HTMLParagraphElement;
+        let codesUl:HTMLUListElement;
+
+        let pseudoCodes:PseudoCode[]|null;
+
+
+        export function main(panel_:FloatingPanel):void{
+            panel=panel_;
+            codesUl=panel.contentDiv.querySelector("ul.pseudo-codes") as HTMLUListElement;
+            codeDescription=panel.contentDiv.querySelector("p.code.description") as HTMLParagraphElement;
+            stepDescription=panel.contentDiv.querySelector("p.step.description") as HTMLParagraphElement;
+        }
+
+
+        export function reset():void{
+            for(const pc of (pseudoCodes as PseudoCode[])){
+                (pc.li as HTMLLIElement).classList.toggle("current-code",false);
+            }
+            stepDescription.innerText="";
+        }
+
+
+        export function clearPanel():void{
+            codeDescription.innerHTML="";
+            stepDescription.innerHTML="";
+            codesUl.innerHTML="";
+            pseudoCodes=null;
+        }
+
+
+        export function setCodes(theCodes:PseudoCode[]):void{
+            pseudoCodes=theCodes;
+            for(const code of theCodes){
+                const liStr:string=`
+                <li class="pseudo-code">
+                    <i class="step-number">${code.step!=undefined?code.step:""}</i>
+                    <code>${code.code}</code>
+                </li>
+                `;
+                codesUl.insertAdjacentHTML("beforeend",liStr);
+                code.li=codesUl.lastElementChild as HTMLLIElement;
+            }
+        }
+
+
+        export function highlightCode(step:number):void{
+            for(const pc of (pseudoCodes as PseudoCode[])){
+                (pc.li as HTMLLIElement).classList.toggle("current-code",pc.step!=undefined&&pc.step==step);
+            }
+        }
+    }
 
 
     export abstract class Algorithm{
-        public static statePanel:HTMLElement;
         private static visualizationTarget?:Algorithm;
-
-        //only one video control i believe....
-        protected static prevStepButton:HTMLButtonElement;
-        protected static nextStepButton:HTMLButtonElement;
-        protected static pauseButton:HTMLButtonElement;
-        protected static speedControl:HTMLInputElement;
-        protected static progressBar:HTMLInputElement;
-
-        protected static runButton:HTMLButtonElement;
-        protected static stopButton:HTMLButtonElement;
+        private static otherInstances?:Algorithm;
+        protected static readonly codeDescripton:string;
 
 
-        public static setVisualizationVideoControl(videoControl:HTMLElement):void{
-            Algorithm.prevStepButton=videoControl.querySelector("button.previousStep") as HTMLButtonElement;
-            Algorithm.nextStepButton=videoControl.querySelector("button.nextStep") as HTMLButtonElement;
-            Algorithm.pauseButton=videoControl.querySelector("button.pause") as HTMLButtonElement;
+        public static setVisualizationVideoControl(videoControl:FloatingPanel):void{
+            VideoControl.videoControl=videoControl;
+            VideoControl.prevStepButton=videoControl.contentDiv.querySelector("button.previousStep") as HTMLButtonElement;
+            VideoControl.nextStepButton=videoControl.contentDiv.querySelector("button.nextStep") as HTMLButtonElement;
+            VideoControl.pauseButton=videoControl.contentDiv.querySelector("button.pause") as HTMLButtonElement;
 
-            Algorithm.progressBar=videoControl.querySelector("input.progress-bar") as HTMLInputElement;
-            Algorithm.speedControl=videoControl.querySelector("input.speed-control") as HTMLInputElement;
-            Algorithm.speedControl.min="0.05";
-            Algorithm.speedControl.max="5";
-            Algorithm.speedControl.step="0.001";
+            VideoControl.progressBar=videoControl.contentDiv.querySelector("input.progress-bar") as HTMLInputElement;
+            VideoControl.speedControl=videoControl.contentDiv.querySelector("input.speed-control") as HTMLInputElement;
+            VideoControl.speedControl.min="0.05";
+            VideoControl.speedControl.max="5";
+            VideoControl.speedControl.step="0.001";
+        }
+
+
+        public static setStateDisplayPanel(panel:FloatingPanel):void{
+            DescriptionDisplay.main(panel);
         }
 
 
         public static setVisualizationControl(run:HTMLButtonElement,stop:HTMLButtonElement):void{
-            Algorithm.runButton=run;
-            Algorithm.stopButton=stop;
-            Algorithm.stopButton.disabled=true;
-            Algorithm.runButton.disabled=false;
+            VideoControl.runButton=run;
+            VideoControl.stopButton=stop;
+            VideoControl.stopButton.disabled=true;
+            VideoControl.runButton.disabled=false;
 
-            Algorithm.runButton.addEventListener("click",():void=>{
+            VideoControl.runButton.addEventListener("click",():void=>{
                 if(Algorithm.visualizationTarget){
                     Algorithm.visualizationTarget.start();
+                    VideoControl.videoControl.open();
+                    DescriptionDisplay.panel.open();
                 }
             });
 
-            Algorithm.stopButton.addEventListener("click",():void=>{
+            VideoControl.stopButton.addEventListener("click",():void=>{
                 if(Algorithm.visualizationTarget){
                     Algorithm.visualizationTarget.videoControlStatus=VideoControlStatus.stop;
                 }
@@ -93,7 +174,7 @@ namespace GraphAlgorithm{
         }
 
         public static setAllVerticesColor(defaultColor:boolean):any{
-            Algorithm.visualizationTarget?.setAllSVGsColor(defaultColor);
+            Algorithm.visualizationTarget?.setVisualElementsColor(defaultColor);
         }
 
         public static setAllEdgesColor(defaultColor:boolean):any{
@@ -122,26 +203,41 @@ namespace GraphAlgorithm{
             this.isAnimating=true;
             this.isPause=false;
             this.videoControlStatus=VideoControlStatus.noAction;
-
-            Algorithm.stopButton.disabled=false;
-            Algorithm.runButton.disabled=true;
-            Algorithm.progressBar.valueAsNumber=0;
+            
+            DescriptionDisplay.reset();
+            VideoControl.stopButton.disabled=false;
+            VideoControl.runButton.disabled=true;
+            VideoControl.progressBar.valueAsNumber=0;
 
             await this.animate();
 
             this.isAnimating=false;
             this.isPause=false;
             this.videoControlStatus=VideoControlStatus.noAction;
-            Algorithm.statePanel.innerHTML="";
 
-            Algorithm.stopButton.disabled=true;
-            Algorithm.runButton.disabled=false;
+            VideoControl.stopButton.disabled=true;
+            VideoControl.runButton.disabled=false;
             if(onEnd){onEnd();}
         }
 
+
+        public abstract setColorGradient(start:Color,end:Color):this;
+
+        public abstract setVisualElementsColor(defaultColor:boolean):this;
+
+        public abstract setGraph(g:Graph):this;
+
         public abstract preprocess():this;
 
+        /**
+         * @brief
+         * if the alogrithmm instance will be visualized and animated, call this function
+         * @implements
+         * note that the content inside #state-panel also needed to be setted in here
+         */
         public abstract createState():this;
+
+        public abstract clearState():this;
 
         protected abstract animate():void;
 
@@ -156,37 +252,39 @@ namespace GraphAlgorithm{
         protected readonly onPauseButtonPressed:NormalFunction=():void=>{
             if(this.isPause){
                 this.isPause=false;
-                (Algorithm.pauseButton as HTMLButtonElement).innerText=">";
+                VideoControl.pauseButton.innerText=">";
             }else{
                 this.isPause=true;
-                (Algorithm.pauseButton as HTMLButtonElement).innerText="||";
+                VideoControl.pauseButton.innerText="||";
             }
         }
 
         protected readonly onProgressChanged:NormalFunction=():void=>{
-            this.currentStep=Algorithm.progressBar.valueAsNumber;
+            this.currentStep=VideoControl.progressBar.valueAsNumber;
             this.videoControlStatus=VideoControlStatus.randomStep;
         }
 
 
-        public registerSelf():void{
-            Algorithm.pauseButton.addEventListener("click",this.onPauseButtonPressed);
-            Algorithm.nextStepButton.addEventListener("click",this.onNextStepPressed);
-            Algorithm.prevStepButton.addEventListener("click",this.onPrevStepPressed);
-            Algorithm.progressBar.addEventListener("input",this.onProgressChanged);
+        protected registerSelf():void{
+            VideoControl.pauseButton.addEventListener("click",this.onPauseButtonPressed);
+            VideoControl.nextStepButton.addEventListener("click",this.onNextStepPressed);
+            VideoControl.prevStepButton.addEventListener("click",this.onPrevStepPressed);
+            VideoControl.progressBar.addEventListener("input",this.onProgressChanged);
         }
 
 
-        public unregisterSelf():void{
-            Algorithm.pauseButton.removeEventListener("click",this.onPauseButtonPressed);
-            Algorithm.nextStepButton.removeEventListener("click",this.onNextStepPressed);
-            Algorithm.prevStepButton.removeEventListener("click",this.onPrevStepPressed);
-            Algorithm.progressBar.removeEventListener("input",this.onProgressChanged);
+        protected unregisterSelf():void{
+            VideoControl.pauseButton.removeEventListener("click",this.onPauseButtonPressed);
+            VideoControl.nextStepButton.removeEventListener("click",this.onNextStepPressed);
+            VideoControl.prevStepButton.removeEventListener("click",this.onPrevStepPressed);
+            VideoControl.progressBar.removeEventListener("input",this.onProgressChanged);
+
+            DescriptionDisplay.clearPanel();
         }
 
 
         protected async waitfor():Promise<VideoControlStatus>{
-            for(let timePassed:number=0;this.videoControlStatus==VideoControlStatus.noAction&&(this.isPause||timePassed<((Algorithm.speedControl as HTMLInputElement).valueAsNumber)*1000);){
+            for(let timePassed:number=0;this.videoControlStatus==VideoControlStatus.noAction&&(this.isPause||timePassed<(VideoControl.speedControl.valueAsNumber)*1000);){
                 const before:number=Date.now();
                 await new Promise((r)=>{setTimeout(r,5);});
                 const after:number=Date.now();
@@ -202,7 +300,6 @@ namespace GraphAlgorithm{
         public removeVertex(a:number):any{}
         public addEdge(from:number,to:number):any{}
         public removeEdge(from:number,to:number):any{}
-        public setAllSVGsColor(defaultColor:boolean):any{}
         public setAllEdgesColor(defaultColor:boolean):any{}
     }
 
@@ -246,13 +343,21 @@ namespace GraphAlgorithm{
      * same as time complexity of the target algorithm (since the step is linerally related to the time complexity)
      */
 
-    export abstract class StateManager<DataState extends IStep,DisplayState extends IStep>{
+    export class DescriptionStateInfo implements IStep{
+        public step:number=0;
+        public stepDescription:string="";
+        public codeStep:number=0;
+    }
+
+    export abstract class StateManager<DataState extends IStep,DescriptionState extends IStep>{
         public maxStep:number=0;
         public currentStep:number=0;
-        public vertexStates:Map<number,Array<DataState>>=new Map();//for O(vertices.length * log(maxStep)) random step
-        public displayStates:Array<DisplayState>=[];
+        protected vertexStates:Map<number,Array<DataState>>=new Map();//for O(vertices.length * log(maxStep)) random step
+        protected vertexStatesIndices:number[]=[];//for O(vertices.length) prev step/next step
+
+        protected descriptionStates:Array<DescriptionState>=[];
+        protected descriptionStatesIndex:number=0;
         protected returnbuffer:DataState[]=[];
-        protected indices:number[]=[];//for O(vertices.length) prev step/next step
 
         protected graph:Graph;
 
@@ -267,8 +372,8 @@ namespace GraphAlgorithm{
                 this.graph=graph;
             }
             this.returnbuffer.length=this.graph.vertices.length;
-            this.indices.length=this.graph.vertices.length;
-            this.displayStates.length=0;
+            this.vertexStatesIndices.length=this.graph.vertices.length;
+            this.descriptionStates.length=0;
             this.resetStep();
         }
 
@@ -286,9 +391,10 @@ namespace GraphAlgorithm{
 
         public resetStep():void{
             this.currentStep=0;
-            for(let i:number=0;i<this.indices.length;++i){
-                this.indices[i]=0;
+            for(let i:number=0;i<this.vertexStatesIndices.length;++i){
+                this.vertexStatesIndices[i]=0;
             }
+            this.descriptionStatesIndex=0;
             /*
             for(let v_idx:number=0;v_idx<this.graph.vertices.length;++v_idx){
                 const stateInfos:DataState[]=this.vertexStates.get(this.graph.vertices[v_idx].id) as DataState[];
@@ -313,14 +419,20 @@ namespace GraphAlgorithm{
             ++this.currentStep;
 
             for(let v_idx:number=0;v_idx<this.graph.vertices.length;++v_idx){
-                const idx:number=this.indices[v_idx];
+                const idx:number=this.vertexStatesIndices[v_idx];
                 const stateInfos:DataState[]=this.vertexStates.get(this.graph.vertices[v_idx].id) as DataState[];
                 const nextIdx:number=idx+1;
                 if(nextIdx<stateInfos.length&&stateInfos[nextIdx].step<=this.currentStep){
-                    this.indices[v_idx]=nextIdx;
+                    this.vertexStatesIndices[v_idx]=nextIdx;
                     this.returnbuffer[v_idx]=stateInfos[nextIdx];
                 }else{
                     this.returnbuffer[v_idx]=stateInfos[idx];
+                }
+            }
+            {
+                const nextIdx=this.descriptionStatesIndex+1;
+                if(nextIdx<this.descriptionStates.length&&this.descriptionStates[nextIdx].step<=this.currentStep){
+                    this.descriptionStatesIndex=nextIdx;
                 }
             }
             return this.returnbuffer;
@@ -334,14 +446,19 @@ namespace GraphAlgorithm{
             --this.currentStep;
 
             for(let v_idx:number=0;v_idx<this.graph.vertices.length;++v_idx){
-                const idx:number=this.indices[v_idx];
+                const idx:number=this.vertexStatesIndices[v_idx];
                 const stateInfos:DataState[]=this.vertexStates.get(this.graph.vertices[v_idx].id) as DataState[];
                 const nextIdx:number=idx-1;
                 if(stateInfos[idx].step>this.currentStep){
-                    this.indices[v_idx]=nextIdx;
+                    this.vertexStatesIndices[v_idx]=nextIdx;
                     this.returnbuffer[v_idx]=stateInfos[nextIdx];
                 }else{
                     this.returnbuffer[v_idx]=stateInfos[idx];
+                }
+            }
+            {
+                if(this.descriptionStates[this.descriptionStatesIndex].step>this.currentStep){
+                    --this.descriptionStatesIndex;
                 }
             }
             return this.returnbuffer;
@@ -357,30 +474,54 @@ namespace GraphAlgorithm{
             for(let v_idx:number=0;v_idx<this.graph.vertices.length;++v_idx){
                 const stateInfos=this.vertexStates.get(this.graph.vertices[v_idx].id) as Array<DataState>;
                 this.returnbuffer[v_idx]=stateInfos[0];
-                this.indices[v_idx]=0;
+                this.vertexStatesIndices[v_idx]=0;
 
                 for(let le:number=0,ri:number=stateInfos.length;le<ri;){
                     const mid:number=Math.floor((le+ri)/2);
                     const theStep:number=stateInfos[mid].step;
                     if(theStep==this.currentStep){
                         this.returnbuffer[v_idx]=stateInfos[mid];
-                        this.indices[v_idx]=mid;
+                        this.vertexStatesIndices[v_idx]=mid;
                         break;
                     }else if(theStep<this.currentStep){
                         this.returnbuffer[v_idx]=stateInfos[mid];
-                        this.indices[v_idx]=mid;
+                        this.vertexStatesIndices[v_idx]=mid;
                         le=mid+1;
                     }else{
                         ri=mid;
                     }
                 }
             }
+            
+            for(let le:number=0,ri:number=this.descriptionStates.length;le<ri;){
+                const mid:number=Math.floor((le+ri)/2);
+                const theStep:number=this.descriptionStates[mid].step;
+                if(theStep==this.currentStep){
+                    this.descriptionStatesIndex=mid;
+                    break;
+                }else if(theStep<this.currentStep){
+                    this.descriptionStatesIndex=mid;
+                    le=mid+1;
+                }else{
+                    ri=mid;
+                }
+            }
             return this.returnbuffer;
         }
 
 
-        public addState(vertexId:number,info:DataState):void{
+        public addDataState(vertexId:number,info:DataState):void{
             (this.vertexStates.get(vertexId) as DataState[]).push(info);
+        }
+
+
+        public addDescriptionState(info:DescriptionState):void{
+            this.descriptionStates.push(info);
+        }
+
+
+        public currentDescriptionState():DescriptionState{
+            return this.descriptionStates[this.descriptionStatesIndex];
         }
     }
 }

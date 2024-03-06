@@ -1,5 +1,6 @@
 
 class FloatingPanel{
+    public readonly toggler:HTMLInputElement;
     public readonly contentDiv:HTMLDivElement;
     public readonly originalParent:HTMLElement;
     private readonly outerDiv:HTMLDivElement;
@@ -12,7 +13,8 @@ class FloatingPanel{
     private outerOffsetY:number=0;
     private isDragging:boolean=false;
 
-    constructor(selector:string){
+    constructor(selector:string,toggler:HTMLInputElement){
+        this.toggler=toggler;
         this.outerDiv=<HTMLDivElement>document.querySelector(selector);
         this.originalParent=this.outerDiv.parentElement as HTMLElement;
         this.topDiv=<HTMLDivElement>this.outerDiv.querySelector(".panel-top");
@@ -25,36 +27,35 @@ class FloatingPanel{
                 this.isDragging=true;
                 this.previousX=me.clientX;
                 this.previousY=me.clientY;
+                document.addEventListener("mousemove",this.onMouseMove);
             }
         });
 
         this.topDiv.addEventListener("mouseup",():void=>{
             this.isDragging=false;
-        });
-        this.topDiv.addEventListener("mouseleave",():void=>{
-            this.isDragging=false;
+            document.removeEventListener("mousemove",this.onMouseMove);
         });
 
-
-        this.topDiv.addEventListener("mousemove",(me:MouseEvent):void=>{
-            if(this.isDragging==false){return;}
-            me.preventDefault();
-            this.outerOffsetX+=me.clientX-this.previousX;
-            this.outerOffsetY+=me.clientY-this.previousY;
-            this.previousX=me.clientX;
-            this.previousY=me.clientY;
-            this.outerDiv.style.top=`${this.outerOffsetY}px`;
-            this.outerDiv.style.left=`${this.outerOffsetX}px`;
+        this.toggler.addEventListener("input",():void=>{
+            if(this.toggler.checked){
+                this.open();
+            }else{
+                this.close();
+            }
         });
     }
 
 
-    public setCloseCallback(callback:()=>void):FloatingPanel{
-        this.closeButton.addEventListener("click",():void=>{
-            callback();
-        });
-        return this;
-    }
+    private onMouseMove:MouseEventCallback=(me:MouseEvent):void=>{
+        if(this.isDragging==false){return;}
+        me.preventDefault();
+        this.outerOffsetX+=me.clientX-this.previousX;
+        this.outerOffsetY+=me.clientY-this.previousY;
+        this.previousX=me.clientX;
+        this.previousY=me.clientY;
+        this.outerDiv.style.top=`${this.outerOffsetY}px`;
+        this.outerDiv.style.left=`${this.outerOffsetX}px`;
+    };
 
 
     public contentElement():HTMLElement{
@@ -62,7 +63,8 @@ class FloatingPanel{
     }
 
 
-    public close():void{
+    private close():void{
+        this.toggler.checked=false;
         this.isDragging=false;
         this.outerOffsetX=0;
         this.outerOffsetY=0;
