@@ -28,6 +28,7 @@ var KCoreAlgorithm;
         }
     }
     KCoreCC.pool = new GraphAlgorithm.ObjectPool(KCoreCC);
+    KCoreAlgorithm.KCoreCC=KCoreCC;
     class ShellComponet {
         constructor() {
             this.connectedComponents = [];
@@ -204,6 +205,11 @@ var KCoreAlgorithm;
             for (const sc of this.shellComponents) {
                 for (const cc of sc.connectedComponents) {
                     (_a = cc.polygon) === null || _a === void 0 ? void 0 : _a.remove();
+                }
+            }
+            for (const sc of this.shellComponents) {
+                for (const cc of sc.connectedComponents) {
+                    KCoreCC.pool.release(cc);
                 }
             }
             this.shellComponents.length = 0;
@@ -575,6 +581,7 @@ var KCoreAlgorithm;
             return ret;
         }
         mergeComponent(shellComponent, idx0, idx1) {
+            var _a;
             if (idx0 > idx1) {
                 const temp = idx0;
                 idx0 = idx1;
@@ -587,6 +594,7 @@ var KCoreAlgorithm;
                 const ccIdx = this.vertexToInfo.get(v.id);
                 ccIdx.index = idx0;
             }
+            (_a = b.polygon) === null || _a === void 0 ? void 0 : _a.remove();
             KCoreCC.pool.release(b);
         }
         KCore_ConnectedComponent(theInfo) {
@@ -712,8 +720,8 @@ var KCoreAlgorithm;
                 this.setPolygon(cc, sc);
                 ConvesHull.Solve(cc, this.svgContainer);
             }
-            console.log(`new ${newShell}`);
-            console.log(`old ${oldShell}`);
+            //console.log(`new ${newShell}`);
+            //console.log(`old ${oldShell}`);
             if (newShell.length > 0) {
                 const otherCCIndices = oldShell;
                 const inNewShell = this.degrees;
@@ -778,7 +786,6 @@ var KCoreAlgorithm;
                     }
                     this.setPolygon(minCC, sc);
                     ConvesHull.Solve(minCC, this.svgContainer);
-                    console.log(otherCCIndices,minCC);
                 }
             }
             KCoreCC.pool.release(theCC);
@@ -868,7 +875,6 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                 return;
             }
             const polygon = cc.polygon;
-            console.log(cc);
             polygon.points.clear();
             if (cc.vertices.length < 4) {
                 for (const vertex of cc.vertices) {

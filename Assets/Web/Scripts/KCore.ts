@@ -274,6 +274,11 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                 }
             }
             
+            for(const sc of this.shellComponents){
+                for(const cc of sc.connectedComponents){
+                    KCoreCC.pool.release(cc);
+                }
+            }
             this.shellComponents.length=0;
             this.vertexToInfo.clear();
             this.clearHelpers();
@@ -686,6 +691,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                 const ccIdx:ConnectedComponetInfo=this.vertexToInfo.get(v.id) as ConnectedComponetInfo;
                 ccIdx.index=idx0;
             }
+            b.polygon?.remove();
             KCoreCC.pool.release(b);
         }
 
