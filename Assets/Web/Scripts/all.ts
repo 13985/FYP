@@ -38,7 +38,7 @@ window.onload=():void=>{
     scrollBarDarkSytle.innerText=scrollbarDarkCSS;
 
     /**************************************************Vertex pop up****************************************************/
-    const vertexPopupInput:HTMLInputElement=<HTMLInputElement>document.getElementById("vertex-popup-input");
+    const vertexPopupInput:HTMLInputElement=<HTMLInputElement>document.getElementById("vertex-expand-input");
     const vertexSetColor:HTMLInputElement=<HTMLInputElement>document.getElementById("vertex-set-color");
 
     /****************************************************Algo popup **********************************************/
@@ -178,7 +178,7 @@ window.onload=():void=>{
 
     /****************************************************edge popup *****************************************************/
     const edgeUpdateSelect:HTMLSelectElement=<HTMLSelectElement>document.getElementById("edge-update");
-    const edgePopupInput:HTMLInputElement=<HTMLInputElement>document.getElementById("edge-popup-input");
+    const edgePopupInput:HTMLInputElement=<HTMLInputElement>document.getElementById("edge-expand-input");
     const edgeUpdateButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("edge-update-button");
     const edgeEditMode:HTMLInputElement=<HTMLInputElement>document.getElementById("edge-edit-mode");
 
@@ -301,7 +301,7 @@ window.onload=():void=>{
     });
     */
     /****************************************************Algo popup **********************************************/
-    const visualizationControl:FloatingPanel=new FloatingPanel("#algo-control",<HTMLInputElement>document.getElementById("show-algo-control"));
+    const visualizationControl:FloatingPanel=new FloatingPanel("#video-control",<HTMLInputElement>document.getElementById("show-video-control"));
     const statePanel:FloatingPanel=new FloatingPanel("#state-panel",<HTMLInputElement>document.getElementById("show-algo-state"));
 
     //const runButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("run-algo"),stopButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("stop-algo");

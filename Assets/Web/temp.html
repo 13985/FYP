@@ -1,0 +1,155 @@
+<head>
+    <link rel="stylesheet" href="./Styles/all.css">
+    <link rel="stylesheet" href="./temp.css">
+</head>
+<body>
+    <header class="row-display" style="display: none;">
+        <nav class="header-nav">
+            <ul id="graph-nav" class="row-display">
+                <li class="header-nav-li"><!------------------------------------Graph pop up-------------------------------------------->
+                    <input type="checkbox" id="graph-popup-set"/>
+                    <div class="nav-li-text-div">
+                        <label for="graph-popup-set">Graph</label>
+                    </div>
+                    <div class="nav-li-popup">
+                        <input type="file" class="nav-li-fixed-color" id="graphupload">
+                        <button type="button" id="graph-choose-button" class="nav-li-button" onclick="document.getElementById('graphupload').click()">Choose</button>
+                        <button type="button" id="graph-upload-button" class="nav-li-button">Upload</button>
+                        <hr>
+                        <p id="graph-VE-status">
+                            |V|:10000<br>|E|:10000
+                        </p>
+                    </div>
+                </li>
+                <li class="header-nav-li"><!------------------------------------Vertex pop up------------------------------------------->
+                    <input type="checkbox" id="vertex-popup-set"/>
+                    <div class="nav-li-text-div">
+                        <label for="vertex-popup-set">Vertex</label>
+                    </div>
+                    <div class="nav-li-popup">
+                        <select class="graph-update" id="vertex-update">
+                            <option class="graph-update-option" value="create">Create</option>
+                            <option class="graph-update-option" value="remove">Remove</option>
+                            <option class="graph-update-option" value="color">Color</option>
+                        </select>
+                        <input class="vertices-input" id="vertex-expand-input" type="text" pattern="(?:\d+\s?)+" max-length="500"/>
+                        <input class="nav-li-set-color" id="vertex-set-color" type="color"/>
+                        <button type="button" id="vertex-update-button" class="nav-li-button">Update</button>
+                    </div>
+                </li>
+                <li class="header-nav-li"><!------------------------------------Edge pop up------------------------------------------->
+                    <input type="checkbox" id="edge-popup-set"/>
+                    <div class="nav-li-text-div">
+                        <label for="edge-popup-set">Edge</label>
+                    </div>
+                    <div class="nav-li-popup">
+                        <select class="graph-update" id="edge-update">
+                            <option class="graph-update-option" value="create">Create</option>
+                            <option class="graph-update-option" value="remove">Remove</option>
+                        </select>
+                        <input class="vertices-input" id="edge-popup-input" type="text" pattern="(?:\d+\s?,\s?\d+\s?)+" max-length="500"/>
+                        <input type="checkbox" id="edge-edit-mode"/>
+                        <label for="edge-edit-mode">Edit Mode</label>
+                        <button type="button" id="edge-update-button" class="nav-li-button">Update</button>
+                    </div>
+                </li>
+            </ul>
+        </nav>
+        <div class="divider-vertical"></div>
+        <nav class="header-nav">
+            <ul id="control-nav" class="row-display">
+                <li class="header-nav-li"><!------------------------------------Camera pop up-------------------------------------------->
+                    <input type="checkbox" id="camera-popup-set"/>
+                    <div class="nav-li-text-div">
+                        <label for="camera-popup-set">Camera</label>
+                    </div>
+                    <div class="nav-li-popup">
+                        <input type="range" class="nav-li-range" id="zoom-slider" step="0.05">
+                        <input type="number" class="vertices-input nav-li-number" id="zoom-typing" step="0.05">
+                        <hr>
+                        <input type="checkbox" id="camera-move-set">
+                        <label for="camera-move-set">Move</label>
+                        <label for="move-speed-control">Sensitivity</label>
+                        <input type="range" class="nav-li-range" id="move-speed-control" step="0.01">
+                        <hr>
+                        <input type="text" class="vertices-input" id="camera-teleport-input"/>
+                        <button type="button" id="camera-teleport-button" class="nav-li-button">Teleport</button>
+                    </div>
+                </li>
+                <li class="header-nav-li"><!------------------------------------Algo pop up------------------------------------------->
+                    <input type="checkbox" id="algo-popup-set"/>
+                    <div class="nav-li-text-div">
+                        <label for="algo-popup-set">Algo</label>
+                    </div>
+                    <div class="nav-li-popup">
+                        <div class="row-display dummy-container">
+                            <select id="from-shell-value" class="nav-li-popup-box"></select>
+                            <select id="to-shell-value" class="nav-li-popup-box"></select>
+                        </div>
+                        <button type="button" class="nav-li-button" id="run-algo">Run</button>
+                        <button type="button" class="nav-li-button" id="stop-algo" disabled>Stop</button>
+                        <hr>
+                        <input type="checkbox" id="partial-results-set" style="display:none;">
+                        <label for="partial-results-set">Result</label>
+                        <hr>
+                        <div style="position:relative;top:0;left:0">
+                            <input type="checkbox" id="show-video-control">
+                            <label for="show-video-control">Control</label>
+                            
+                            <div class="floating-panel" id="video-control">
+                                <div class="panel-top">
+                                    <button type="button">X</button>
+                                </div>
+                                <div class="panel-content video-control">
+                                    <input type="range" class="progress-bar" min="0"/>
+                                    <div class="row-display">
+                                        <div class="row-display">
+                                            <span class="speed-text">Speed:</span><input type="range" class="speed-control" min="0"/>
+                                        </div>
+                                        <button type="button" class="button previousStep" title="previous step">&lt;&lt;</button>
+                                        <button type="button" class="button pause" title="pause/play">&gt;</button>
+                                        <button type="button" class="button nextStep" title="next step">&gt;&gt;</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                        <div style="position:relative;top:0;left:0">
+                            <input type="checkbox" id="show-algo-state">
+                            <label for="show-algo-state">State</label>
+
+                            <div class="floating-panel" id="state-panel">
+                                <div class="panel-top">
+                                    <button type="button">X</button>
+                                </div>
+                                <div class="panel-content">
+                                    <p class="code description">
+                                    </p>
+                                    <p class="step description">
+                                    </p>
+                                    <ul class="pseudo-codes">
+                                    </ul>
+                                    <template>
+                                        <li class="pseudo-code">
+                                            <i class="step-number"></i>
+                                            <code></code>
+                                        </li>
+                                    </template>
+                                </div>
+                            </div>
+                            
+                        </div>
+                    </div>
+                </li>
+            </ul>
+        </nav>
+        
+        <div class="divider-vertical"></div>
+        <div class="theme-button">
+            <input type="checkbox" id="theme-button-set">
+            <label class="theme-button-detect" for="theme-button-set">
+                <div class="theme-button-handle"></div>
+            </label>
+        </div>
+    </header>
+</body>

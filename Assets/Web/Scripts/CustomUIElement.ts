@@ -146,8 +146,8 @@ class GraphWindow{
     constructor(g:Graph){
         this.graph=g;
 
-        (document.getElementById("graph-container") as HTMLElement).appendChild(GraphWindow.template.cloneNode(true));
-        this.container=(document.getElementById("graph-container") as HTMLElement).lastElementChild as HTMLElement;
+        (document.getElementById("graphs-container") as HTMLElement).appendChild(GraphWindow.template.cloneNode(true));
+        this.container=(document.getElementById("graphs-container") as HTMLElement).lastElementChild as HTMLElement;
         this.innerSVG=this.container.querySelector("svg.graph-svg") as SVGElement;
         this.allG=this.innerSVG.querySelector("g.all") as SVGGElement;
 
@@ -170,14 +170,15 @@ class GraphWindow{
         this.container.addEventListener("mouseleave",():void=>{this._isMouseOverContainer=false;});
         this.container.addEventListener("mouseenter",():void=>{this._isMouseOverContainer=true;});
 
+        const control:HTMLDivElement=this.container.querySelector("div.control") as HTMLDivElement;
         {
-            const popup=this.container.querySelector(".control>.camera") as HTMLElement;
+            const expand=control.querySelector("div.camera") as HTMLElement;
             const idstr:string=`bfquiwcycvyqw-${GraphWindow.ID}`;
             let innerId:number=0;
-            popup.querySelector("input.popup-set")?.setAttribute("id",idstr);
-            popup.querySelector(".popup-set-text>label")?.setAttribute("for",idstr);
+            expand.querySelector("input.switch")?.setAttribute("id",idstr);
+            expand.querySelector(".switch.text>label")?.setAttribute("for",idstr);
 
-            const menu=popup.querySelector(".popup-menu") as HTMLElement;
+            const menu=expand.querySelector(".menu") as HTMLElement;
 
             const zoomSlider:HTMLInputElement=<HTMLInputElement>menu.querySelector('input[type="range"].zoom');
             const zoomNumberInput:HTMLInputElement=<HTMLInputElement>menu.querySelector('input[type="number"].zoom');
@@ -242,13 +243,13 @@ class GraphWindow{
             });
         }
         {
-            const popup=this.container.querySelector(".control>.vertex") as HTMLElement;
+            const expand=control.querySelector("div.vertex") as HTMLElement;
             const idstr:string=`enyrdhbae-${GraphWindow.ID}`;
             let innerId:number=0;
-            popup.querySelector("input.popup-set")?.setAttribute("id",idstr);
-            popup.querySelector(".popup-set-text>label")?.setAttribute("for",idstr);
+            expand.querySelector("input.switch")?.setAttribute("id",idstr);
+            expand.querySelector(".switch.text>label")?.setAttribute("for",idstr);
 
-            const menu=popup.querySelector(".popup-menu") as HTMLElement;
+            const menu=expand.querySelector(".menu") as HTMLElement;
             const showIdLabel=menu.querySelector("label.show-id") as HTMLLabelElement;
             const showIdCheckBox=menu.querySelector("input.show-id") as HTMLInputElement;
             showIdLabel.setAttribute("for",`${idstr}-${innerId}`);

@@ -185,8 +185,8 @@ class GraphWindow {
             }
         };
         this.graph = g;
-        document.getElementById("graph-container").appendChild(GraphWindow.template.cloneNode(true));
-        this.container = document.getElementById("graph-container").lastElementChild;
+        document.getElementById("graphs-container").appendChild(GraphWindow.template.cloneNode(true));
+        this.container = document.getElementById("graphs-container").lastElementChild;
         this.innerSVG = this.container.querySelector("svg.graph-svg");
         this.allG = this.innerSVG.querySelector("g.all");
         const svg = d3.select(this.innerSVG)
@@ -203,13 +203,14 @@ class GraphWindow {
         this.forceToY.y(this.height / 2);
         this.container.addEventListener("mouseleave", () => { this._isMouseOverContainer = false; });
         this.container.addEventListener("mouseenter", () => { this._isMouseOverContainer = true; });
+        const control = this.container.querySelector("div.control");
         {
-            const popup = this.container.querySelector(".control>.camera");
+            const expand = control.querySelector("div.camera");
             const idstr = `bfquiwcycvyqw-${GraphWindow.ID}`;
             let innerId = 0;
-            (_a = popup.querySelector("input.popup-set")) === null || _a === void 0 ? void 0 : _a.setAttribute("id", idstr);
-            (_b = popup.querySelector(".popup-set-text>label")) === null || _b === void 0 ? void 0 : _b.setAttribute("for", idstr);
-            const menu = popup.querySelector(".popup-menu");
+            (_a = expand.querySelector("input.switch")) === null || _a === void 0 ? void 0 : _a.setAttribute("id", idstr);
+            (_b = expand.querySelector(".switch.text>label")) === null || _b === void 0 ? void 0 : _b.setAttribute("for", idstr);
+            const menu = expand.querySelector(".menu");
             const zoomSlider = menu.querySelector('input[type="range"].zoom');
             const zoomNumberInput = menu.querySelector('input[type="number"].zoom');
             {
@@ -266,12 +267,12 @@ class GraphWindow {
             });
         }
         {
-            const popup = this.container.querySelector(".control>.vertex");
+            const expand = control.querySelector("div.vertex");
             const idstr = `enyrdhbae-${GraphWindow.ID}`;
             let innerId = 0;
-            (_c = popup.querySelector("input.popup-set")) === null || _c === void 0 ? void 0 : _c.setAttribute("id", idstr);
-            (_d = popup.querySelector(".popup-set-text>label")) === null || _d === void 0 ? void 0 : _d.setAttribute("for", idstr);
-            const menu = popup.querySelector(".popup-menu");
+            (_c = expand.querySelector("input.switch")) === null || _c === void 0 ? void 0 : _c.setAttribute("id", idstr);
+            (_d = expand.querySelector(".switch.text>label")) === null || _d === void 0 ? void 0 : _d.setAttribute("for", idstr);
+            const menu = expand.querySelector(".menu");
             const showIdLabel = menu.querySelector("label.show-id");
             const showIdCheckBox = menu.querySelector("input.show-id");
             showIdLabel.setAttribute("for", `${idstr}-${innerId}`);

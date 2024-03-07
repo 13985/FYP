@@ -1,22 +1,5 @@
-*{
-    box-sizing: border-box;
-}
-
-
-:root{
-    font-size:10px;
-}
-
-
-html,body{
-    padding:0;
-    margin:0;
-    overflow-x: hidden;
-}
-
-
 html{
-    --g-transition-time: 0.4s;
+    --g-transition-time: 0.2s;
     --light-theme-color0:rgb(255,255,255);
     --light-theme-color1:rgb(235,235,235);
     --light-theme-color2:rgb(215,215,215);
@@ -72,14 +55,33 @@ html::-webkit-scrollbar-thumb:active{
 }
 
 
+*{
+    box-sizing: border-box;
+    font-family: monospace, sans-serif;
+}
+
+
+:root{
+    font-size:10px;
+}
+
+
+html,body{
+    padding:0;
+    margin:0;
+    overflow-x: hidden;
+}
+
+
+
+
 body{
     --header-height:80px;
     --main-height:100vh;
-    --footer-height:65px;
+    --footer-height:80px;
 
     scroll-snap-type: y mandatory;
 }
-
 
 
 body>*{
@@ -88,8 +90,255 @@ body>*{
 }
 
 
+.comment{
+    display: none;
+    height: 0;
+    width:0;
+    opacity: 0;
+}
+
+/**********************************************************************************************************
+*
+*                                   helper classes
+*
+**********************************************************************************************************/
+
+/**************************************other classes**********************************/
+
+.hide{
+    display: none;
+}
+
+
+input.slider-0{
+    appearance: none;
+    background-color: var(--main-color1);
+    border: 1.4px solid var(--reverse-color1);
+    overflow: hidden;
+}
+
+
+input.slider-0::-webkit-slider-thumb{
+    appearance: none;
+    min-height: 0.5rem;
+    min-width: 0.5rem;
+    max-width: 10%;
+    background-color: var(--reverse-color1);
+    box-shadow: -1000px 0 0 1000px var(--main-color3);
+}
+
+
+input.slider-0::-webkit-slider-thumb:active{
+    background-color: color-mix(in srgb, red 50%, var(--reverse-color1) 50%);
+}
+
+
 .row-display{
     display: flex;
     flex-direction: row;
     align-items: center;
+}
+
+/*********************************for expandable on hover/pressed*********************/
+
+.expand{
+    position: relative;
+}
+
+
+input.switch{
+    display: none;
+}
+
+
+label.switch{
+    display: block;
+    width: 100%;
+}
+
+
+.switch.text{
+    margin: 0;
+    display: block;
+    text-align: left;
+    color: var(--reverse-color1);
+}
+
+
+.expand:hover .switch.slightly, 
+.switch.slightly:hover{
+    background-color:color-mix(in srgb,rgb(0, 182, 0) 50%,var(--main-color0) 50%);
+}
+
+
+input.switch:checked + .switch.text{
+    background-color:color-mix(in srgb,rgb(0, 182, 0) 80%,var(--main-color0) 20%);
+}
+
+
+.expand>.menu{
+    height: 0;
+    padding: 4px 0;
+    transform: scaleY(0);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+
+.expand:hover>.menu,
+input.switch:checked ~ .menu{
+    height: fit-content;
+    transform-origin: top center;
+    transform: scaleY(1);
+}
+
+
+.menu.indent{
+    padding-left:15%;
+    align-items: flex-start;
+}
+
+
+.menu>*{
+    width:100%;
+    font-size: 1.55rem;
+}
+
+
+.menu>hr{
+    border: none;
+    border-bottom: 1.7px solid var(--reverse-color3);
+    margin: 0;
+}
+
+
+select.graph-update, input.vertices-input, button.button, .menu label.switch.text{
+    background-color: var(--main-color1);
+    border-radius: 0;
+    border: 1.4px solid var(--reverse-color1);
+    padding: 2px 0;
+    outline: none;
+    color:var(--reverse-color1);
+}
+
+
+button.button{
+    cursor: pointer;
+}
+
+
+button.button:disabled{
+    opacity:0.7;
+    cursor: not-allowed;
+}
+
+
+.menu label.switch.text{
+    text-align: center;
+}
+
+
+input.vertices-input{
+    padding: 2px 4px;
+}
+
+
+input.vertices-input:invalid{
+    border-color: red;
+}
+
+
+button.button-reverse:not(:disabled):hover{
+    background-color:var(--reverse-color1);
+    color: var(--main-color1);
+}
+
+
+.graph-update>option{
+    font-size: 1.4rem;
+}
+
+/**********************************************floating panel class*************************************************/
+
+.floating-panel, .floating-panel *{
+    transition: background-color var(--g-transition-time),color var(--g-transition-time), border-color var(--g-transition-time);
+}
+
+
+.floating-panel{
+    background-color: transparent;
+    border: none;
+    padding: 0;
+    color:var(--reverse-color1);
+    position: absolute;
+    transform-origin: left top;
+    transform: scale(0,0);
+    transition: background-color var(--g-transition-time),color var(--g-transition-time), border-color var(--g-transition-time),transform var(--g-transition-time), opacity var(--g-transition-time);
+    z-index:999;
+    opacity:0;
+}
+
+
+.floating-panel-open{
+    position: fixed;
+    transform: scale(1,1);
+    opacity: 1;
+}
+
+
+.floating-panel>*{
+    width:100%;
+    position:relative;
+    top:0;
+    left:0;
+    padding:0;
+}
+
+
+.floating-panel>.panel-top{
+    background-color: var(--reverse-color1);
+    height:25%;
+    min-height:5.2vh;
+    max-height:5.4vh;
+    border: 0;
+    color:var(--main-color1);
+}
+
+
+.floating-panel>.panel-content{
+    background-color: var(--main-color1);
+    height:75%;
+    border:2px solid var(--reverse-color1);
+    border-top:none;
+    display: flex;
+    flex-direction: column;
+}
+
+
+.floating-panel>.panel-top:active{
+    background-color: var(--reverse-color3);
+}
+
+
+.floating-panel>.panel-top>button{
+    --margin:3px;
+    background-color: var(--main-color3);
+    border:0;
+    margin:0;
+    outline: none;
+    text-align: center;
+    color:var(--reverse-color1);
+    position: absolute;
+    top:var(--margin);
+    bottom:var(--margin);
+    right:var(--margin);
+    aspect-ratio: 1;
+}
+
+
+.floating-panel>.panel-top>button:hover{
+    background-color: color-mix(in srgb, red 70%, var(--reverse-color1) 30%);
 }

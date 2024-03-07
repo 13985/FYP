@@ -1,0 +1,287 @@
+nav.side-nav{
+    --color-transition:background-color var(--g-transition-time), border-color var(--g-transition-time), color var(--g-transition-time);
+
+    min-width:8.5rem;
+    max-width: 30vw;
+    width: min-content;
+    padding-right: 1.4rem;
+    position: relative;
+}
+
+
+div.inner{
+    padding-bottom:4rem;
+    z-index: 10;
+}
+
+
+.side-nav>.resizer{
+    min-width:100%;
+    max-width: 100%;
+    position: relative;
+    overflow-x: scroll;
+    resize: horizontal;
+    z-index: 5;
+}
+
+
+.side-nav>.resizer::-webkit-resizer{
+    background-color: var(--main-color2);
+}
+
+
+.side-nav>.resizer::-webkit-scrollbar{
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background-color: var(--main-color4);
+}
+
+
+.side-nav>.resizer::-webkit-scrollbar-button{
+    width:0;
+}
+
+
+nav.side-nav *{
+    transition: var(--color-transition);
+}
+
+
+nav.side-nav>div.inner .expand{
+    border-bottom: 1.1px solid var(--reverse-color2);
+    margin-bottom: 0.46rem;
+}
+
+
+h3.switch{
+    font-weight: normal;
+    font-size: 2.1rem;
+    padding: 0.35rem 0;
+}
+
+
+#graph-nav, #control-nav{
+    list-style: none;
+    height:100%;
+    width:100%;
+    margin:0px;
+    padding:0px;
+}
+
+/**********************************************Graph expand***********************************************************/
+
+#graphupload{
+    margin: 0;
+    border-bottom: 1.5px solid var(--reverse-color1);
+}
+
+
+#graphupload::file-selector-button{
+    display: none;
+}
+
+
+#graph-VE-status{
+    background-color: transparent;
+    margin: 0;
+    font-size: 1.8rem;
+}
+
+/**********************************************Vertex expand**********************************************************/
+
+#vertex-set-color{
+    padding: 0;
+    border-radius: 0;
+    border: 1.4px solid var(--reverse-color1);
+}
+
+
+#vertex-set-color::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+/**********************************************Edge expand************************************************************/
+
+
+
+/**********************************************Animation expand*******************************************************/
+
+#from-shell-value, #to-shell-value{
+    width:100%;
+}
+
+/************************algo Control panel******************************/
+
+#video-control.floating-panel{
+    width:40vw;
+    min-width: 320px;
+    top:calc(100% + 2px);
+    left:-2px;
+    /*
+    transform: scale(1,1);
+    display: block;
+    position: static;
+    margin: auto;
+    opacity: 1;
+    */
+    z-index:110;
+}
+
+
+.video-control.panel-content{
+    padding:6px 10px;
+    gap: 4px;
+    align-items: center;
+}
+
+
+.video-control.panel-content>*{
+    min-height: 2rem;
+}
+
+
+.video-control.panel-content>.row-display{
+    min-height: 2.5rem;
+}
+
+
+.video-control.panel-content>.row-display>*{
+    height:100%;
+}
+
+
+.video-control.panel-content>input.progress-bar{
+    width: 100%;
+}
+
+
+.panel-content.video-control input.progress-bar::-webkit-slider-thumb{
+    width:1.9rem;
+    height:1.9rem;
+}
+
+
+.panel-content.video-control input.speed-control{
+    margin-right: 2vw;
+}
+
+
+.panel-content.video-control input.speed-control::-webkit-slider-thumb{
+    height: 1.6rem;
+    width: 1.6rem;
+}
+
+
+.video-control.panel-content .button{
+    background-color:transparent;
+    margin: 0 0.2rem;
+    border:2px solid var(--reverse-color1);
+    text-align: center;
+    color:var(--reverse-color1);
+}
+
+
+.video-control.panel-content .button:hover{
+    background-color: color-mix(in srgb, rgb(255, 48, 48) 80%, var(--reverse-color1) 20%);
+}
+
+
+button.pause{
+    width:3rem;
+}
+
+
+.video-control.panel-content span.speed-text{
+    font-size: 1.6rem;
+    transition: color 0s;
+}
+
+
+/******************************state panel********************/
+
+
+#state-panel{
+    /*
+    */
+    width: fit-content;
+    height: fit-content;
+    /*
+    display: block;
+    opacity: 1;
+    position:static;
+    transform: scale(1,1);
+    margin: auto;
+    */
+    z-index:100;
+}
+
+
+#state-panel *{
+    transition: color 0s linear , backgorund-color 0s linear , border-color 0s linear;
+}
+
+
+#state-panel>.panel-content{
+    width:clamp(400px,50vw,900px);
+    height: 60vh;
+    overflow-x: auto;
+    overflow-y: auto;
+    resize: both;
+
+    padding: 1rem;
+    align-items: flex-start;
+    gap:1rem;
+}
+
+
+#state-panel>.panel-content>*{
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+
+p.description{
+    font-size: 1.65rem;
+    word-wrap: break-word;
+    word-break: keep-all;
+}
+
+
+p.step{
+    min-height:10vh;
+}
+
+
+ul.pseudo-codes{
+    list-style: none;
+}
+
+
+li.pseudo-code{
+    width:100%;
+    padding: 0.3rem 0;
+}
+
+
+li.pseudo-code>*{
+    display: inline-block;
+    font-size: 1.45rem;
+}
+
+
+.pseudo-code>code{
+    white-space: pre;
+}
+
+
+i.step-number{
+    width:2.1rem;
+    font-weight: 600;
+}
+
+
+li.current-code{
+    background-color: color-mix(in srgb, transparent 70%, red 30%);
+}

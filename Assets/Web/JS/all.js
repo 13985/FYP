@@ -32,7 +32,7 @@ window.onload = () => {
     const scrollBarDarkSytle = document.createElement("style");
     scrollBarDarkSytle.innerText = scrollbarDarkCSS;
     /**************************************************Vertex pop up****************************************************/
-    const vertexPopupInput = document.getElementById("vertex-popup-input");
+    const vertexPopupInput = document.getElementById("vertex-expand-input");
     const vertexSetColor = document.getElementById("vertex-set-color");
     /****************************************************Algo popup **********************************************/
     const fromShell = document.getElementById("from-shell-value");
@@ -154,7 +154,7 @@ window.onload = () => {
     });
     /****************************************************edge popup *****************************************************/
     const edgeUpdateSelect = document.getElementById("edge-update");
-    const edgePopupInput = document.getElementById("edge-popup-input");
+    const edgePopupInput = document.getElementById("edge-expand-input");
     const edgeUpdateButton = document.getElementById("edge-update-button");
     const edgeEditMode = document.getElementById("edge-edit-mode");
     function setEditAction() {
@@ -267,7 +267,7 @@ window.onload = () => {
     });
     */
     /****************************************************Algo popup **********************************************/
-    const visualizationControl = new FloatingPanel("#algo-control", document.getElementById("show-algo-control"));
+    const visualizationControl = new FloatingPanel("#video-control", document.getElementById("show-video-control"));
     const statePanel = new FloatingPanel("#state-panel", document.getElementById("show-algo-state"));
     //const runButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("run-algo"),stopButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("stop-algo");
     const partialResultCheckBos = document.getElementById("partial-results-set");
