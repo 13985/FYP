@@ -1,20 +1,31 @@
 namespace KCliqueAlgorithm{
-    class ConnectedComponent{
-        public vertices:Array<Vertex>=[];
-        public shell:number=-1;
+
+    class KCliqueCC extends GraphAlgorithm.ConnectedComponent{
+        private static readonly pool:GraphAlgorithm.ObjectPool<KCliqueCC>=new GraphAlgorithm.ObjectPool(KCliqueCC);
+
+        public static getPool():GraphAlgorithm.ObjectPool<KCliqueCC>{
+            return KCliqueCC.pool;
+        }
+
+        public clique:number=-1;
         public polygonOpacity:number=0.4;
         public polygon:SVGPolygonElement|null=null;
 
-        constructor(shell:number=1){
-            this.shell=shell;
+        constructor(clique:number=1){
+            super();
+            this.clique=clique;
         }
     }
 
 
-    class KCliqueComponet{
-        public connectedComponents:Array<ConnectedComponent>=[];
+    class KCliqueComponets{
+        public connectedComponents:Array<KCliqueCC>=[];
         public clique:number=-1;
         public color:Color=new Color(0,0,0);
+
+        constructor(clique:number=0){
+            this.clique=clique;
+        }
     }
 
 
@@ -32,10 +43,9 @@ namespace KCliqueAlgorithm{
     /**
      * @brief
      * note that any subgraph of a fully connected graph is also fully connected
-     * 
      */
     export class KClique extends GraphAlgorithm.Algorithm{
-        public readonly kCliqueComponents:KCliqueComponet[]=[];
+        public readonly kCliqueComponents:KCliqueComponets[]=[];
 
         constructor(graph:Graph,svg:SVGSVGElement){
             super(graph,svg);
@@ -87,6 +97,15 @@ namespace KCliqueAlgorithm{
                         then update this clique to k+1, break;
 
             */
+
+            const kc:KCliqueComponets=new KCliqueComponets(0);
+            this.kCliqueComponents.push(kc);
+
+            this.graph.adjacencyList.forEach((vl:VerticeList,v_id:number):void=>{
+                if(vl.others.length<=0){
+
+                }
+            });
 
             return this;
         }

@@ -231,6 +231,45 @@ var GraphAlgorithm;
         setAllEdgesColor(defaultColor) { }
     }
     GraphAlgorithm.Algorithm = Algorithm;
+    class ObjectPool {
+        constructor(iNew, poolCapacity = 128) {
+            this.pool = [];
+            this.iNew = iNew;
+            for (let i = 0; i < poolCapacity; ++i) {
+                this.pool.push(new iNew());
+            }
+        }
+        get() {
+            if (this.pool.length > 0) {
+                return this.pool.pop();
+            }
+            else {
+                return new this.iNew();
+            }
+        }
+        release(t) {
+            t.clear();
+            this.pool.push(t);
+        }
+    }
+    GraphAlgorithm.ObjectPool = ObjectPool;
+    class ConnectedComponent {
+        constructor() {
+            this.vertices = [];
+        }
+        removeVertex(v_id) {
+            for (let i = 0; i < this.vertices.length; ++i) {
+                if (this.vertices[i].id == v_id) {
+                    this.vertices.splice(i, 1);
+                    return;
+                }
+            }
+        }
+        clear() {
+            this.vertices.length = 0;
+        }
+    }
+    GraphAlgorithm.ConnectedComponent = ConnectedComponent;
     /**
      * @brief
      * maintain a data structure as (5 vertex, step=20):

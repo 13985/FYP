@@ -1,20 +1,25 @@
 "use strict";
 var KCliqueAlgorithm;
 (function (KCliqueAlgorithm) {
-    class ConnectedComponent {
-        constructor(shell = 1) {
-            this.vertices = [];
-            this.shell = -1;
+    class KCliqueCC extends GraphAlgorithm.ConnectedComponent {
+        static getPool() {
+            return KCliqueCC.pool;
+        }
+        constructor(clique = 1) {
+            super();
+            this.clique = -1;
             this.polygonOpacity = 0.4;
             this.polygon = null;
-            this.shell = shell;
+            this.clique = clique;
         }
     }
-    class KCliqueComponet {
-        constructor() {
+    KCliqueCC.pool = new GraphAlgorithm.ObjectPool(KCliqueCC);
+    class KCliqueComponets {
+        constructor(clique = 0) {
             this.connectedComponents = [];
             this.clique = -1;
             this.color = new Color(0, 0, 0);
+            this.clique = clique;
         }
     }
     class ConnectedComponetInfo {
@@ -28,7 +33,6 @@ var KCliqueAlgorithm;
     /**
      * @brief
      * note that any subgraph of a fully connected graph is also fully connected
-     *
      */
     class KClique extends GraphAlgorithm.Algorithm {
         constructor(graph, svg) {
@@ -72,6 +76,12 @@ var KCliqueAlgorithm;
                         then update this clique to k+1, break;
 
             */
+            const kc = new KCliqueComponets(0);
+            this.kCliqueComponents.push(kc);
+            this.graph.adjacencyList.forEach((vl, v_id) => {
+                if (vl.others.length <= 0) {
+                }
+            });
             return this;
         }
         createState() {

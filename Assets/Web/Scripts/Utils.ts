@@ -309,6 +309,60 @@ namespace GraphAlgorithm{
     }
 
 
+    export interface IClearable{
+        clear():void;
+    }
+
+
+    export class ObjectPool<T extends IClearable>{
+        private pool:T[]=[];
+        private iNew:new()=>T;
+
+        public constructor(iNew:new()=>T,poolCapacity:number=128){
+            this.iNew=iNew;
+            for(let i:number=0;i<poolCapacity;++i){
+                this.pool.push(new iNew());
+            }
+        }
+
+
+        public get():T{
+            if(this.pool.length>0){
+                return this.pool.pop() as T;
+            }else{
+                return new this.iNew();
+            }
+        }
+
+
+        public release(t:T):void{
+            t.clear();
+            this.pool.push(t);
+        }
+    }
+
+
+    export abstract class ConnectedComponent implements IClearable{
+        public vertices:Vertex[]=[];
+
+        constructor(){}
+
+        public removeVertex(v_id:number):void{
+            for(let i:number=0;i<this.vertices.length;++i){
+                if(this.vertices[i].id==v_id){
+                    this.vertices.splice(i,1);
+                    return;
+                }
+            }
+        }
+
+                
+        clear(): void {
+            this.vertices.length=0;
+        }
+    }
+
+
     /**
      * @brief
      * maintain a data structure as (5 vertex, step=20):

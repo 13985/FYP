@@ -8,20 +8,22 @@ add edge! deature  (bonus during visualzation)
 */
 
 namespace KCoreAlgorithm{
-    class ConnectedComponent{
-        public vertices:Array<Vertex>=[];
+    class KCoreCC extends GraphAlgorithm.ConnectedComponent implements GraphAlgorithm.IClearable{
+        public static readonly pool:GraphAlgorithm.ObjectPool<KCoreCC>=new GraphAlgorithm.ObjectPool<KCoreCC>(KCoreCC);
+
         public shell:number=-1;
         public polygonOpacity:number=0.4;
         public polygon:SVGPolygonElement|null=null;
 
         constructor(shell:number=1){
+            super();
             this.shell=shell;
         }
     }
 
 
     class ShellComponet{
-        public connectedComponents:Array<ConnectedComponent>=[];
+        public connectedComponents:Array<KCoreCC>=[];
         public shell:number=-1;
         public color:Color=new Color(0,0,0);
         public step:number=0;
@@ -48,7 +50,7 @@ namespace KCoreAlgorithm{
         public constructor(step?:number,degree?:number,shell?:number,opacity?:string){
             this.degree=degree!=undefined?degree:0;
             this.step=step!=undefined?step:1;
-            this.opacity=opacity!=undefined?opacity:KCore.opacity;
+            this.opacity=opacity!=undefined?opacity:KCore.OPACITY;
             this.shell=shell!=undefined?shell:-1;
         }
 
@@ -87,12 +89,12 @@ namespace KCoreAlgorithm{
 
 
     export class KCore extends GraphAlgorithm.Algorithm{
-        protected static readonly codeDescripton:string=
+        protected static readonly CODE_DESCRIPTION:string=
 `maintain two set:
 set0: storing all vertices wait for processing
 set1: storing all unprocessed vertices with degree > expored current_core`;
 
-        protected static readonly pseudoCodes:GraphAlgorithm.DescriptionDisplay.PseudoCode[]=[
+        protected static readonly PSEUDO_CODES:GraphAlgorithm.DescriptionDisplay.PseudoCode[]=[
             {code:"push all vertices into set1, set current_core = 0;",step:1},
             {code:"while set1 is not empty :{",step:2},
             {code:"   push all vertices with degree <= current_core to set0;",step:3},
@@ -109,14 +111,14 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             {code:"}",step:undefined},
         ];
         
-        private static readonly processed:number=-2;
+        private static readonly PROCESSED:number=-2;
         public readonly shellComponents:Array<ShellComponet>=[];
 
         /**************************UI******************************************/
         public maxOption:HTMLSelectElement|null;
         public minOption:HTMLSelectElement|null;
 
-        public static readonly opacity:string="0.3";
+        public static readonly OPACITY:string="0.3";
         private readonly polygonsContainer:SVGGElement;
 
         /**************************helper data structures**********************/
@@ -169,8 +171,8 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                 this.states=new State(this.graph);
             }
             GraphAlgorithm.DescriptionDisplay.clearPanel();
-            GraphAlgorithm.DescriptionDisplay.codeDescription.innerText=KCore.codeDescripton;
-            GraphAlgorithm.DescriptionDisplay.setCodes(KCore.pseudoCodes);
+            GraphAlgorithm.DescriptionDisplay.codeDescription.innerText=KCore.CODE_DESCRIPTION;
+            GraphAlgorithm.DescriptionDisplay.setCodes(KCore.PSEUDO_CODES);
 
             this.clearHelpers();
             let currentShell=0,nextShell=1;
@@ -221,7 +223,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                         --degree;
 
                         ++step;
-                        this.states.addDataState(neighbor,new VertexStateInfo(step,degree,undefined,KCore.opacity));
+                        this.states.addDataState(neighbor,new VertexStateInfo(step,degree,undefined,KCore.OPACITY));
                         this.states.addDescriptionState({step:step,codeStep:7,stepDescription:`decrement degree of ${neighbor} from ${degree+1} to ${degree}<br>less than or equal to current_core (${currentShell})? ${degree<=currentShell}`});
 
                         if(degree<=currentShell){
@@ -232,7 +234,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                         }
                     }
                     ++step;
-                    this.states.addDataState(v_id,new VertexStateInfo(step,undefined,currentShell,KCore.opacity));
+                    this.states.addDataState(v_id,new VertexStateInfo(step,undefined,currentShell,KCore.OPACITY));
                 }
                 
                 currentShell=nextShell;
@@ -340,8 +342,9 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             for(let node:number=0;node<this.unionFind.parents.length;++node){
                 if(node!=this.unionFind.parents[node])continue;
                 const info:ConnectedComponetInfo=this.vertexToInfo.get(node) as ConnectedComponetInfo;
-                const sc:ConnectedComponent[]=this.shellComponents[info.shell].connectedComponents;
-                const cc:ConnectedComponent=new ConnectedComponent(info.shell);
+                const sc:KCoreCC[]=this.shellComponents[info.shell].connectedComponents;
+                const cc:KCoreCC=KCoreCC.pool.get();
+                cc.shell=info.shell;
                 info.index=sc.length;
                 cc.vertices.push((this.graph.adjacencyList.get(node) as VerticeList).main);
                 sc.push(cc);
@@ -361,7 +364,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
         protected async animate():Promise<void>{
             GraphAlgorithm.VideoControl.progressBar.setAttribute("max",(this.states as State).maxStep.toString());
             for(const v of this.graph.vertices){
-                (v.circle as SVGCircleElement).setAttribute("opacity",KCore.opacity);
+                (v.circle as SVGCircleElement).setAttribute("opacity",KCore.OPACITY);
             }
             this.setVisualElementsColor(true);
             this.hideVerticesOutsideShells();
@@ -414,7 +417,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
 
         private removeFromSet1(target:number):void{
             this.set0.push(target);
-            this.degrees.set(target,-1);
+            this.degrees.set(target,KCore.PROCESSED);
             const last:number=this.set1[this.set1.length-1];
             const idx:number=this.inSet1.get(target) as number;
             this.set1[idx]=last;
@@ -537,7 +540,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                 }
             }else{
                 for(const v of this.graph.vertices){
-                    if(this.degrees.get(v.id) as number!=KCore.processed){
+                    if(this.degrees.get(v.id) as number!=KCore.PROCESSED){
                         (v.circle as SVGCircleElement).setAttribute("fill","var(--reverse-color2)");
                     }
                 }
@@ -571,7 +574,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
 
         public refreshPolygons(vertex:Vertex):void{
             const info:ConnectedComponetInfo=this.vertexToInfo.get(vertex.id) as ConnectedComponetInfo;
-            const cc:ConnectedComponent=this.shellComponents[info.shell].connectedComponents[info.index];
+            const cc:KCoreCC=this.shellComponents[info.shell].connectedComponents[info.index];
             ConvesHull.Solve(cc,this.svgContainer);
         }
 
@@ -625,36 +628,44 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
         }
 
 
-        public addVertex(a: number) {
-            this.graph.addVertex(a);
+        public addVertex(a:number):void{
+            const v:Vertex|null=this.graph.addVertex(a);
+            if(v==null){return;}
+
+            const sc:ShellComponet=this.shellComponents[0];
+            const info:ConnectedComponetInfo=new ConnectedComponetInfo(0,sc.connectedComponents.length);
+            const cc:KCoreCC=KCoreCC.pool.get();
+            sc.connectedComponents.push(cc);
+            cc.shell=0;
+            this.setPolygon(cc,sc);
+            cc.vertices.push(v);
+            v.setColor(sc.color);
         }
 
 
-        public removeVertex(a: number){
+        public removeVertex(a:number):void{
             if(this.graph.removeVertex(a)==null){
                 return;
             }
             const info:ConnectedComponetInfo=this.vertexToInfo.get(a) as ConnectedComponetInfo;
-            const cc:ConnectedComponent=this.shellComponents[info.shell].connectedComponents[info.index];
-            for(let i:number=0;i<cc.vertices.length;++i){
-                if(cc.vertices[i].id==a){
-                    cc.vertices.splice(i,1);
-                }
-            }
+            const cc:KCoreCC=this.shellComponents[info.shell].connectedComponents[info.index];
+            cc.removeVertex(a);
             this.KCore_ConnectedComponent(info);
+            this.vertexToInfo.delete(a);
         }
 
 
-        private removeComponent(shellComponent:ShellComponet,idx:number,setIndex:boolean=false):ConnectedComponent{
-            const last:ConnectedComponent=shellComponent.connectedComponents[shellComponent.connectedComponents.length-1];
-            const ret:ConnectedComponent=shellComponent.connectedComponents[idx];
-            if(setIndex){
+        private removeComponent(shellComponent:ShellComponet,idx:number,setIndex:boolean=false):KCoreCC{
+            const ret:KCoreCC=shellComponent.connectedComponents[idx];
+            const lastIdx:number=shellComponent.connectedComponents.length-1;
+            if(setIndex&&idx<lastIdx){
+                const last:KCoreCC=shellComponent.connectedComponents[lastIdx];
                 for(const v of last.vertices){
                     const ccIdx:ConnectedComponetInfo=this.vertexToInfo.get(v.id) as ConnectedComponetInfo;
                     ccIdx.index=idx;
-                }//set the last first, just in case last==idx1, all indices of vertices will still be correctly setted after this
+                }
+                shellComponent.connectedComponents[idx]=last;
             }
-            shellComponent.connectedComponents[idx]=last;
             shellComponent.connectedComponents.pop();
             ret.polygon?.remove();
             return ret;
@@ -667,35 +678,36 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                 idx0=idx1;
                 idx1=temp;
             }
-            const a:ConnectedComponent=shellComponent.connectedComponents[idx0];
-            const b:ConnectedComponent=this.removeComponent(shellComponent,idx1,true);
+            const a:KCoreCC=shellComponent.connectedComponents[idx0];
+            const b:KCoreCC=this.removeComponent(shellComponent,idx1,true);
             
             for(const v of b.vertices){
                 a.vertices.push(v);
                 const ccIdx:ConnectedComponetInfo=this.vertexToInfo.get(v.id) as ConnectedComponetInfo;
                 ccIdx.index=idx0;
             }
+            KCoreCC.pool.release(b);
         }
 
 
         private KCore_ConnectedComponent(theInfo:ConnectedComponetInfo):void{
-            const cc:ConnectedComponent=this.shellComponents[theInfo.shell].connectedComponents[theInfo.index];
+            const theCC:KCoreCC=this.shellComponents[theInfo.shell].connectedComponents[theInfo.index];
             this.unionFind.set(this.graph.vertices.length);
             this.clearHelpers();
             let minDegree:number=Number.MAX_SAFE_INTEGER;
             const orginalShell:number=theInfo.shell;//copy the shell, since info will be change while iteration
 
-            for(const v of cc.vertices){//find the minimum degree of vertex
+            for(const v of theCC.vertices){//find the minimum degree of vertex
                 let d:number=0;
                 for(const other of (v.list as VerticeList).others){
-                    if((this.vertexToInfo.get(other) as ConnectedComponetInfo).shell>=cc.shell){
+                    if((this.vertexToInfo.get(other) as ConnectedComponetInfo).shell>=theCC.shell){
                         ++d;
                     }
                 }
                 this.degrees.set(v.id,d);
                 minDegree=Math.min(minDegree,d);
             }
-            for(const v of cc.vertices){//group the vertices
+            for(const v of theCC.vertices){//group the vertices
                 if((this.degrees.get(v.id) as number)<=minDegree){
                     this.set0.push(v.id);
                     this.degrees.set(v.id,-1);
@@ -751,7 +763,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             }
             this.degrees.clear();
             this.unionFind.flatten();
-            this.removeComponent(this.shellComponents[orginalShell],theInfo.index,true);//the index of info did got changed
+            this.removeComponent(this.shellComponents[orginalShell],theInfo.index,true);//the index of info did got changed, actually remove theCC
 
             //for storing the vertices
             const oldShell:number[]=this.set0;
@@ -768,20 +780,21 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             }
             
             //parents create the connected component
-            for(const v of cc.vertices){//separate the vertex into two group depend on if their shell change
+            for(const v of theCC.vertices){//separate the vertex into two group depend on if their shell change
                 const info:ConnectedComponetInfo=this.vertexToInfo.get(v.id) as ConnectedComponetInfo;
-                if(info.shell!=cc.shell){
+                if(info.shell!=theCC.shell){
                     newShell.push(v.id);
                     if(v.id!=this.unionFind.parents[v.id])continue;
                 }else{
                     oldShell.push(v.id);
                     if(v.id!=this.unionFind.parents[v.id])continue;
                 }
-                const sc:ConnectedComponent[]=this.shellComponents[info.shell].connectedComponents;
-                const cc_:ConnectedComponent=new ConnectedComponent(info.shell);
+                const sc:KCoreCC[]=this.shellComponents[info.shell].connectedComponents;
+                const cc:KCoreCC=KCoreCC.pool.get();
+                cc.shell=info.shell;
                 info.index=sc.length;
-                cc_.vertices.push(v);
-                sc.push(cc_);
+                cc.vertices.push(v);
+                sc.push(cc);
             }
 
             for(const v of oldShell){//load the vertex that shell doesnt got changed
@@ -796,7 +809,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                 if(v!=this.unionFind.parents[v])continue;
                 const info:ConnectedComponetInfo=this.vertexToInfo.get(v) as ConnectedComponetInfo;
                 const sc:ShellComponet=this.shellComponents[info.shell];
-                const cc:ConnectedComponent=sc.connectedComponents[info.index];
+                const cc:KCoreCC=sc.connectedComponents[info.index];
                 this.setPolygon(cc,sc);
                 ConvesHull.Solve(cc,this.svgContainer);
             }
@@ -817,7 +830,6 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                     }
                 }
     
-    
                 for(const v of newShell){//load the vertices of new shell
                     inNewShell.set(v,0);
                     if(v==this.unionFind.parents[v])continue;
@@ -827,12 +839,11 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                     info.index=parentInfo.index;
                 }
     
-    
                 for(const v of newShell){//find all other connected components that can be merged
                     if(v!=this.unionFind.parents[v]){continue;}
                     const parentInfo:ConnectedComponetInfo=this.vertexToInfo.get(v) as ConnectedComponetInfo;
                     const sc:ShellComponet=this.shellComponents[parentInfo.shell];
-                    const cc:ConnectedComponent=sc.connectedComponents[parentInfo.index];//search the component
+                    const cc:KCoreCC=sc.connectedComponents[parentInfo.index];//search the component
     
                     otherCCIndices.length=0;
                     otherCCIndices.push(parentInfo.index);
@@ -847,8 +858,8 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                         }
                     }
     
-                    otherCCIndices.sort((a:number,b:number):number=>{return a-b;});
-                    {
+                    if(otherCCIndices.length>1){
+                        otherCCIndices.sort((a:number,b:number):number=>{return a-b;});
                         let len=0;
                         for(let i:number=0,j:number;i<otherCCIndices.length;i=j){
                             for(j=i+1;j<otherCCIndices.length&&otherCCIndices[i]==otherCCIndices[j];++j){}
@@ -856,25 +867,28 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                         }
                         otherCCIndices.length=len;
                     }
+
                     const minIndex:number=otherCCIndices[0];
-                    const minCC:ConnectedComponent=this.shellComponents[parentInfo.shell].connectedComponents[minIndex];
+                    const minCC:KCoreCC=this.shellComponents[parentInfo.shell].connectedComponents[minIndex];
                     for(let i:number=otherCCIndices.length-1;i>0;--i){
-                        const otherCC:ConnectedComponent=this.removeComponent(sc,otherCCIndices[i],true);
+                        const otherCC:KCoreCC=this.removeComponent(sc,otherCCIndices[i],true);
                         for(const v of otherCC.vertices){
                             const info:ConnectedComponetInfo=this.vertexToInfo.get(v.id) as ConnectedComponetInfo;
                             info.index=minIndex;
                             minCC.vertices.push(v);
                         }
+                        KCoreCC.pool.release(otherCC);
                     }
                     this.setPolygon(minCC,sc);
                     ConvesHull.Solve(minCC,this.svgContainer);
                 }
             }
+            KCoreCC.pool.release(theCC);
             this.checkCCs();
         }
 
 
-        private setPolygon(cc:ConnectedComponent,sc:ShellComponet):void{
+        private setPolygon(cc:KCoreCC,sc:ShellComponet):void{
             if(cc.vertices.length<3){
                 return;
             }
@@ -895,11 +909,11 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             for(let shell=0;shell<this.shellComponents.length;++shell){
                 const sc:ShellComponet=this.shellComponents[shell];
                 for(let i=0;i<sc.connectedComponents.length;++i){
-                    const cc:ConnectedComponent=sc.connectedComponents[i];
+                    const cc:KCoreCC=sc.connectedComponents[i];
                     for(const v of cc.vertices){
                         const info:ConnectedComponetInfo=this.vertexToInfo.get(v.id) as ConnectedComponetInfo;
                         if(info.shell!=shell||info.index!=i){
-                            console.log(`fail at ${shell} ${i} of ${v.id} (incorrect values: ${info.shell} ${info.index})`);
+                            console.log(`fail at (stored in) shell:${shell} cc idx:${i} of v:${v.id} (incorrect values: shell:${info.shell} idx:${info.index})`);
                             throw  new Error();
                         }
                     }
@@ -908,7 +922,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
 
             for(const v of this.graph.vertices){
                 const info:ConnectedComponetInfo=this.vertexToInfo.get(v.id) as ConnectedComponetInfo;
-                const cc:ConnectedComponent=this.shellComponents[info.shell].connectedComponents[info.index];
+                const cc:KCoreCC=this.shellComponents[info.shell].connectedComponents[info.index];
                 let have:boolean=false;
                 for(const _v of cc.vertices){
                     if(v.id==_v.id){
@@ -917,7 +931,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                     }
                 }
                 if(have==false){
-                    console.log(`fail at ${v.id} (incorrect values: ${info.shell} ${info.index})`);
+                    console.log(`fail at ${v.id} (incorrect values: shell:${info.shell} idx:${info.index})`);
                     throw new Error();
                 }
             }
@@ -944,7 +958,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
         }
 
 
-        public static Solve(cc:ConnectedComponent,svg:SVGSVGElement):void{
+        public static Solve(cc:KCoreCC,svg:SVGSVGElement):void{
             if(cc.vertices.length<3){
                 return;
             }
