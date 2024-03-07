@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
     <title>Test</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/regular.min.css">
     <link rel="stylesheet" href="./Styles/header.css">
     <link rel="stylesheet" href="./Styles/all.css">
     <link rel="stylesheet" href="./Styles/main.css">
@@ -16,7 +18,7 @@
     <script src="./JS/KCore.js"></script>
     <script src="./JS/CustomUIElement.js"></script>
 </head>
-<body>      
+<body>
     <header>
         <div class="theme-button">
             <input type="checkbox" id="theme-button-set">
@@ -124,14 +126,14 @@
                                         <button type="button">X</button>
                                     </div>
                                     <div class="panel-content video-control">
-                                        <input type="range" class="progress-bar" min="0"/>
+                                        <input type="range" class="progress-bar slider-0" min="0"/>
                                         <div class="row-display">
                                             <div class="row-display">
-                                                <span class="speed-text">Speed:</span><input type="range" class="speed-control" min="0"/>
+                                                <span class="speed-text">Speed:</span><input type="range" class="speed-control slider-0" min="0"/>
                                             </div>
-                                            <button type="button" class="button previousStep" title="previous step">&lt;&lt;</button>
-                                            <button type="button" class="button pause" title="pause/play">&gt;</button>
-                                            <button type="button" class="button nextStep" title="next step">&gt;&gt;</button>
+                                            <button type="button" class="button button-reverse previousStep" title="previous step">&lt;&lt;</button>
+                                            <button type="button" class="button button-reverse pause" title="pause/play">&gt;</button>
+                                            <button type="button" class="button button-reverse nextStep" title="next step">&gt;&gt;</button>
                                         </div>
                                     </div>
                                 </div>

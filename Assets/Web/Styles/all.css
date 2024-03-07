@@ -55,9 +55,13 @@ html::-webkit-scrollbar-thumb:active{
 }
 
 
+*:not(i){
+    font-family: monospace, sans-serif;
+}
+
+
 *{
     box-sizing: border-box;
-    font-family: monospace, sans-serif;
 }
 
 
@@ -163,6 +167,12 @@ label.switch{
     text-align: left;
     color: var(--reverse-color1);
 }
+
+/*
+.expand:hover label>i{transition: transform 0.2s;}
+
+.expand:hover label>i{transform: rotate(180deg);}
+*/
 
 
 .expand:hover .switch.slightly, 

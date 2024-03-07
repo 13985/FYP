@@ -1,11 +1,12 @@
 nav.side-nav{
     --color-transition:background-color var(--g-transition-time), border-color var(--g-transition-time), color var(--g-transition-time);
 
-    min-width:8.5rem;
+    min-width:4rem;
     max-width: 30vw;
     width: min-content;
-    padding-right: 1.4rem;
+    padding-right: 1rem;
     position: relative;
+    overflow-x: hidden;
 }
 
 
@@ -74,6 +75,7 @@ h3.switch{
 #graphupload{
     margin: 0;
     border-bottom: 1.5px solid var(--reverse-color1);
+    color: var(--reverse-color1);
 }
 
 
@@ -86,6 +88,7 @@ h3.switch{
     background-color: transparent;
     margin: 0;
     font-size: 1.8rem;
+    color: var(--reverse-color1);
 }
 
 /**********************************************Vertex expand**********************************************************/
@@ -176,19 +179,7 @@ h3.switch{
 .video-control.panel-content .button{
     background-color:transparent;
     margin: 0 0.2rem;
-    border:2px solid var(--reverse-color1);
-    text-align: center;
-    color:var(--reverse-color1);
-}
-
-
-.video-control.panel-content .button:hover{
-    background-color: color-mix(in srgb, rgb(255, 48, 48) 80%, var(--reverse-color1) 20%);
-}
-
-
-button.pause{
-    width:3rem;
+    width:2.4rem;
 }
 
 

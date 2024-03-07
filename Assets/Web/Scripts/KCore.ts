@@ -24,6 +24,7 @@ namespace KCoreAlgorithm{
         public connectedComponents:Array<ConnectedComponent>=[];
         public shell:number=-1;
         public color:Color=new Color(0,0,0);
+        public step:number=0;
     }
 
 
@@ -193,7 +194,8 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             
             while(true){
                 ++step;
-                this.states.addDescriptionState({step:step,codeStep:2,stepDescription:`set1.length ${this.set1.length}`});
+                this.shellComponents[currentShell].step=step;
+                this.states.addDescriptionState({step:step,codeStep:2,stepDescription:`set1.length:${this.set1.length} current_core:${currentShell}`});
 
                 while(this.set0.length>0){
                     const v_id:number=<number>this.set0.pop();
@@ -237,10 +239,10 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                 if(this.set1.length<=0){
                     break;
                 }
-
+                
                 ++step;
                 this.states.addDescriptionState({step:step,codeStep:9,stepDescription:`increment current_core ${currentShell}`});
-
+                                
                 nextShell=currentShell+1;
                 for(let i:number=0;i<this.set1.length;){
                     const d:number=this.degrees.get(this.set1[i]) as number;
@@ -367,6 +369,11 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             if(this.states==undefined){return;}
             let vertexInfos:VertexStateInfo[]|null;
             this.states.resetStep();
+
+            const minShell:number=parseInt((this.minOption as HTMLSelectElement).value);
+            const maxShell:number=parseInt((this.maxOption as HTMLSelectElement).value);
+            const maxStep:number=maxShell>=this.shellComponents.length?Number.MAX_SAFE_INTEGER:this.shellComponents[maxShell+1].step;
+            const minStep:number=this.shellComponents[maxShell].step;
 
             AnimtaionLoop:while(true){
                 const vsc:GraphAlgorithm.VideoControlStatus=await this.waitfor();
