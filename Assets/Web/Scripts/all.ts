@@ -11,7 +11,7 @@ window.onload=():void=>{
     /***********************************************window 1******************************/
     const gw:GraphWindow=new GraphWindow(graph).setWH(550,600);
     const resultGW:GraphWindow=new GraphWindow(resultGraph).setWH(550,600);
-    gw.display(false);
+    //gw.display(false);
 
     const kCore:KCoreAlgorithm.KCore=new KCoreAlgorithm.KCore(graph,gw.innerSVG as SVGSVGElement,gw.allG);
     const resultKCore:KCoreAlgorithm.KCore=new KCoreAlgorithm.KCore(resultGraph,resultGW.innerSVG as SVGSVGElement,resultGW.allG);

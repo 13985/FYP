@@ -177,9 +177,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             this.clearHelpers();
             let currentShell=0,nextShell=1;
             let step:number=0;
-            this.states.addDescriptionState(
-                {step:step,codeStep:1,stepDescription:"initization"}
-            );
+            this.states.addDescriptionState({step:step,codeStep:1,stepDescription:"initization"});
 
             this.graph.adjacencyList.forEach((vl:VerticeList,k:number):void=>{
                 if(vl.others.length<=0){
@@ -198,6 +196,8 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                 ++step;
                 this.shellComponents[currentShell].step=step;
                 this.states.addDescriptionState({step:step,codeStep:2,stepDescription:`set1.length:${this.set1.length} current_core:${currentShell}`});
+                ++step;
+                this.states.addDescriptionState({step:step,codeStep:3,stepDescription:`push vertices with degree < ${currentShell} to set0`});
 
                 while(this.set0.length>0){
                     const v_id:number=<number>this.set0.pop();
@@ -223,7 +223,6 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                         --degree;
 
                         ++step;
-                        this.states.addDataState(neighbor,new VertexStateInfo(step,degree,undefined,KCore.OPACITY));
                         this.states.addDescriptionState({step:step,codeStep:7,stepDescription:`decrement degree of ${neighbor} from ${degree+1} to ${degree}<br>less than or equal to current_core (${currentShell})? ${degree<=currentShell}`});
 
                         if(degree<=currentShell){
@@ -232,6 +231,8 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                             nextShell=Math.min(nextShell,degree);
                             this.degrees.set(neighbor,degree);
                         }
+                        ++step;
+                        this.states.addDataState(neighbor,new VertexStateInfo(step,degree,undefined,KCore.OPACITY));
                     }
                     ++step;
                     this.states.addDataState(v_id,new VertexStateInfo(step,undefined,currentShell,KCore.OPACITY));
@@ -380,8 +381,14 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
 
             const minShell:number=parseInt((this.minOption as HTMLSelectElement).value);
             const maxShell:number=parseInt((this.maxOption as HTMLSelectElement).value);
-            const maxStep:number=maxShell>=this.shellComponents.length?Number.MAX_SAFE_INTEGER:this.shellComponents[maxShell+1].step;
-            const minStep:number=this.shellComponents[maxShell].step;
+            const maxStep:number=maxShell+1>=this.shellComponents.length?Number.MAX_SAFE_INTEGER:this.shellComponents[maxShell+1].step;
+            
+            if(minShell>0){
+                const minStep:number=this.shellComponents[minShell].step;
+                vertexInfos=this.states.randomStep(minStep);
+                GraphAlgorithm.VideoControl.progressBar.valueAsNumber=minStep;
+                this.setAnimationDisplay(vertexInfos,this.states.currentDescriptionState());
+            }
 
             AnimtaionLoop:while(true){
                 const vsc:GraphAlgorithm.VideoControlStatus=await this.waitfor();
@@ -411,6 +418,9 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                     break;
                 }
                 GraphAlgorithm.VideoControl.progressBar.valueAsNumber=this.states.currentStep;
+                if(this.states.currentStep>maxStep){
+                    break AnimtaionLoop;
+                }
             }
 
             for(const v of this.graph.vertices){
@@ -556,8 +566,8 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
 
         private hideVerticesOutsideShells():void{
             const min:number=parseInt((this.minOption as HTMLSelectElement).value),max:number=parseInt((this.maxOption as HTMLSelectElement).value);
-            this.displayVerticesInRange(0,min,false);//then for the edge connected to outside shell, hide them
             this.displayVerticesInRange(min,max+1,true);//set the edges visible first (some edge may connected to outside shell)
+            this.displayVerticesInRange(0,min,false);//then for the edge connected to outside shell, hide them
             this.displayVerticesInRange(max+1,this.shellComponents.length,false);
         }
 

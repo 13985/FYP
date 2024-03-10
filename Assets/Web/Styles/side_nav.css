@@ -196,12 +196,12 @@ h3.switch{
     width: fit-content;
     height: fit-content;
     /*
-    */
     display: block;
     opacity: 1;
     position:static;
     transform: scale(1,1);
     margin: auto;
+    */
     z-index:100;
 }
 

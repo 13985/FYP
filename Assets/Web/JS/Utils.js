@@ -30,19 +30,19 @@ var GraphAlgorithm;
             DescriptionDisplay.panel = panel_;
             codesUl = DescriptionDisplay.panel.contentDiv.querySelector("ul.pseudo-codes");
             DescriptionDisplay.codeDescription = DescriptionDisplay.panel.contentDiv.querySelector("p.code.description");
-            DescriptionDisplay.stepsDescription = DescriptionDisplay.panel.contentDiv.querySelector("ul.steps.description");
+            DescriptionDisplay.stepDescription = DescriptionDisplay.panel.contentDiv.querySelector("ul.steps.description");
         }
         DescriptionDisplay.main = main;
         function reset() {
             for (const pc of pseudoCodes) {
                 pc.li.classList.toggle("current-code", false);
             }
-            DescriptionDisplay.stepsDescription.innerText = "";
+            DescriptionDisplay.stepDescription.innerText = "";
         }
         DescriptionDisplay.reset = reset;
         function clearPanel() {
             DescriptionDisplay.codeDescription.innerHTML = "";
-            //DescriptionDisplay.stepsDescription.innerHTML = "";
+            DescriptionDisplay.stepDescription.innerHTML = "";
             codesUl.innerHTML = "";
             pseudoCodes = null;
         }

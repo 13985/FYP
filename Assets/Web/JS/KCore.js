@@ -142,6 +142,8 @@ var KCoreAlgorithm;
                 ++step;
                 this.shellComponents[currentShell].step = step;
                 this.states.addDescriptionState({ step: step, codeStep: 2, stepDescription: `set1.length:${this.set1.length} current_core:${currentShell}` });
+                ++step;
+                this.states.addDescriptionState({ step: step, codeStep: 3, stepDescription: `push vertices with degree < ${currentShell} to set0` });
                 while (this.set0.length > 0) {
                     const v_id = this.set0.pop();
                     const vl = this.graph.adjacencyList.get(v_id);
@@ -160,7 +162,6 @@ var KCoreAlgorithm;
                         this.states.addDataState(neighbor, new VertexStateInfo(step, degree, undefined, "1"));
                         --degree;
                         ++step;
-                        this.states.addDataState(neighbor, new VertexStateInfo(step, degree, undefined, KCore.OPACITY));
                         this.states.addDescriptionState({ step: step, codeStep: 7, stepDescription: `decrement degree of ${neighbor} from ${degree + 1} to ${degree}<br>less than or equal to current_core (${currentShell})? ${degree <= currentShell}` });
                         if (degree <= currentShell) {
                             this.removeFromSet1(neighbor);
@@ -169,6 +170,8 @@ var KCoreAlgorithm;
                             nextShell = Math.min(nextShell, degree);
                             this.degrees.set(neighbor, degree);
                         }
+                        ++step;
+                        this.states.addDataState(neighbor, new VertexStateInfo(step, degree, undefined, KCore.OPACITY));
                     }
                     ++step;
                     this.states.addDataState(v_id, new VertexStateInfo(step, undefined, currentShell, KCore.OPACITY));
@@ -307,8 +310,13 @@ var KCoreAlgorithm;
                 this.states.resetStep();
                 const minShell = parseInt(this.minOption.value);
                 const maxShell = parseInt(this.maxOption.value);
-                const maxStep = maxShell >= this.shellComponents.length ? Number.MAX_SAFE_INTEGER : this.shellComponents[maxShell + 1].step;
-                const minStep = this.shellComponents[maxShell].step;
+                const maxStep = maxShell + 1 >= this.shellComponents.length ? Number.MAX_SAFE_INTEGER : this.shellComponents[maxShell + 1].step;
+                if (minShell > 0) {
+                    const minStep = this.shellComponents[minShell].step;
+                    vertexInfos = this.states.randomStep(minStep);
+                    GraphAlgorithm.VideoControl.progressBar.valueAsNumber = minStep;
+                    this.setAnimationDisplay(vertexInfos, this.states.currentDescriptionState());
+                }
                 AnimtaionLoop: while (true) {
                     const vsc = yield this.waitfor();
                     switch (vsc) {
@@ -337,6 +345,9 @@ var KCoreAlgorithm;
                             break;
                     }
                     GraphAlgorithm.VideoControl.progressBar.valueAsNumber = this.states.currentStep;
+                    if (this.states.currentStep > maxStep) {
+                        break AnimtaionLoop;
+                    }
                 }
                 for (const v of this.graph.vertices) {
                     v.circle.setAttribute("opacity", "1");
@@ -409,7 +420,7 @@ var KCoreAlgorithm;
                 }
             }
             GraphAlgorithm.DescriptionDisplay.highlightCode(descriptionInfo.codeStep);
-            GraphAlgorithm.DescriptionDisplay.stepsDescription.innerHTML = descriptionInfo.stepDescription;
+            GraphAlgorithm.DescriptionDisplay.stepDescription.innerHTML = descriptionInfo.stepDescription;
         }
         setVisualElementsColor(defaultColor) {
             var _a, _b;
@@ -470,8 +481,8 @@ var KCoreAlgorithm;
         }
         hideVerticesOutsideShells() {
             const min = parseInt(this.minOption.value), max = parseInt(this.maxOption.value);
-            this.displayVerticesInRange(0, min, false); //then for the edge connected to outside shell, hide them
             this.displayVerticesInRange(min, max + 1, true); //set the edges visible first (some edge may connected to outside shell)
+            this.displayVerticesInRange(0, min, false); //then for the edge connected to outside shell, hide them
             this.displayVerticesInRange(max + 1, this.shellComponents.length, false);
         }
         displayPolygons(show) {

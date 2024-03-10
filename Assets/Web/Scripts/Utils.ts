@@ -36,7 +36,7 @@ namespace GraphAlgorithm{
 
         export let panel:FloatingPanel;
         export let codeDescription:HTMLParagraphElement;
-        export let stepDescription:HTMLParagraphElement;
+        export let stepDescription:HTMLUListElement;
         let codesUl:HTMLUListElement;
 
         let pseudoCodes:PseudoCode[]|null;
@@ -46,7 +46,7 @@ namespace GraphAlgorithm{
             panel=panel_;
             codesUl=panel.contentDiv.querySelector("ul.pseudo-codes") as HTMLUListElement;
             codeDescription=panel.contentDiv.querySelector("p.code.description") as HTMLParagraphElement;
-            stepDescription=panel.contentDiv.querySelector("p.step.description") as HTMLParagraphElement;
+            stepDescription=panel.contentDiv.querySelector("ul.steps.description") as HTMLUListElement;
         }
 
 
