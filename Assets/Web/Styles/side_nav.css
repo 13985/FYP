@@ -171,8 +171,8 @@ h3.switch{
 
 
 .panel-content.video-control input.speed-control::-webkit-slider-thumb{
-    height: 1.6rem;
-    width: 1.6rem;
+    height: 1.5rem;
+    width: 1.5rem;
 }
 
 
@@ -192,18 +192,16 @@ h3.switch{
 /******************************state panel********************/
 
 
-#state-panel{
-    /*
-    */
+#state-panel.floating-panel{
     width: fit-content;
     height: fit-content;
     /*
+    */
     display: block;
     opacity: 1;
     position:static;
     transform: scale(1,1);
     margin: auto;
-    */
     z-index:100;
 }
 
@@ -240,25 +238,15 @@ p.description{
 }
 
 
-p.step{
-    min-height:10vh;
-}
-
-
-ul.pseudo-codes{
-    list-style: none;
-}
-
-
-li.pseudo-code{
+li.pseudo-code, li.step{
     width:100%;
     padding: 0.3rem 0;
+    font-size: 1.45rem;
 }
 
 
 li.pseudo-code>*{
     display: inline-block;
-    font-size: 1.45rem;
 }
 
 

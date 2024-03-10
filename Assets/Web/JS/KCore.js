@@ -28,7 +28,6 @@ var KCoreAlgorithm;
         }
     }
     KCoreCC.pool = new GraphAlgorithm.ObjectPool(KCoreCC);
-    KCoreAlgorithm.KCoreCC=KCoreCC;
     class ShellComponet {
         constructor() {
             this.connectedComponents = [];
@@ -410,7 +409,7 @@ var KCoreAlgorithm;
                 }
             }
             GraphAlgorithm.DescriptionDisplay.highlightCode(descriptionInfo.codeStep);
-            GraphAlgorithm.DescriptionDisplay.stepDescription.innerHTML = descriptionInfo.stepDescription;
+            GraphAlgorithm.DescriptionDisplay.stepsDescription.innerHTML = descriptionInfo.stepDescription;
         }
         setVisualElementsColor(defaultColor) {
             var _a, _b;

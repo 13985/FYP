@@ -28,6 +28,41 @@
         </div>
     </header>
 
+
+    <div class="floating-panel" id="state-panel">
+        <div class="panel-top">
+            <button type="button">X</button>
+        </div>
+        <div class="panel-content">
+            <p class="code description">
+            </p>
+            <ul class="steps description">
+                <li class="step">
+                    AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                </li>
+                <li class="step">
+                    AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                </li>
+                <li class="step">
+                    AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                </li>
+            </ul>
+            <template>
+                <li class="step">
+                </li>
+            </template>
+
+            <ul class="pseudo-codes">
+            </ul>
+            <template>
+                <li class="pseudo-code">
+                    <i class="step-number"></i>
+                    <code></code>
+                </li>
+            </template>
+        </div>
+    </div>
+
     <main class="row-display container">
         <nav class="column-display side-nav">
             <div class="inner">
@@ -143,26 +178,6 @@
                                 <input type="checkbox" id="show-algo-state" class="switch">
                                 <label for="show-algo-state" class="switch text">State</label>
         
-                                <div class="floating-panel" id="state-panel">
-                                    <div class="panel-top">
-                                        <button type="button">X</button>
-                                    </div>
-                                    <div class="panel-content">
-                                        <p class="code description">
-                                        </p>
-                                        <p class="step description">
-                                        </p>
-                                        <ul class="pseudo-codes">
-                                        </ul>
-                                        <template>
-                                            <li class="pseudo-code">
-                                                <i class="step-number"></i>
-                                                <code></code>
-                                            </li>
-                                        </template>
-                                    </div>
-                                </div>
-                                
                             </div>
                         </div>
                     </li>
@@ -173,6 +188,7 @@
                 after some experience, seems that the handle of ::resize cant be styled to full width
             </p>
         </nav>
+        
         
         <div id="graphs-container" class="row-display">
             <template id="graph-window-template">

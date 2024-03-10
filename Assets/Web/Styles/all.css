@@ -77,8 +77,6 @@ html,body{
 }
 
 
-
-
 body{
     --header-height:80px;
     --main-height:100vh;
@@ -91,6 +89,11 @@ body{
 body>*{
     width:100%;
     scroll-snap-align: start;
+}
+
+
+ul{
+    list-style: none;
 }
 
 
@@ -168,11 +171,10 @@ label.switch{
     color: var(--reverse-color1);
 }
 
-/*
+
 .expand:hover label>i{transition: transform 0.2s;}
 
 .expand:hover label>i{transform: rotate(180deg);}
-*/
 
 
 .expand:hover .switch.slightly, 
