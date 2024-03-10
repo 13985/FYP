@@ -1,4 +1,13 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var KCliqueAlgorithm;
 (function (KCliqueAlgorithm) {
     class KCliqueCC extends GraphAlgorithm.ConnectedComponent {
@@ -11,7 +20,7 @@ var KCliqueAlgorithm;
         }
     }
     KCliqueCC.pool = new GraphAlgorithm.ObjectPool(KCliqueCC);
-    class KCliqueComponets {
+    class CliqueComponets {
         constructor(clique = 0) {
             this.connectedComponents = [];
             this.clique = -1;
@@ -32,10 +41,16 @@ var KCliqueAlgorithm;
      * note that any subgraph of a fully connected graph is also fully connected
      */
     class KClique extends GraphAlgorithm.Algorithm {
+        /**************************animation state***************************/
         constructor(graph, svg) {
             super(graph, svg);
-            this.kCliqueComponents = [];
+            this.CliqueComponents = [];
+            /**************************UI******************************************/
+            /**************************helper data structures**********************/
             this.set = new Set();
+            /**************************index data structures**********************/
+            this.KCliqueComponets = [];
+            this.vertexToInfo = new Map();
             if (graph.vertices.length > 0) {
                 this.preprocess();
             }
@@ -43,10 +58,10 @@ var KCliqueAlgorithm;
         setColorGradient(start_, end_) {
             const start = start_.clone(); //copy the value, otherwise if it points to the same space of some shellcomponent[].color, broken
             const end = end_.clone(); //copy the value, otherwise if it points to the same space of some shellcomponent[].color, broken
-            const kCliqueCount = this.kCliqueComponents.length;
+            const kCliqueCount = this.CliqueComponents.length;
             const interval = kCliqueCount - 1;
             for (let i = 0; i < kCliqueCount; ++i) {
-                Color.lerp(this.kCliqueComponents[i].color, start, end, i / interval);
+                Color.lerp(this.CliqueComponents[i].color, start, end, i / interval);
             }
             return this;
         }
@@ -54,6 +69,23 @@ var KCliqueAlgorithm;
             if (defaultColor) {
             }
             else {
+                for (const cc_ of this.CliqueComponents) {
+                    if (cc_.clique <= 1) {
+                        continue;
+                    }
+                    for (const cc of cc_.connectedComponents) {
+                        const colorStr = cc_.color.toString();
+                        for (const from of cc.vertices) {
+                            for (const to of cc.vertices) {
+                                if (from.id == to.id) {
+                                    continue;
+                                }
+                                const e = this.graph.getEdge(from.id, to.id);
+                                e.line.setAttribute("stroke", colorStr);
+                            }
+                        }
+                    }
+                }
             }
             return this;
         }
@@ -63,7 +95,7 @@ var KCliqueAlgorithm;
             return this;
         }
         preprocess() {
-            for (const kc of this.kCliqueComponents) {
+            for (const kc of this.CliqueComponents) {
                 for (const cc of kc.connectedComponents) {
                     KCliqueCC.pool.release(cc);
                 }
@@ -80,8 +112,8 @@ var KCliqueAlgorithm;
 
             */
             { //for 1 cliques
-                const kc = new KCliqueComponets(1);
-                this.kCliqueComponents.push(kc);
+                const kc = new CliqueComponets(1);
+                this.CliqueComponents.push(kc);
                 this.graph.adjacencyList.forEach((vl, v_id) => {
                     if (vl.others.length > 0) {
                         return;
@@ -95,8 +127,8 @@ var KCliqueAlgorithm;
             if (this.graph.edges.length <= 0) {
             }
             else {
-                const kc = new KCliqueComponets(2);
-                this.kCliqueComponents.push(kc);
+                const kc = new CliqueComponets(2);
+                this.CliqueComponents.push(kc);
                 for (const e of this.graph.edges) {
                     const cc = KCliqueCC.pool.get();
                     cc.clique = 2;
@@ -106,8 +138,8 @@ var KCliqueAlgorithm;
                 }
             }
             for (let currentClique = 3, noUpdate = false; noUpdate == false; ++currentClique, noUpdate = true) {
-                const kc = new KCliqueComponets(currentClique);
-                const previous = this.kCliqueComponents[currentClique - 2].connectedComponents; //currentClique == .length+2
+                const kc = new CliqueComponets(currentClique);
+                const previous = this.CliqueComponents[currentClique - 2].connectedComponents; //currentClique == .length+2
                 for (let i = 0; i < previous.length; ++i) {
                     Label_1: for (let j = i + 1; j < previous.length; ++j) {
                         for (const v of previous[i].vertices) {
@@ -146,7 +178,7 @@ var KCliqueAlgorithm;
                         }
                     }
                 }
-                this.kCliqueComponents.push(kc);
+                this.CliqueComponents.push(kc);
             }
             return this;
         }
@@ -157,6 +189,8 @@ var KCliqueAlgorithm;
             return this;
         }
         animate() {
+            return __awaiter(this, void 0, void 0, function* () {
+            });
         }
     }
     KCliqueAlgorithm.KClique = KClique;

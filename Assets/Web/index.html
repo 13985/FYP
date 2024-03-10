@@ -19,7 +19,17 @@
     <script src="./JS/CustomUIElement.js"></script>
 </head>
 <body>
-    <header>
+    <header class="row-display">
+        <nav class="algorithm-select row-display">
+            <input type="radio" name="current-algorithm" class="switch" id="kcore-select" value="kcore" checked>
+            <label class="switch text-black" for="kcore-select">
+                <span>KCore</span>
+            </label>
+            <input type="radio" name="current-algorithm" class="switch" id="kclique-select" value="kclique">
+            <label class="switch text-black" for="kclique-select">
+                <span>KClique</span>
+            </label>
+        </nav>
         <div class="theme-button">
             <input type="checkbox" id="theme-button-set">
             <label class="theme-button-detect" for="theme-button-set">
@@ -168,7 +178,7 @@
                                         </template>
                                     </div>
                                 </div>
-                                
+
                             </div>
                         </div>
                     </li>

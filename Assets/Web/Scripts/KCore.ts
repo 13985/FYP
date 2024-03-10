@@ -19,6 +19,13 @@ namespace KCoreAlgorithm{
             super();
             this.shell=shell;
         }
+
+        public clone(){
+            const cc=KCoreCC.pool.get();
+            cc.polygonOpacity=this.polygonOpacity;
+            cc.shell=this.shell;
+            return cc;
+        }
     }
 
 
@@ -27,6 +34,14 @@ namespace KCoreAlgorithm{
         public shell:number=-1;
         public color:Color=new Color(0,0,0);
         public step:number=0;
+
+        public clone():ShellComponet{
+            const sc:ShellComponet=new ShellComponet();
+            sc.shell=this.shell;
+            sc.color=this.color.clone();
+            sc.step=this.step;
+            return sc;
+        }
     }
 
 
@@ -38,10 +53,16 @@ namespace KCoreAlgorithm{
             this.shell=s;
             this.index=i;
         }
+
+        public clone():ConnectedComponetInfo{
+            const info=new ConnectedComponetInfo(this.shell,this.index);
+            return info;
+        }
     }
 
 
-    class VertexStateInfo implements GraphAlgorithm.IStep{
+    class VertexStateInfo implements GraphAlgorithm.IStep, GraphAlgorithm.IClearable{
+        public static readonly pool=new GraphAlgorithm.ObjectPool<VertexStateInfo>(VertexStateInfo,1024);
         public step:number;
         public degree:number;
         public shell:number;
@@ -54,9 +75,19 @@ namespace KCoreAlgorithm{
             this.shell=shell!=undefined?shell:-1;
         }
 
+        public set(step?:number,degree?:number,shell?:number,opacity?:string):this{
+            this.degree=degree!=undefined?degree:0;
+            this.step=step!=undefined?step:1;
+            this.opacity=opacity!=undefined?opacity:KCore.OPACITY;
+            this.shell=shell!=undefined?shell:-1;
+            return this;
+        }
+
         public isProcessed():boolean{
             return this.shell>=0;
         }
+
+        public clear():void{}
     }
 
 
@@ -77,9 +108,14 @@ namespace KCoreAlgorithm{
 
 
         public init(graph?:Graph):void{
+            for(const kvp of this.vertexStates){
+                for(const state of kvp[1]){
+                    VertexStateInfo.pool.release(state);
+                }
+            }
             super.init(graph);
             this.graph.adjacencyList.forEach((vl:VerticeList,v_id:number):void=>{
-                const vsi:VertexStateInfo=new VertexStateInfo();
+                const vsi:VertexStateInfo=VertexStateInfo.pool.get();
                 vsi.degree=vl.others.length;
                 vsi.step=0;
                 this.vertexStates.set(v_id,[vsi]);
@@ -112,8 +148,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
         ];
         
         private static readonly PROCESSED:number=-2;
-        public readonly shellComponents:Array<ShellComponet>=[];
-
+        
         /**************************UI******************************************/
         public maxOption:HTMLSelectElement|null;
         public minOption:HTMLSelectElement|null;
@@ -128,13 +163,12 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
         private readonly set1:number[]=[];
         private readonly unionFind=new UnionFind();
 
+        /**************************index data structures**********************/
+        public readonly shellComponents:Array<ShellComponet>=[];
         private readonly vertexToInfo:Map<number,ConnectedComponetInfo>=new Map();
 
-        /**************************visualization control***********************/
-        public readonly IsAnimationRunning:()=>boolean=():boolean=>this.isAnimating;
-
+        /**************************animation state***************************/
         private states?:State;
-
 
         constructor(g:Graph,svg:SVGSVGElement,polygonsContainer:SVGGElement){
             super(g,svg);
@@ -205,7 +239,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                     (this.vertexToInfo.get(v_id) as ConnectedComponetInfo).shell=currentShell;
 
                     ++step;
-                    this.states.addDataState(v_id,new VertexStateInfo(step,undefined,currentShell,"1"));
+                    this.states.addDataState(v_id,VertexStateInfo.pool.get().set(step,undefined,currentShell,"1"));
                     this.states.addDescriptionState({step:step,codeStep:4,stepDescription:`process vertex ${v_id} in core ${currentShell}`});
 
                     for(const neighbor of vl.others){
@@ -218,7 +252,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                             continue;
                         }
                         ++step;
-                        this.states.addDataState(neighbor,new VertexStateInfo(step,degree,undefined,"1"));
+                        this.states.addDataState(neighbor,VertexStateInfo.pool.get().set(step,degree,undefined,"1"));
 
                         --degree;
 
@@ -232,10 +266,10 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                             this.degrees.set(neighbor,degree);
                         }
                         ++step;
-                        this.states.addDataState(neighbor,new VertexStateInfo(step,degree,undefined,KCore.OPACITY));
+                        this.states.addDataState(neighbor,VertexStateInfo.pool.get().set(step,degree,undefined,KCore.OPACITY));
                     }
                     ++step;
-                    this.states.addDataState(v_id,new VertexStateInfo(step,undefined,currentShell,KCore.OPACITY));
+                    this.states.addDataState(v_id,VertexStateInfo.pool.get().set(step,undefined,currentShell,KCore.OPACITY));
                 }
                 
                 currentShell=nextShell;
@@ -269,17 +303,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
 
         public preprocess():this{
             this.unionFind.set(this.graph.vertices.length);
-            for(const sc of this.shellComponents){
-                for(const cc of sc.connectedComponents){
-                    cc.polygon?.remove();
-                }
-            }
-            
-            for(const sc of this.shellComponents){
-                for(const cc of sc.connectedComponents){
-                    KCoreCC.pool.release(cc);
-                }
-            }
+            this.releaseCCs();
             this.shellComponents.length=0;
             this.vertexToInfo.clear();
             this.clearHelpers();
@@ -405,7 +429,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                 case GraphAlgorithm.VideoControlStatus.prevStep:
                     if((vertexInfos=this.states.previousStep())==null){
                         this.currentStep=0;
-                        break;
+                        vertexInfos=this.states.randomStep(0);
                     }
                     this.setAnimationDisplay(vertexInfos,this.states.currentDescriptionState());
                     break;
@@ -424,9 +448,10 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             }
 
             for(const v of this.graph.vertices){
-                (v.circle as SVGCircleElement).setAttribute("opacity","1");
+                const circle=v.circle as SVGCircleElement;
+                circle.setAttribute("opacity","1");
+                circle.setAttribute("visibility","visible");
             };
-            this.displayVerticesInRange(0,this.shellComponents.length,true);
         }
 
 
@@ -655,6 +680,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             this.setPolygon(cc,sc);
             cc.vertices.push(v);
             v.setColor(sc.color);
+            this.vertexToInfo.set(a,info);
         }
 
 
@@ -952,10 +978,51 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                 }
             }
         }
+
+
+        private releaseCCs():void{
+            for(const sc of this.shellComponents){
+                for(const cc of sc.connectedComponents){
+                    cc.polygon?.remove();
+                }
+            }
+            
+            for(const sc of this.shellComponents){
+                for(const cc of sc.connectedComponents){
+                    KCoreCC.pool.release(cc);
+                }
+            }
+            this.shellComponents.length=0;
+        }
+
+
+        public copyIndexStructure(other: KCoreAlgorithm.KCore): void {
+            other.releaseCCs();
+            other.shellComponents.length=0;
+            other.vertexToInfo.clear();
+
+            for(const sc of this.shellComponents){
+                const newSC:ShellComponet=sc.clone();
+                other.shellComponents.push(newSC);
+
+                for(const cc of sc.connectedComponents){
+                    const newCC:KCoreCC=cc.clone();
+                    for(const v of cc.vertices){
+                        newCC.vertices.push((other.graph.adjacencyList.get(v.id) as VerticeList).main);
+                    }
+
+                    newSC.connectedComponents.push(newCC);
+                }
+            }
+
+            for(const kvp of this.vertexToInfo){
+                other.vertexToInfo.set(kvp[0],kvp[1].clone());
+            }
+        }
     }
     
 
-    export class Point{
+    class Point{
         public x:number;
         public y:number;
 

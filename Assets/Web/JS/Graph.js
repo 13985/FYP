@@ -117,13 +117,13 @@ class Graph {
         this.edges.length = 0;
         this.existsEdges.clear();
         const edges = edgeListRaw.split(/[\r\n|\r|\n]+/);
-        edges.forEach((e) => {
+        for (const e of edges) {
             if (Graph.edgeFormat.test(e) == false) {
-                return;
+                continue;
             }
             const matchedValues = e.match(/(\d+)/g);
             if (matchedValues == undefined) {
-                return;
+                continue;
             }
             const vs = matchedValues.map((val, _i, _arr) => parseInt(val));
             const see = (parent, child) => {
@@ -144,23 +144,23 @@ class Graph {
                 }
             }
             else {
-                const code = Graph.getEdgeHashCode(vs[0], vs[1]);
+                const code = this.getEdgeHashCode(vs[0], vs[1]);
                 if (this.existsEdges.get(code) != undefined) {
-                    return;
+                    continue;
                 }
                 this.existsEdges.set(code, this.edges.length);
                 this.edges.push(new Edge(see(vs[0], vs[1]), see(vs[1], vs[0])));
             }
-        });
+        }
         return this;
     }
-    static getEdgeHashCode(v0, v1) {
-        return v0 < v1 ? `${v0}-${v1}` : `${v1}-${v0}`;
-    }
-    clone() {
-        const g = new Graph();
-        this.copyTo(g);
-        return g;
+    getEdgeHashCode(v0, v1) {
+        if (v0 < v1) {
+            return v0 * this.vertices.length + v1;
+        }
+        else {
+            return v1 * this.vertices.length + v0;
+        }
     }
     copyTo(g) {
         g.clear(true);
@@ -175,11 +175,8 @@ class Graph {
             g.edges.push(new Edge(g.adjacencyList.get(this.edges[i].source.id).main, g.adjacencyList.get(this.edges[i].target.id).main));
         }
         this.existsEdges.forEach((val, key) => {
-            g.existsEdges.set(`${key}`, val);
+            g.existsEdges.set(key, val);
         });
-    }
-    vertexCount() {
-        return this.adjacencyList.size;
     }
     clear(removeSVG = false) {
         this.adjacencyList.clear();
@@ -269,7 +266,7 @@ class Graph {
         if (this.adjacencyList.get(a) == undefined || this.adjacencyList.get(b) == undefined) {
             return false;
         }
-        const code = Graph.getEdgeHashCode(a, b);
+        const code = this.getEdgeHashCode(a, b);
         if (this.existsEdges.get(code) != undefined) {
             return false;
         }
@@ -287,13 +284,13 @@ class Graph {
         if (this.adjacencyList.get(a) == undefined || this.adjacencyList.get(b) == undefined) {
             return false;
         }
-        const code = Graph.getEdgeHashCode(a, b);
+        const code = this.getEdgeHashCode(a, b);
         const idx = this.existsEdges.get(code);
         if (idx == undefined) {
             return false;
         }
         const e = this.edges[this.edges.length - 1];
-        this.existsEdges.set(Graph.getEdgeHashCode(e.source.id, e.target.id), idx);
+        this.existsEdges.set(this.getEdgeHashCode(e.source.id, e.target.id), idx);
         this.existsEdges.delete(code);
         (_a = this.edges[idx].line) === null || _a === void 0 ? void 0 : _a.remove();
         this.edges[idx] = e;
@@ -305,7 +302,7 @@ class Graph {
         return true;
     }
     getEdge(v0, v1) {
-        const code = Graph.getEdgeHashCode(v0, v1);
+        const code = this.getEdgeHashCode(v0, v1);
         const idx = this.existsEdges.get(code);
         if (idx == undefined) {
             return undefined;
@@ -318,7 +315,7 @@ class Graph {
         vl.main.circle.setAttribute("visibility", value);
         vl.main.text.setAttribute("visibility", value);
         for (const n of vl.others) {
-            const code = Graph.getEdgeHashCode(v_id, n);
+            const code = this.getEdgeHashCode(v_id, n);
             const e = this.edges[this.existsEdges.get(code)];
             e.line.setAttribute("visibility", value);
         }

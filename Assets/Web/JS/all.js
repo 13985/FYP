@@ -1,42 +1,32 @@
 "use strict";
-window.onload = () => {
-    GraphWindow.main();
+var AlgorithmSelect;
+(function (AlgorithmSelect) {
+    let kCoreInput;
+    let KCliqueInput;
+    let callback;
+    function main(callback_) {
+        callback = callback_;
+        const nav = document.querySelector("nav.algorithm-select");
+        kCoreInput = nav.querySelector("input#kcore-select");
+        KCliqueInput = nav.querySelector("input#kclique-select");
+        addInputEventListener(kCoreInput);
+        addInputEventListener(KCliqueInput);
+    }
+    AlgorithmSelect.main = main;
+    function addInputEventListener(input) {
+        if (input.checked) {
+            callback(input.value);
+        }
+        input.addEventListener("input", () => {
+            if (input.checked) {
+                callback(input.value);
+            }
+        });
+    }
+})(AlgorithmSelect || (AlgorithmSelect = {}));
+function setThemeToggle() {
     const themeButton = document.getElementById("theme-button-set");
     const html = document.body.parentNode;
-    const graph = new Graph();
-    const resultGraph = new Graph();
-    /***********************************************window 1******************************/
-    const gw = new GraphWindow(graph).setWH(550, 600);
-    const resultGW = new GraphWindow(resultGraph).setWH(550, 600);
-    //gw.display(false);
-    const kCore = new KCoreAlgorithm.KCore(graph, gw.innerSVG, gw.allG);
-    const resultKCore = new KCoreAlgorithm.KCore(resultGraph, resultGW.innerSVG, resultGW.allG);
-    resultGW.setVertexDragStartCallback(resultKCore.refreshPolygons.bind(resultKCore)).algo = resultKCore;
-    resultKCore.showDefaultColor = false;
-    const scrollbarDarkCSS = "\
-        html::-webkit-scrollbar-button{\
-            background-color:var(--background-dark);\
-            border-color:var(--background-light);\
-        }\
-        html::-webkit-scrollbar{\
-            background-color: var(--background-light);\
-        }\
-        html::-webkit-scrollbar-thumb{\
-            background-color:var(--background-dark);\
-            border-color:var(--background-light);\
-        }\
-        html::-webkit-scrollbar-thumb:active{\
-            background-color: rgb(80, 80, 80);\
-        }\
-    ";
-    const scrollBarDarkSytle = document.createElement("style");
-    scrollBarDarkSytle.innerText = scrollbarDarkCSS;
-    /**************************************************Vertex pop up****************************************************/
-    const vertexPopupInput = document.getElementById("vertex-expand-input");
-    const vertexSetColor = document.getElementById("vertex-set-color");
-    /****************************************************Algo popup **********************************************/
-    const fromShell = document.getElementById("from-shell-value");
-    const toShell = document.getElementById("to-shell-value");
     themeButton.addEventListener("change", () => {
         if (themeButton.checked == true) {
             for (let i = 0; i < 5; ++i) {
@@ -51,10 +41,94 @@ window.onload = () => {
             }
         }
     });
-    /****************************************************Graph pop up**************************************************/
+}
+var VertexGradient;
+(function (VertexGradient) {
+    VertexGradient.start = new Color(255, 255, 0);
+    VertexGradient.end = new Color(255, 0, 0);
+})(VertexGradient || (VertexGradient = {}));
+window.onload = () => {
+    /**************************************************Flags************************************************************/
+    let graphHasUpdated = false;
+    /**************************************************Vertex expand****************************************************/
+    const vertexExpandInput = document.getElementById("vertex-expand-input");
+    const vertexSetColor = document.getElementById("vertex-set-color");
+    const vertexUpdateSelect = document.getElementById("vertex-update");
+    const vertexUpdateButton = document.getElementById("vertex-update-button");
+    /****************************************************Graph expand**************************************************/
     const fileInput = document.getElementById("graphupload");
     const graphUploadButton = document.getElementById("graph-upload-button");
     const graphStatusP = document.getElementById("graph-VE-status");
+    /****************************************************edge expand *****************************************************/
+    const edgeUpdateSelect = document.getElementById("edge-update");
+    const edgeexpandInput = document.getElementById("edge-expand-input");
+    const edgeUpdateButton = document.getElementById("edge-update-button");
+    const edgeEditMode = document.getElementById("edge-edit-mode");
+    /****************************************************Algo expand **********************************************/
+    {
+        const visualizationControl = new FloatingPanel("#video-control", document.getElementById("show-video-control"));
+        const statePanel = new FloatingPanel("#state-panel", document.getElementById("show-algo-state"));
+        //const runButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("run-algo"),stopButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("stop-algo");
+        GraphAlgorithm.Algorithm.setVisualizationVideoControl(visualizationControl);
+        GraphAlgorithm.Algorithm.setVisualizationControl(document.getElementById("run-algo"), document.getElementById("stop-algo"));
+        GraphAlgorithm.Algorithm.setStateDisplayPanel(statePanel);
+    }
+    const graph = new Graph();
+    const resultGraph = new Graph();
+    const gw = new GraphWindow(graph).setWH(350, 350);
+    const resultGW = new GraphWindow(resultGraph).setWH(350, 350);
+    const kCore = new KCoreAlgorithm.KCore(graph, gw.innerSVG, gw.allG);
+    const resultKCore = new KCoreAlgorithm.KCore(resultGraph, resultGW.innerSVG, resultGW.allG);
+    {
+        const fromShell = document.getElementById("from-shell-value");
+        const toShell = document.getElementById("to-shell-value");
+        kCore.setSelects(fromShell, toShell);
+    }
+    const kClique = new KCliqueAlgorithm.KClique(graph, gw.innerSVG);
+    const resultKClique = new KCliqueAlgorithm.KClique(graph, gw.innerSVG);
+    function changeAlgo(str) {
+        if (GraphAlgorithm.Algorithm.isVisualizing()) {
+            return;
+        }
+        function helper(vt, rt) {
+            GraphAlgorithm.Algorithm.changeAlgorithm(vt, rt);
+            gw.algo = vt;
+            gw.resetContainerTransform().updateSimulation();
+            resultGW.algo = rt;
+            resultGW.resetContainerTransform().updateSimulation();
+            if (graphHasUpdated) {
+                vt.preprocess().setColorGradient(VertexGradient.start, VertexGradient.end).setVisualElementsColor(true).createState();
+                rt.preprocess().setColorGradient(VertexGradient.start, VertexGradient.end).setVisualElementsColor(false);
+            }
+            graphHasUpdated = false;
+        }
+        switch (str) {
+            case "kcore": {
+                helper(kCore, resultKCore);
+                kCore.displayPolygons(false);
+                resultGW.setVertexDragStartCallback(resultKCore.refreshPolygons.bind(resultKCore)).algo = resultKCore.displayPolygons(true);
+                break;
+            }
+            case "kclique": {
+                helper(kClique, resultKClique);
+                break;
+            }
+            default: {
+                console.log(`unknown value ${str}`);
+                break;
+            }
+        }
+    }
+    gw.setVertexDragStartCallback((v) => {
+        vertexExpandInput.value = v.id.toString();
+        vertexSetColor.value = v.getColorHexa();
+    });
+    gw.display(false);
+    resultKCore.showDefaultColor = false;
+    GraphWindow.main();
+    AlgorithmSelect.main(changeAlgo);
+    setThemeToggle();
+    /****************************************************Graph expand**************************************************/
     graphUploadButton.addEventListener("click", () => {
         if (fileInput.files == null || fileInput.files.length <= 0) {
             return;
@@ -70,34 +144,34 @@ window.onload = () => {
     function setVENumber() {
         graphStatusP.innerHTML = `|V|: ${graph.vertices.length}<br>|E|: ${graph.edges.length}`;
     }
-    gw.setVertexDragStartCallback((v) => {
-        vertexPopupInput.value = v.id.toString();
-        vertexSetColor.value = v.getColorHexa();
-    });
     function loadGraph(edgeList) {
         graph.clear(true);
         graph.from(edgeList);
         gw.resetContainerTransform().updateSimulation();
-        const start = new Color(255, 255, 0);
-        const end = new Color(255, 0, 0);
         setVENumber();
-        kCore.preprocess().setColorGradient(start, end).setSelects(fromShell, toShell).setVisualElementsColor(true).createState();
+        GraphAlgorithm.Algorithm.VisualizationTarget().preprocess().setColorGradient(VertexGradient.start, VertexGradient.end).setVisualElementsColor(true).createState();
         graph.copyTo(resultGraph.clear(true));
         resultGW.resetContainerTransform().updateSimulation();
-        resultKCore.preprocess().setColorGradient(start, end).setVisualElementsColor(false).displayPolygons(true);
+        const algo = GraphAlgorithm.Algorithm.ResultTarget();
+        if (algo) {
+            algo.preprocess().setColorGradient(VertexGradient.start, VertexGradient.end).setVisualElementsColor(false);
+            if (algo instanceof KCoreAlgorithm.KCore) {
+                algo.displayPolygons(true);
+            }
+            else if (algo instanceof KCliqueAlgorithm.KClique) {
+            }
+        }
+        graphHasUpdated = true;
     }
-    /****************************************************Vertex pop up**************************************************/
-    const vertexUpdateSelect = document.getElementById("vertex-update");
-    const vertexUpdateButton = document.getElementById("vertex-update-button");
-    vertexSetColor.style.display = vertexUpdateSelect.value == "color" ? "block" : "none";
+    /****************************************************Vertex expand**************************************************/
     vertexUpdateSelect.addEventListener("input", () => {
         vertexSetColor.style.display = vertexUpdateSelect.value == "color" ? "block" : "none";
     });
-    vertexPopupInput.addEventListener("change", () => {
-        if (vertexPopupInput.value.length == 0) {
+    vertexExpandInput.addEventListener("change", () => {
+        if (vertexExpandInput.value.length == 0) {
             return;
         }
-        const theVertex = parseInt(vertexPopupInput.value);
+        const theVertex = parseInt(vertexExpandInput.value);
         switch (vertexUpdateSelect.value) {
             case "color": {
                 const vl = graph.adjacencyList.get(theVertex);
@@ -107,39 +181,28 @@ window.onload = () => {
                 vertexSetColor.value = vl.main.getColorHexa();
                 break;
             }
-            case "create": {
-                resultKCore.addVertex(theVertex);
-                resultGW.updateSimulation();
+            case "create":
+            case "remove":
                 break;
-            }
-            case "remove": {
-                resultKCore.removeVertex(theVertex);
-                resultGW.updateSimulation();
-                break;
-            }
         }
     });
     vertexUpdateButton.addEventListener("click", () => {
-        if (vertexPopupInput.value.length == 0) {
+        if (vertexExpandInput.value.length == 0) {
             return;
         }
-        const theVertex = parseInt(vertexPopupInput.value);
+        const theVertex = parseInt(vertexExpandInput.value);
         switch (vertexUpdateSelect.value) {
             case "create": {
-                const v = graph.addVertex(theVertex);
-                if (v == null) {
-                    break;
-                }
-                v.setColor(kCore.shellComponents[0].color);
+                GraphAlgorithm.Algorithm.addVertex(theVertex);
                 gw.updateSimulation();
+                resultGW.updateSimulation();
                 setVENumber();
                 break;
             }
             case "remove": {
-                if (graph.removeVertex(theVertex) == null) {
-                    break;
-                }
+                GraphAlgorithm.Algorithm.addVertex(theVertex);
                 gw.updateSimulation();
+                resultGW.updateSimulation();
                 setVENumber();
                 break;
             }
@@ -152,11 +215,7 @@ window.onload = () => {
                 break;
         }
     });
-    /****************************************************edge popup *****************************************************/
-    const edgeUpdateSelect = document.getElementById("edge-update");
-    const edgePopupInput = document.getElementById("edge-expand-input");
-    const edgeUpdateButton = document.getElementById("edge-update-button");
-    const edgeEditMode = document.getElementById("edge-edit-mode");
+    /****************************************************edge expand *****************************************************/
     function setEditAction() {
         switch (edgeUpdateSelect.value) {
             case "create":
@@ -176,20 +235,21 @@ window.onload = () => {
         setEditAction();
     });
     edgeUpdateButton.addEventListener("click", () => {
-        if (edgePopupInput.value.length == 0) {
+        if (edgeexpandInput.value.length == 0) {
             return;
         }
         const edgeFormat = /(\d+\s?,\s?\d+\s?)/g;
-        const edgesString = edgePopupInput.value.split(edgeFormat);
+        const edgesString = edgeexpandInput.value.split(edgeFormat);
         switch (edgeUpdateSelect.value) {
             case "create": {
                 for (const str of edgesString) {
                     const numbers = str.split(/(\d+)/g);
                     const from = parseInt(numbers[0]);
                     const to = parseInt(numbers[0]);
-                    resultKCore.addEdge(from, to);
-                    resultGW.updateSimulation();
+                    GraphAlgorithm.Algorithm.addEdge(from, to);
                 }
+                resultGW.updateSimulation();
+                gw.updateSimulation();
                 break;
             }
             case "remove": {
@@ -197,14 +257,15 @@ window.onload = () => {
                     const numbers = str.split(/(\d+)/g);
                     const from = parseInt(numbers[0]);
                     const to = parseInt(numbers[0]);
-                    kCore.removeEdge(from, to);
-                    resultGW.updateSimulation();
+                    GraphAlgorithm.Algorithm.removeEdge(from, to);
                 }
+                resultGW.updateSimulation();
+                gw.updateSimulation();
                 break;
             }
         }
     });
-    /****************************************************Camera pop up****************************************************/
+    /****************************************************Camera expand****************************************************/
     /*
     const zoomSlider:HTMLInputElement=<HTMLInputElement>document.getElementById("zoom-slider");
     const zoomNumberInput:HTMLInputElement=<HTMLInputElement>document.getElementById("zoom-typing");
@@ -266,23 +327,16 @@ window.onload = () => {
         gw.setCenter(vl.main.x as number,vl.main.y as number);
     });
     */
-    /****************************************************Algo popup **********************************************/
-    const visualizationControl = new FloatingPanel("#video-control", document.getElementById("show-video-control"));
-    const statePanel = new FloatingPanel("#state-panel", document.getElementById("show-algo-state"));
-    //const runButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("run-algo"),stopButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("stop-algo");
+    /****************************************************Algo expand **********************************************/
     const partialResultCheckBos = document.getElementById("partial-results-set");
     partialResultCheckBos.addEventListener("input", () => {
-        if (kCore.IsAnimationRunning() == false) {
+        if (GraphAlgorithm.Algorithm.isVisualizing() == false) {
             partialResultCheckBos.checked = false;
             return;
         }
         kCore.displayPartialResult(partialResultCheckBos.checked);
     });
     /******************************************************after initialization************************************/
-    GraphAlgorithm.Algorithm.setVisualizationVideoControl(visualizationControl);
-    GraphAlgorithm.Algorithm.setVisualizationControl(document.getElementById("run-algo"), document.getElementById("stop-algo"));
-    GraphAlgorithm.Algorithm.setStateDisplayPanel(statePanel);
-    GraphAlgorithm.Algorithm.changeAlgorithm(kCore);
     loadGraph("0 1\r\n\
     1 2\r\n\
     1 14\r\n\

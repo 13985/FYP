@@ -81,3 +81,8 @@ input.speed.slider-0::-webkit-slider-thumb{
 label.speed{
     text-align: center;
 }
+
+
+.vertex.text{
+    fill:var(--reverse-color1);
+}

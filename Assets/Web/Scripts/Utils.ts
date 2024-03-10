@@ -91,9 +91,23 @@ namespace GraphAlgorithm{
 
     export abstract class Algorithm{
         private static visualizationTarget?:Algorithm;
-        private static otherInstances?:Algorithm;
+        public static VisualizationTarget():Algorithm{
+            return Algorithm.visualizationTarget as Algorithm;
+        }
+        private static resultTarget?:Algorithm;
+        public static ResultTarget():Algorithm|undefined{
+            return Algorithm.resultTarget
+        }
+
         protected static readonly codeDescripton:string;
 
+        public static isVisualizing():boolean{
+            if(Algorithm.visualizationTarget){
+                return Algorithm.visualizationTarget.isAnimating;
+            }else{
+                return false;
+            }
+        }
 
         public static setVisualizationVideoControl(videoControl:FloatingPanel):void{
             VideoControl.videoControl=videoControl;
@@ -136,12 +150,28 @@ namespace GraphAlgorithm{
         }
 
 
-        public static changeAlgorithm(algo:Algorithm):void{
+        public static changeAlgorithm(algo:Algorithm,other?:Algorithm):void{
             if(Algorithm.visualizationTarget){
-                Algorithm.visualizationTarget.unregisterSelf();
+                VideoControl.pauseButton.removeEventListener("click",Algorithm.visualizationTarget.onPauseButtonPressed);
+                VideoControl.nextStepButton.removeEventListener("click",Algorithm.visualizationTarget.onNextStepPressed);
+                VideoControl.prevStepButton.removeEventListener("click",Algorithm.visualizationTarget.onPrevStepPressed);
+                VideoControl.progressBar.removeEventListener("input",Algorithm.visualizationTarget.onProgressChanged);
+                DescriptionDisplay.clearPanel();
+
+                Algorithm.visualizationTarget.onUnregisterSelf();
             }
+            if(Algorithm.resultTarget){
+                Algorithm.resultTarget.onUnregisterSelf();
+            }
+
             Algorithm.visualizationTarget=algo;
-            Algorithm.visualizationTarget.registerSelf();
+            algo.setVisualElementsColor(true);
+            Algorithm.resultTarget=other;
+            other?.setVisualElementsColor(false);
+            VideoControl.pauseButton.addEventListener("click",algo.onPauseButtonPressed);
+            VideoControl.nextStepButton.addEventListener("click",algo.onNextStepPressed);
+            VideoControl.prevStepButton.addEventListener("click",algo.onPrevStepPressed);
+            VideoControl.progressBar.addEventListener("input",algo.onProgressChanged);
         }
 
 
@@ -151,33 +181,43 @@ namespace GraphAlgorithm{
 
         public static preprocess():void{
             Algorithm.visualizationTarget?.preprocess();
+            Algorithm.resultTarget?.preprocess();
         }
 
         public static createState():void{
             Algorithm.visualizationTarget?.createState();
         }
 
-        public static addVertex(a:number):any{
+        public static addVertex(a:number):void{
             Algorithm.visualizationTarget?.addVertex(a);
+            Algorithm.resultTarget?.addVertex(a);
         }
 
-        public static removeVertex(a:number):any{
+        public static removeVertex(a:number):void{
             Algorithm.visualizationTarget?.removeVertex(a);
+            Algorithm.resultTarget?.removeVertex(a);
         }
 
-        public static addEdge(from:number,to:number):any{
+        public static addEdge(from:number,to:number):void{
             Algorithm.visualizationTarget?.addEdge(from,to);
+            Algorithm.resultTarget?.addEdge(from,to);
         }
 
-        public static removeEdge(from:number,to:number):any{
+        public static removeEdge(from:number,to:number):void{
             Algorithm.visualizationTarget?.removeEdge(from,to);
+            Algorithm.resultTarget?.removeEdge(from,to);
         }
 
-        public static setAllVerticesColor(defaultColor:boolean):any{
+        public static setColorGradient(start:Color,end:Color):void{
+            Algorithm.visualizationTarget?.setColorGradient(start,end);
+            Algorithm.resultTarget?.setColorGradient(start,end);
+        }
+
+        public static setAllVerticesColor(defaultColor:boolean):void{
             Algorithm.visualizationTarget?.setVisualElementsColor(defaultColor);
         }
 
-        public static setAllEdgesColor(defaultColor:boolean):any{
+        public static setAllEdgesColor(defaultColor:boolean):void{
             Algorithm.visualizationTarget?.setAllEdgesColor(defaultColor);
         }
 
@@ -227,11 +267,14 @@ namespace GraphAlgorithm{
 
         public abstract setGraph(g:Graph):this;
 
+        /**
+         * @summary create index structre for curl query on graph
+         */
         public abstract preprocess():this;
 
         /**
-         * @brief
-         * if the alogrithmm instance will be visualized and animated, call this function
+         * @summary
+         * if the alogrithmm instance will be visualized and animated, call this function to create the states
          * @implements
          * note that the content inside #state-panel also needed to be setted in here
          */
@@ -265,21 +308,14 @@ namespace GraphAlgorithm{
         }
 
 
-        protected registerSelf():void{
-            VideoControl.pauseButton.addEventListener("click",this.onPauseButtonPressed);
-            VideoControl.nextStepButton.addEventListener("click",this.onNextStepPressed);
-            VideoControl.prevStepButton.addEventListener("click",this.onPrevStepPressed);
-            VideoControl.progressBar.addEventListener("input",this.onProgressChanged);
-        }
-
-
-        protected unregisterSelf():void{
-            VideoControl.pauseButton.removeEventListener("click",this.onPauseButtonPressed);
-            VideoControl.nextStepButton.removeEventListener("click",this.onNextStepPressed);
-            VideoControl.prevStepButton.removeEventListener("click",this.onPrevStepPressed);
-            VideoControl.progressBar.removeEventListener("input",this.onProgressChanged);
-
-            DescriptionDisplay.clearPanel();
+        /**
+         * @brief clean up
+         */
+        protected onUnregisterSelf():void{
+            this.isAnimating=false;
+            this.currentStep=0;
+            this.videoControlStatus=VideoControlStatus.stop;
+            this.isPause=false;
         }
 
 
@@ -301,6 +337,8 @@ namespace GraphAlgorithm{
         public addEdge(from:number,to:number):any{}
         public removeEdge(from:number,to:number):any{}
         public setAllEdgesColor(defaultColor:boolean):any{}
+
+        public copyIndexStructure(other:Algorithm){}
     }
 
 

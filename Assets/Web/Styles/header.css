@@ -1,17 +1,10 @@
 header{
-    --max-children-height:70%;
     height:var(--header-height);
-    padding:4px 15px 0 15px;
+    padding: 0 2rem;
     background-color: var(--main-color1);
-    border-bottom: 4px solid var(--reverse-color1);
+    border-bottom: 0.7rem solid var(--reverse-color2);
     transition: background-color var(--g-transition-time), border-color var(--g-transition-time);
     justify-content: flex-start;
-}
-
-
-header>*{
-    border: 0px solid red;
-    height:70%;
 }
 
 
@@ -78,10 +71,41 @@ label[for="camera-move-set"]{
 }
 
 
+/***********************************************algorithm-select************************************************************************/
+
+
+nav.algorithm-select{
+    --padding-top:1.4rem;
+    padding: var(--padding-top) 0 0 0;
+    align-items: flex-end;
+    align-self: flex-end;
+}
+
+
+.algorithm-select>label{
+    padding: 0 0.9rem var(--padding-top) 0.9rem;
+    font-size: 2.45rem;
+    color: var(--reverse-color1);
+    cursor: pointer;
+}
+
+
+nav.algorithm-select>label:hover{
+    color: var(--main-color1);
+    background-color: var(--reverse-color2);
+}
+
+
+input.switch:checked + .switch.text-black{
+    color: var(--main-color1);
+    background-color: var(--reverse-color2);
+}
+
+
 /***********************************************toggle dark/light themes*************************************************************/
 
 .theme-button{
-    height:var(--max-children-height);
+    height:70%;
     width:25px;
     padding:0;
     border: none;

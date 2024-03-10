@@ -1,50 +1,38 @@
 
-window.onload=():void=>{
-    GraphWindow.main();
+namespace AlgorithmSelect{
+    let kCoreInput:HTMLInputElement;
+    let KCliqueInput:HTMLInputElement;
 
+    let callback:(str:string)=>void;
+
+    export function main(callback_:(str:string)=>void):void{
+        callback=callback_;
+
+        const nav=document.querySelector("nav.algorithm-select") as HTMLElement;
+        kCoreInput=nav.querySelector("input#kcore-select") as HTMLInputElement;
+        KCliqueInput=nav.querySelector("input#kclique-select") as HTMLInputElement;
+
+        addInputEventListener(kCoreInput);
+        addInputEventListener(KCliqueInput);
+    }
+
+    function addInputEventListener(input:HTMLInputElement){
+        if(input.checked){
+            callback(input.value);
+        }
+
+        input.addEventListener("input",():void=>{
+            if(input.checked){
+                callback(input.value);
+            }
+        });
+    }
+}
+
+
+function setThemeToggle():void{
     const themeButton:HTMLInputElement=<HTMLInputElement>document.getElementById("theme-button-set");
     const html:HTMLElement=<HTMLElement>document.body.parentNode;
-    
-    const graph:Graph=new Graph();
-    const resultGraph:Graph=new Graph();
-
-    /***********************************************window 1******************************/
-    const gw:GraphWindow=new GraphWindow(graph).setWH(550,600);
-    const resultGW:GraphWindow=new GraphWindow(resultGraph).setWH(550,600);
-    //gw.display(false);
-
-    const kCore:KCoreAlgorithm.KCore=new KCoreAlgorithm.KCore(graph,gw.innerSVG as SVGSVGElement,gw.allG);
-    const resultKCore:KCoreAlgorithm.KCore=new KCoreAlgorithm.KCore(resultGraph,resultGW.innerSVG as SVGSVGElement,resultGW.allG);
-    resultGW.setVertexDragStartCallback(resultKCore.refreshPolygons.bind(resultKCore)).algo=resultKCore;
-    resultKCore.showDefaultColor=false;
-
-    const scrollbarDarkCSS:string="\
-        html::-webkit-scrollbar-button{\
-            background-color:var(--background-dark);\
-            border-color:var(--background-light);\
-        }\
-        html::-webkit-scrollbar{\
-            background-color: var(--background-light);\
-        }\
-        html::-webkit-scrollbar-thumb{\
-            background-color:var(--background-dark);\
-            border-color:var(--background-light);\
-        }\
-        html::-webkit-scrollbar-thumb:active{\
-            background-color: rgb(80, 80, 80);\
-        }\
-    ";
-    const scrollBarDarkSytle:HTMLStyleElement=document.createElement("style") as HTMLStyleElement;
-    scrollBarDarkSytle.innerText=scrollbarDarkCSS;
-
-    /**************************************************Vertex pop up****************************************************/
-    const vertexPopupInput:HTMLInputElement=<HTMLInputElement>document.getElementById("vertex-expand-input");
-    const vertexSetColor:HTMLInputElement=<HTMLInputElement>document.getElementById("vertex-set-color");
-
-    /****************************************************Algo popup **********************************************/
-    const fromShell:HTMLSelectElement=<HTMLSelectElement>document.getElementById("from-shell-value");
-    const toShell:HTMLSelectElement=<HTMLSelectElement>document.getElementById("to-shell-value");
-
     themeButton.addEventListener("change",():void=>{
         if(themeButton.checked==true){
             for(let i:number=0;i<5;++i){
@@ -58,12 +46,113 @@ window.onload=():void=>{
             }
         }
     });
+}
 
+
+namespace VertexGradient{
+    export const start:Color=new Color(255,255,0);
+    export const end:Color=new Color(255,0,0);
+}
+
+
+window.onload=():void=>{
     
-    /****************************************************Graph pop up**************************************************/
+    /**************************************************Flags************************************************************/
+
+    let graphHasUpdated:boolean=false;
+
+    /**************************************************Vertex expand****************************************************/
+    const vertexExpandInput:HTMLInputElement=<HTMLInputElement>document.getElementById("vertex-expand-input");
+    const vertexSetColor:HTMLInputElement=<HTMLInputElement>document.getElementById("vertex-set-color");
+    const vertexUpdateSelect:HTMLSelectElement=<HTMLSelectElement>document.getElementById("vertex-update");
+    const vertexUpdateButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("vertex-update-button");
+    
+    /****************************************************Graph expand**************************************************/
     const fileInput:HTMLInputElement=<HTMLInputElement>document.getElementById("graphupload");
     const graphUploadButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("graph-upload-button");
     const graphStatusP:HTMLParagraphElement=<HTMLParagraphElement>document.getElementById("graph-VE-status");
+    
+    /****************************************************edge expand *****************************************************/
+    const edgeUpdateSelect:HTMLSelectElement=<HTMLSelectElement>document.getElementById("edge-update");
+    const edgeexpandInput:HTMLInputElement=<HTMLInputElement>document.getElementById("edge-expand-input");
+    const edgeUpdateButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("edge-update-button");
+    const edgeEditMode:HTMLInputElement=<HTMLInputElement>document.getElementById("edge-edit-mode");
+
+    /****************************************************Algo expand **********************************************/
+    {
+        const visualizationControl:FloatingPanel=new FloatingPanel("#video-control",<HTMLInputElement>document.getElementById("show-video-control"));
+        const statePanel:FloatingPanel=new FloatingPanel("#state-panel",<HTMLInputElement>document.getElementById("show-algo-state"));
+        //const runButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("run-algo"),stopButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("stop-algo");
+        GraphAlgorithm.Algorithm.setVisualizationVideoControl(visualizationControl);
+        GraphAlgorithm.Algorithm.setVisualizationControl(<HTMLButtonElement>document.getElementById("run-algo"),<HTMLButtonElement>document.getElementById("stop-algo"));
+        GraphAlgorithm.Algorithm.setStateDisplayPanel(statePanel);
+    }
+    
+    const graph:Graph=new Graph();
+    const resultGraph:Graph=new Graph();
+    
+    const gw:GraphWindow=new GraphWindow(graph).setWH(350,350);
+    const resultGW:GraphWindow=new GraphWindow(resultGraph).setWH(350,350);
+    
+    const kCore:KCoreAlgorithm.KCore=new KCoreAlgorithm.KCore(graph,gw.innerSVG as SVGSVGElement,gw.allG);
+    const resultKCore:KCoreAlgorithm.KCore=new KCoreAlgorithm.KCore(resultGraph,resultGW.innerSVG as SVGSVGElement,resultGW.allG);
+    {
+        const fromShell:HTMLSelectElement=<HTMLSelectElement>document.getElementById("from-shell-value");
+        const toShell:HTMLSelectElement=<HTMLSelectElement>document.getElementById("to-shell-value");
+        kCore.setSelects(fromShell,toShell);
+    }
+
+    const kClique:KCliqueAlgorithm.KClique=new KCliqueAlgorithm.KClique(graph,gw.innerSVG as SVGSVGElement);
+    const resultKClique:KCliqueAlgorithm.KClique=new KCliqueAlgorithm.KClique(graph,gw.innerSVG as SVGSVGElement);
+
+    function changeAlgo(str:string):void{
+        if(GraphAlgorithm.Algorithm.isVisualizing()){
+            return;
+        }
+
+        function helper(vt:GraphAlgorithm.Algorithm,rt:GraphAlgorithm.Algorithm):void{
+            GraphAlgorithm.Algorithm.changeAlgorithm(vt,rt);
+            gw.resetContainerTransform().updateSimulation();
+            resultGW.resetContainerTransform().updateSimulation();
+
+            if(graphHasUpdated){
+                vt.preprocess().setColorGradient(VertexGradient.start,VertexGradient.end).setVisualElementsColor(true).createState();
+                rt.preprocess().setColorGradient(VertexGradient.start,VertexGradient.end).setVisualElementsColor(false);
+            }
+            graphHasUpdated=false;
+        }
+
+        switch(str){
+        case "kcore":{
+            helper(kCore,resultKCore);
+            kCore.displayPolygons(false);
+            resultKCore.displayPolygons(true);
+            resultGW.setVertexDragStartCallback(resultKCore.refreshPolygons.bind(resultKCore));
+            break;
+        }
+        case "kclique":{
+            helper(kClique,resultKClique);
+            break;
+        }
+        default:{
+            console.log(`unknown value ${str}`);
+            break;
+        }
+        }
+    }
+
+    gw.setVertexDragStartCallback((v:Vertex):void=>{
+        vertexExpandInput.value=v.id.toString();
+        vertexSetColor.value=v.getColorHexa();
+    });
+    gw.display(false);
+    resultKCore.showDefaultColor=false;
+
+    GraphWindow.main();
+    AlgorithmSelect.main(changeAlgo);
+    setThemeToggle();
+
+    /****************************************************Graph expand**************************************************/
 
     graphUploadButton.addEventListener("click",():void=>{
         if(fileInput.files==null||fileInput.files.length<=0){
@@ -84,40 +173,39 @@ window.onload=():void=>{
     }
 
 
-    gw.setVertexDragStartCallback((v:Vertex):void=>{
-        vertexPopupInput.value=v.id.toString();
-        vertexSetColor.value=v.getColorHexa();
-    });
-
     function loadGraph(edgeList:string):void{
         graph.clear(true);
         graph.from(edgeList);
         gw.resetContainerTransform().updateSimulation();
-        const start:Color=new Color(255,255,0);
-        const end:Color=new Color(255,0,0);
         setVENumber();
-        kCore.preprocess().setColorGradient(start,end).setSelects(fromShell,toShell).setVisualElementsColor(true).createState();
+        GraphAlgorithm.Algorithm.VisualizationTarget().preprocess().setColorGradient(VertexGradient.start,VertexGradient.end).setVisualElementsColor(true).createState();
 
         graph.copyTo(resultGraph.clear(true));
         resultGW.resetContainerTransform().updateSimulation();
-        resultKCore.preprocess().setColorGradient(start,end).setVisualElementsColor(false).displayPolygons(true);
+        const algo:GraphAlgorithm.Algorithm|undefined=GraphAlgorithm.Algorithm.ResultTarget();
+        if(algo){
+            algo.preprocess().setColorGradient(VertexGradient.start,VertexGradient.end).setVisualElementsColor(false);
+            if(algo instanceof KCoreAlgorithm.KCore){
+                algo.displayPolygons(true);
+            }else if(algo instanceof KCliqueAlgorithm.KClique){
+
+            }
+        }
+        graphHasUpdated=true;
     }
 
-    /****************************************************Vertex pop up**************************************************/
-    const vertexUpdateSelect:HTMLSelectElement=<HTMLSelectElement>document.getElementById("vertex-update");
-    const vertexUpdateButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("vertex-update-button");
+    /****************************************************Vertex expand**************************************************/
 
-    vertexSetColor.style.display=vertexUpdateSelect.value=="color"?"block":"none";
     vertexUpdateSelect.addEventListener("input",()=>{
         vertexSetColor.style.display=vertexUpdateSelect.value=="color"?"block":"none";
     });
 
 
-    vertexPopupInput.addEventListener("change",()=>{
-        if(vertexPopupInput.value.length==0){
+    vertexExpandInput.addEventListener("change",()=>{
+        if(vertexExpandInput.value.length==0){
             return;
         }
-        const theVertex:number=parseInt(vertexPopupInput.value);
+        const theVertex:number=parseInt(vertexExpandInput.value);
         switch(vertexUpdateSelect.value){
             case "color":{
             const vl:VerticeList|undefined=graph.adjacencyList.get(theVertex);
@@ -127,41 +215,30 @@ window.onload=():void=>{
             vertexSetColor.value=vl.main.getColorHexa();
             break;
         }
-        case "create":{
-            resultKCore.addVertex(theVertex);
-            resultGW.updateSimulation();
+        case "create":
+        case "remove":
             break;
-        }
-        case "remove":{
-            resultKCore.removeVertex(theVertex);
-            resultGW.updateSimulation();
-            break;
-        }
         }
     });
 
 
     vertexUpdateButton.addEventListener("click",()=>{
-        if(vertexPopupInput.value.length==0){
+        if(vertexExpandInput.value.length==0){
             return;
         }
-        const theVertex:number=parseInt(vertexPopupInput.value);
+        const theVertex:number=parseInt(vertexExpandInput.value);
         switch(vertexUpdateSelect.value){
         case "create":{
-            const v:Vertex|null=graph.addVertex(theVertex);
-            if(v==null){
-                break;
-            }
-            v.setColor(kCore.shellComponents[0].color);
+            GraphAlgorithm.Algorithm.addVertex(theVertex);
             gw.updateSimulation();
+            resultGW.updateSimulation();
             setVENumber();
             break;
         }
         case "remove":{
-            if(graph.removeVertex(theVertex)==null){
-                break;
-            }
+            GraphAlgorithm.Algorithm.addVertex(theVertex);
             gw.updateSimulation();
+            resultGW.updateSimulation();
             setVENumber();
             break;
         }
@@ -175,12 +252,7 @@ window.onload=():void=>{
         }
     });
 
-
-    /****************************************************edge popup *****************************************************/
-    const edgeUpdateSelect:HTMLSelectElement=<HTMLSelectElement>document.getElementById("edge-update");
-    const edgePopupInput:HTMLInputElement=<HTMLInputElement>document.getElementById("edge-expand-input");
-    const edgeUpdateButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("edge-update-button");
-    const edgeEditMode:HTMLInputElement=<HTMLInputElement>document.getElementById("edge-edit-mode");
+    /****************************************************edge expand *****************************************************/
 
     function setEditAction():void{
         switch(edgeUpdateSelect.value){
@@ -206,11 +278,11 @@ window.onload=():void=>{
 
 
     edgeUpdateButton.addEventListener("click",()=>{
-        if(edgePopupInput.value.length==0){
+        if(edgeexpandInput.value.length==0){
             return;
         }
         const edgeFormat:RegExp=/(\d+\s?,\s?\d+\s?)/g;
-        const edgesString:string[]=edgePopupInput.value.split(edgeFormat);
+        const edgesString:string[]=edgeexpandInput.value.split(edgeFormat);
 
         switch(edgeUpdateSelect.value){
         case "create":{
@@ -218,9 +290,10 @@ window.onload=():void=>{
                 const numbers:string[]=str.split(/(\d+)/g);
                 const from:number=parseInt(numbers[0]);
                 const to:number=parseInt(numbers[0]);
-                resultKCore.addEdge(from,to);
-                resultGW.updateSimulation();
+                GraphAlgorithm.Algorithm.addEdge(from,to);
             }
+            resultGW.updateSimulation();
+            gw.updateSimulation();
             break;
         }
         case "remove":{
@@ -228,17 +301,16 @@ window.onload=():void=>{
                 const numbers:string[]=str.split(/(\d+)/g);
                 const from:number=parseInt(numbers[0]);
                 const to:number=parseInt(numbers[0]);
-                kCore.removeEdge(from,to);
-                resultGW.updateSimulation();
+                GraphAlgorithm.Algorithm.removeEdge(from,to);
             }
+            resultGW.updateSimulation();
+            gw.updateSimulation();
             break;
         }
         }
     });
 
-
-    
-    /****************************************************Camera pop up****************************************************/
+    /****************************************************Camera expand****************************************************/
     /*
     const zoomSlider:HTMLInputElement=<HTMLInputElement>document.getElementById("zoom-slider");
     const zoomNumberInput:HTMLInputElement=<HTMLInputElement>document.getElementById("zoom-typing");
@@ -300,15 +372,11 @@ window.onload=():void=>{
         gw.setCenter(vl.main.x as number,vl.main.y as number);
     });
     */
-    /****************************************************Algo popup **********************************************/
-    const visualizationControl:FloatingPanel=new FloatingPanel("#video-control",<HTMLInputElement>document.getElementById("show-video-control"));
-    const statePanel:FloatingPanel=new FloatingPanel("#state-panel",<HTMLInputElement>document.getElementById("show-algo-state"));
-
-    //const runButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("run-algo"),stopButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("stop-algo");
+    /****************************************************Algo expand **********************************************/
 
     const partialResultCheckBos:HTMLInputElement=document.getElementById("partial-results-set") as HTMLInputElement;
     partialResultCheckBos.addEventListener("input",():void=>{
-        if(kCore.IsAnimationRunning()==false){
+        if(GraphAlgorithm.Algorithm.isVisualizing()==false){
             partialResultCheckBos.checked=false;
             return;
         }
@@ -317,10 +385,6 @@ window.onload=():void=>{
 
 
     /******************************************************after initialization************************************/
-    GraphAlgorithm.Algorithm.setVisualizationVideoControl(visualizationControl);
-    GraphAlgorithm.Algorithm.setVisualizationControl(<HTMLButtonElement>document.getElementById("run-algo"),<HTMLButtonElement>document.getElementById("stop-algo"));
-    GraphAlgorithm.Algorithm.setStateDisplayPanel(statePanel);
-    GraphAlgorithm.Algorithm.changeAlgorithm(kCore);
 
     loadGraph("0 1\r\n\
     1 2\r\n\

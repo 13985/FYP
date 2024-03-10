@@ -69,6 +69,20 @@ var GraphAlgorithm;
         DescriptionDisplay.highlightCode = highlightCode;
     })(DescriptionDisplay = GraphAlgorithm.DescriptionDisplay || (GraphAlgorithm.DescriptionDisplay = {}));
     class Algorithm {
+        static VisualizationTarget() {
+            return Algorithm.visualizationTarget;
+        }
+        static ResultTarget() {
+            return Algorithm.resultTarget;
+        }
+        static isVisualizing() {
+            if (Algorithm.visualizationTarget) {
+                return Algorithm.visualizationTarget.isAnimating;
+            }
+            else {
+                return false;
+            }
+        }
         static setVisualizationVideoControl(videoControl) {
             VideoControl.videoControl = videoControl;
             VideoControl.prevStepButton = videoControl.contentDiv.querySelector("button.previousStep");
@@ -101,12 +115,26 @@ var GraphAlgorithm;
                 }
             });
         }
-        static changeAlgorithm(algo) {
+        static changeAlgorithm(algo, other) {
             if (Algorithm.visualizationTarget) {
-                Algorithm.visualizationTarget.unregisterSelf();
+                VideoControl.pauseButton.removeEventListener("click", Algorithm.visualizationTarget.onPauseButtonPressed);
+                VideoControl.nextStepButton.removeEventListener("click", Algorithm.visualizationTarget.onNextStepPressed);
+                VideoControl.prevStepButton.removeEventListener("click", Algorithm.visualizationTarget.onPrevStepPressed);
+                VideoControl.progressBar.removeEventListener("input", Algorithm.visualizationTarget.onProgressChanged);
+                DescriptionDisplay.clearPanel();
+                Algorithm.visualizationTarget.onUnregisterSelf();
+            }
+            if (Algorithm.resultTarget) {
+                Algorithm.resultTarget.onUnregisterSelf();
             }
             Algorithm.visualizationTarget = algo;
-            Algorithm.visualizationTarget.registerSelf();
+            algo.setVisualElementsColor(true);
+            Algorithm.resultTarget = other;
+            other === null || other === void 0 ? void 0 : other.setVisualElementsColor(false);
+            VideoControl.pauseButton.addEventListener("click", algo.onPauseButtonPressed);
+            VideoControl.nextStepButton.addEventListener("click", algo.onNextStepPressed);
+            VideoControl.prevStepButton.addEventListener("click", algo.onPrevStepPressed);
+            VideoControl.progressBar.addEventListener("input", algo.onProgressChanged);
         }
         static start(onEnd) {
             var _a;
@@ -115,28 +143,38 @@ var GraphAlgorithm;
             });
         }
         static preprocess() {
-            var _a;
+            var _a, _b;
             (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.preprocess();
+            (_b = Algorithm.resultTarget) === null || _b === void 0 ? void 0 : _b.preprocess();
         }
         static createState() {
             var _a;
             (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.createState();
         }
         static addVertex(a) {
-            var _a;
+            var _a, _b;
             (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.addVertex(a);
+            (_b = Algorithm.resultTarget) === null || _b === void 0 ? void 0 : _b.addVertex(a);
         }
         static removeVertex(a) {
-            var _a;
+            var _a, _b;
             (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.removeVertex(a);
+            (_b = Algorithm.resultTarget) === null || _b === void 0 ? void 0 : _b.removeVertex(a);
         }
         static addEdge(from, to) {
-            var _a;
+            var _a, _b;
             (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.addEdge(from, to);
+            (_b = Algorithm.resultTarget) === null || _b === void 0 ? void 0 : _b.addEdge(from, to);
         }
         static removeEdge(from, to) {
-            var _a;
+            var _a, _b;
             (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.removeEdge(from, to);
+            (_b = Algorithm.resultTarget) === null || _b === void 0 ? void 0 : _b.removeEdge(from, to);
+        }
+        static setColorGradient(start, end) {
+            var _a, _b;
+            (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.setColorGradient(start, end);
+            (_b = Algorithm.resultTarget) === null || _b === void 0 ? void 0 : _b.setColorGradient(start, end);
         }
         static setAllVerticesColor(defaultColor) {
             var _a;
@@ -198,18 +236,14 @@ var GraphAlgorithm;
                 }
             });
         }
-        registerSelf() {
-            VideoControl.pauseButton.addEventListener("click", this.onPauseButtonPressed);
-            VideoControl.nextStepButton.addEventListener("click", this.onNextStepPressed);
-            VideoControl.prevStepButton.addEventListener("click", this.onPrevStepPressed);
-            VideoControl.progressBar.addEventListener("input", this.onProgressChanged);
-        }
-        unregisterSelf() {
-            VideoControl.pauseButton.removeEventListener("click", this.onPauseButtonPressed);
-            VideoControl.nextStepButton.removeEventListener("click", this.onNextStepPressed);
-            VideoControl.prevStepButton.removeEventListener("click", this.onPrevStepPressed);
-            VideoControl.progressBar.removeEventListener("input", this.onProgressChanged);
-            DescriptionDisplay.clearPanel();
+        /**
+         * @brief clean up
+         */
+        onUnregisterSelf() {
+            this.isAnimating = false;
+            this.currentStep = 0;
+            this.videoControlStatus = 4 /* VideoControlStatus.stop */;
+            this.isPause = false;
         }
         waitfor() {
             return __awaiter(this, void 0, void 0, function* () {
@@ -229,6 +263,7 @@ var GraphAlgorithm;
         addEdge(from, to) { }
         removeEdge(from, to) { }
         setAllEdgesColor(defaultColor) { }
+        copyIndexStructure(other) { }
     }
     GraphAlgorithm.Algorithm = Algorithm;
     class ObjectPool {

@@ -150,19 +150,19 @@ class VerticeList implements IClone<VerticeList>{
 }
 
 
-class Graph implements IClone<Graph>{
+class Graph{
+    private static readonly edgeFormat:RegExp=/[\s?\d+\s?][,|\s?][\d+\s?]/;
     public adjacencyList:Map<number,VerticeList>;
     public edges:Array<Edge>;
     public vertices:Array<Vertex>;
-    private existsEdges:Map<string,number>;
-    private static readonly edgeFormat:RegExp=/[\s?\d+\s?][,|\s?][\d+\s?]/;
+    private existsEdges:Map<number,number>;
 
 
     constructor(){
         this.adjacencyList=new Map<number,VerticeList>();
         this.edges=new Array<Edge>();
         this.vertices=new Array<Vertex>();
-        this.existsEdges=new Map<string,number>();
+        this.existsEdges=new Map<number,number>();
     }
 
 
@@ -173,13 +173,13 @@ class Graph implements IClone<Graph>{
         this.existsEdges.clear();
         const edges:string[]=edgeListRaw.split(/[\r\n|\r|\n]+/);
 
-        edges.forEach((e)=>{
+        for(const e of edges){
             if(Graph.edgeFormat.test(e)==false){
-                return;
+                continue;
             }
             const matchedValues=e.match(/(\d+)/g);
             if(matchedValues==undefined){
-                return;
+                continue;
             }
             const vs:number[]=matchedValues.map<number>((val:string,_i:number,_arr:string[]):number=>parseInt(val));
 
@@ -200,27 +200,24 @@ class Graph implements IClone<Graph>{
                     this.vertices.push(list.main);
                 }
             }else{
-                const code:string=Graph.getEdgeHashCode(vs[0],vs[1]);
+                const code:number=this.getEdgeHashCode(vs[0],vs[1]);
                 if(this.existsEdges.get(code)!=undefined){
-                    return;
+                    continue;
                 }
                 this.existsEdges.set(code,this.edges.length);
                 this.edges.push(new Edge(see(vs[0],vs[1]),see(vs[1],vs[0])));
             }
-        });
+        }
         return this;
     }
 
 
-    public static getEdgeHashCode(v0:number,v1:number):string{
-        return v0<v1?`${v0}-${v1}`:`${v1}-${v0}`;
-    }
-
-
-    public clone():Graph{
-        const g:Graph=new Graph();
-        this.copyTo(g);
-        return g;
+    public getEdgeHashCode(v0:number,v1:number):number{
+        if(v0<v1){
+            return v0*this.vertices.length+v1;
+        }else{
+            return v1*this.vertices.length+v0;
+        }
     }
 
 
@@ -241,14 +238,9 @@ class Graph implements IClone<Graph>{
             ));
         }
 
-        this.existsEdges.forEach((val:number,key:string):void=>{
-            g.existsEdges.set(`${key}`,val);
+        this.existsEdges.forEach((val:number,key:number):void=>{
+            g.existsEdges.set(key,val);
         });
-    }
-
-
-    public vertexCount():number{
-        return this.adjacencyList.size;
     }
 
 
@@ -344,7 +336,7 @@ class Graph implements IClone<Graph>{
         if(this.adjacencyList.get(a)==undefined||this.adjacencyList.get(b)==undefined){
             return false;
         }
-        const code:string=Graph.getEdgeHashCode(a,b);
+        const code:number=this.getEdgeHashCode(a,b);
         if(this.existsEdges.get(code)!=undefined){
             return false;
         }
@@ -363,13 +355,13 @@ class Graph implements IClone<Graph>{
         if(this.adjacencyList.get(a)==undefined||this.adjacencyList.get(b)==undefined){
             return false;
         }
-        const code:string=Graph.getEdgeHashCode(a,b);
+        const code:number=this.getEdgeHashCode(a,b);
         const idx:number|undefined=this.existsEdges.get(code);
         if(idx==undefined){
             return false;
         }
         const e:Edge=this.edges[this.edges.length-1];
-        this.existsEdges.set(Graph.getEdgeHashCode(e.source.id,e.target.id),idx);
+        this.existsEdges.set(this.getEdgeHashCode(e.source.id,e.target.id),idx);
         this.existsEdges.delete(code);
         this.edges[idx].line?.remove();
         this.edges[idx]=e;
@@ -384,7 +376,7 @@ class Graph implements IClone<Graph>{
 
 
     public getEdge(v0:number,v1:number):Edge|undefined{
-        const code:string=Graph.getEdgeHashCode(v0,v1);
+        const code:number=this.getEdgeHashCode(v0,v1);
         const idx:number|undefined=this.existsEdges.get(code);
         if(idx==undefined){
             return undefined;
@@ -399,7 +391,7 @@ class Graph implements IClone<Graph>{
         (vl.main.circle as SVGElement).setAttribute("visibility",value);
         (vl.main.text as SVGElement).setAttribute("visibility",value);
         for(const n of vl.others){
-            const code:string=Graph.getEdgeHashCode(v_id,n);
+            const code:number=this.getEdgeHashCode(v_id,n);
             const e:Edge=this.edges[this.existsEdges.get(code) as number];
             (e.line as SVGElement).setAttribute("visibility",value);
         }

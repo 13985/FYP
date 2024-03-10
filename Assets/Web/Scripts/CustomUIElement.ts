@@ -107,7 +107,6 @@ class GraphWindow{
     public graph:Graph;
     public readonly container:HTMLElement;
     public readonly innerSVG:SVGElement;
-    public algo:GraphAlgorithm.Algorithm|undefined;
     
     private readonly forceToX:d3.ForceX<Vertex>=d3.forceX().strength(0.15);
     private readonly forceToY:d3.ForceY<Vertex>=d3.forceY().strength(0.15);
@@ -549,9 +548,9 @@ class GraphWindow{
             }
 
             if(this.isCreateEdge){
-                this.algo?.addEdge(this.firstSelectedVertex,this.secondSelectedVertex);
+                GraphAlgorithm.Algorithm.addEdge(this.firstSelectedVertex,this.secondSelectedVertex);
             }else{
-                this.algo?.removeEdge(this.firstSelectedVertex,this.secondSelectedVertex);
+                GraphAlgorithm.Algorithm.removeEdge(this.firstSelectedVertex,this.secondSelectedVertex);
             }
             this.updateSimulation();
             this.removeVerticesHighlight(this.firstSelectedVertex);
