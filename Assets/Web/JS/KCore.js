@@ -18,7 +18,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 var KCoreAlgorithm;
 (function (KCoreAlgorithm) {
-    class KCoreCC extends GraphAlgorithm.ConnectedComponent {
+    class KCoreCC extends VisualizationUtils.ConnectedComponent {
         constructor(shell = 1) {
             super();
             this.shell = -1;
@@ -27,25 +27,24 @@ var KCoreAlgorithm;
             this.shell = shell;
         }
         clone() {
-            const cc = KCoreCC.pool.get();
+            const cc = KCoreCC.POOL.get();
             cc.polygonOpacity = this.polygonOpacity;
             cc.shell = this.shell;
             return cc;
         }
     }
-    KCoreCC.pool = new GraphAlgorithm.ObjectPool(KCoreCC);
+    KCoreCC.POOL = new VisualizationUtils.ObjectPool(KCoreCC);
     class ShellComponet {
         constructor() {
             this.connectedComponents = [];
             this.shell = -1;
             this.color = new Color(0, 0, 0);
-            this.step = 0;
+            this.step = -1;
         }
         clone() {
             const sc = new ShellComponet();
             sc.shell = this.shell;
             sc.color = this.color.clone();
-            sc.step = this.step;
             return sc;
         }
     }
@@ -65,52 +64,63 @@ var KCoreAlgorithm;
         constructor(step, degree, shell, opacity) {
             this.degree = degree != undefined ? degree : 0;
             this.step = step != undefined ? step : 1;
-            this.opacity = opacity != undefined ? opacity : KCore.OPACITY;
+            this.opacity = opacity != undefined ? opacity : "0.3";
             this.shell = shell != undefined ? shell : -1;
         }
         set(step, degree, shell, opacity) {
             this.degree = degree != undefined ? degree : 0;
             this.step = step != undefined ? step : 1;
-            this.opacity = opacity != undefined ? opacity : KCore.OPACITY;
+            this.opacity = opacity != undefined ? opacity : "0.3";
             this.shell = shell != undefined ? shell : -1;
             return this;
         }
         isProcessed() {
             return this.shell >= 0;
         }
-        clear() { }
-    }
-    VertexStateInfo.pool = new GraphAlgorithm.ObjectPool(VertexStateInfo, 1024);
-    class DisplayStateInfo {
-        constructor() {
-            this.step = 0;
+        clear() {
+            this.shell = -1;
+            this.degree = 0;
+            this.opacity = "0.3";
         }
     }
+    VertexStateInfo.POOL = new VisualizationUtils.ObjectPool(VertexStateInfo, 1024);
+    class TreeNode extends VisualizationUtils.TreeNodeBase {
+    }
+    TreeNode.POOL = new VisualizationUtils.ObjectPool(TreeNode, 1024);
     /**
      * @complexity
      * space: O(V+E)
      */
-    class State extends GraphAlgorithm.StateManager {
+    class State extends VisualizationUtils.StateManager {
+        setDataKeys() {
+            throw new Error("Method not implemented.");
+        }
         constructor(graph) {
             super(graph);
             this.init();
         }
         init(graph) {
-            for (const kvp of this.vertexStates) {
+            for (const kvp of this.dataStates) {
                 for (const state of kvp[1]) {
-                    VertexStateInfo.pool.release(state);
+                    VertexStateInfo.POOL.release(state);
                 }
             }
             super.init(graph);
             this.graph.adjacencyList.forEach((vl, v_id) => {
-                const vsi = VertexStateInfo.pool.get();
+                const vsi = VertexStateInfo.POOL.get();
                 vsi.degree = vl.others.length;
                 vsi.step = 0;
-                this.vertexStates.set(v_id, [vsi]);
+                this.dataStates.set(v_id, [vsi]);
             });
         }
+        getTreeNode() {
+            return TreeNode.POOL.get();
+        }
+        releaseTreeNode(node) {
+            TreeNode.POOL.release(node);
+        }
     }
-    class KCore extends GraphAlgorithm.Algorithm {
+    class KCore extends VisualizationUtils.Algorithm {
         constructor(g, svg, polygonsContainer) {
             super(g, svg);
             /**************************helper data structures**********************/
@@ -126,9 +136,8 @@ var KCoreAlgorithm;
             this.minOption = null;
             this.polygonsContainer = polygonsContainer;
         }
-        setGraph(g) {
-            this.graph = g;
-            this.preprocess();
+        setIndexStructure(other) {
+            this.shellComponents = other.shellComponents;
             return this;
         }
         setColorGradient(start_, end_) {
@@ -148,13 +157,15 @@ var KCoreAlgorithm;
             else {
                 this.states = new State(this.graph);
             }
-            GraphAlgorithm.DescriptionDisplay.clearPanel();
-            GraphAlgorithm.DescriptionDisplay.codeDescription.innerText = KCore.CODE_DESCRIPTION;
-            GraphAlgorithm.DescriptionDisplay.setCodes(KCore.PSEUDO_CODES);
+            VisualizationUtils.DescriptionDisplay.clearPanel();
+            VisualizationUtils.DescriptionDisplay.codeDescription.innerText = KCore.CODE_DESCRIPTION;
+            VisualizationUtils.DescriptionDisplay.setCodes(KCore.PSEUDO_CODES);
+            const shellToStep = new Map();
             this.clearHelpers();
             let currentShell = 0, nextShell = 1;
             let step = 0;
-            this.states.addDescriptionState({ step: step, codeStep: 1, stepDescription: "initization" });
+            this.states.localStatePush({ step: step, codeStep: 1, stepDescription: "initization" });
+            ++step;
             this.graph.adjacencyList.forEach((vl, k) => {
                 if (vl.others.length <= 0) {
                     this.set0.push(k);
@@ -169,50 +180,58 @@ var KCoreAlgorithm;
                 this.vertexToInfo.set(vl.main.id, new ConnectedComponetInfo(0, 0));
             });
             while (true) {
+                shellToStep.set(currentShell, step);
+                this.states.localStateTop({ step: step, codeStep: 2, stepDescription: `set1.length:${this.set1.length} current_core:${currentShell}` });
                 ++step;
-                this.shellComponents[currentShell].step = step;
-                this.states.addDescriptionState({ step: step, codeStep: 2, stepDescription: `set1.length:${this.set1.length} current_core:${currentShell}` });
+                this.states.localStateTop({ step: step, codeStep: 3, stepDescription: `push vertices with degree < ${currentShell} to set0` });
                 ++step;
-                this.states.addDescriptionState({ step: step, codeStep: 3, stepDescription: `push vertices with degree < ${currentShell} to set0` });
+                this.states.localStateTop({ step: step, codeStep: 3, stepDescription: `current_core: ${currentShell} ` });
+                ++step;
                 while (this.set0.length > 0) {
                     const v_id = this.set0.pop();
                     const vl = this.graph.adjacencyList.get(v_id);
                     this.vertexToInfo.get(v_id).shell = currentShell;
+                    this.states.dataStatePush(v_id, VertexStateInfo.POOL.get().set(step, undefined, currentShell, "1"));
+                    this.states.localStatePush({ step: step, codeStep: 4, stepDescription: `process vertex ${v_id}` });
                     ++step;
-                    this.states.addDataState(v_id, VertexStateInfo.pool.get().set(step, undefined, currentShell, "1"));
-                    this.states.addDescriptionState({ step: step, codeStep: 4, stepDescription: `process vertex ${v_id} in core ${currentShell}` });
                     for (const neighbor of vl.others) {
                         let degree = this.degrees.get(neighbor);
+                        this.states.localStatePush({ step: step, codeStep: 5, stepDescription: `check neighbor ${neighbor}` });
                         ++step;
-                        this.states.addDescriptionState({ step: step, codeStep: 5, stepDescription: `check neighbor ${neighbor} of vertex ${v_id} in core ${currentShell}<br>processed:${degree < 0}` });
                         if (degree < 0) {
-                            continue;
-                        }
-                        ++step;
-                        this.states.addDataState(neighbor, VertexStateInfo.pool.get().set(step, degree, undefined, "1"));
-                        --degree;
-                        ++step;
-                        this.states.addDescriptionState({ step: step, codeStep: 7, stepDescription: `decrement degree of ${neighbor} from ${degree + 1} to ${degree}<br>less than or equal to current_core (${currentShell})? ${degree <= currentShell}` });
-                        if (degree <= currentShell) {
-                            this.removeFromSet1(neighbor);
+                            this.states.localStateTop({ step: step, codeStep: 6, stepDescription: `neighbor ${neighbor} is processed` });
+                            ++step;
                         }
                         else {
-                            nextShell = Math.min(nextShell, degree);
-                            this.degrees.set(neighbor, degree);
+                            --degree;
+                            this.states.dataStatePush(neighbor, VertexStateInfo.POOL.get().set(step, degree, undefined, "1"));
+                            this.states.localStateTop({ step: step, codeStep: 7, stepDescription: `decrement degree of ${neighbor} from ${degree + 1} to ${degree}` });
+                            ++step;
+                            if (degree <= currentShell) {
+                                this.states.localStateTop({ step: step, codeStep: 8, stepDescription: `degree (${degree}) of neighbor ${neighbor} is less than current_core (${currentShell})` });
+                                ++step;
+                                this.removeFromSet1(neighbor);
+                            }
+                            else {
+                                nextShell = Math.min(nextShell, degree);
+                                this.degrees.set(neighbor, degree);
+                            }
+                            this.states.dataStatePush(neighbor, VertexStateInfo.POOL.get().set(step, degree, undefined, KCore.OPACITY));
+                            ++step;
                         }
-                        ++step;
-                        this.states.addDataState(neighbor, VertexStateInfo.pool.get().set(step, degree, undefined, KCore.OPACITY));
+                        this.states.localStatePop(step);
                     }
+                    this.states.dataStatePush(v_id, VertexStateInfo.POOL.get().set(step, undefined, currentShell, KCore.OPACITY));
+                    this.states.localStatePop(step);
                     ++step;
-                    this.states.addDataState(v_id, VertexStateInfo.pool.get().set(step, undefined, currentShell, KCore.OPACITY));
                 }
-                currentShell = nextShell;
                 if (this.set1.length <= 0) {
                     break;
                 }
-                ++step;
-                this.states.addDescriptionState({ step: step, codeStep: 9, stepDescription: `increment current_core ${currentShell}` });
+                currentShell = nextShell;
                 nextShell = currentShell + 1;
+                this.states.localStateTop({ step: step, codeStep: 9, stepDescription: `increment current_core to ${currentShell}` });
+                ++step;
                 for (let i = 0; i < this.set1.length;) {
                     const d = this.degrees.get(this.set1[i]);
                     if (d <= currentShell) {
@@ -223,7 +242,9 @@ var KCoreAlgorithm;
                     }
                 }
             }
+            this.states.localStatePop(step);
             this.states.onInitEnd(step);
+            this.refreshSelect();
             return this;
         }
         clearState() {
@@ -231,7 +252,7 @@ var KCoreAlgorithm;
             (_a = this.states) === null || _a === void 0 ? void 0 : _a.clear();
             return this;
         }
-        preprocess() {
+        createIndexStructure() {
             this.unionFind.set(this.graph.vertices.length);
             this.releaseCCs();
             this.shellComponents.length = 0;
@@ -300,7 +321,7 @@ var KCoreAlgorithm;
                     continue;
                 const info = this.vertexToInfo.get(node);
                 const sc = this.shellComponents[info.shell].connectedComponents;
-                const cc = KCoreCC.pool.get();
+                const cc = KCoreCC.POOL.get();
                 cc.shell = info.shell;
                 info.index = sc.length;
                 cc.vertices.push(this.graph.adjacencyList.get(node).main);
@@ -317,7 +338,7 @@ var KCoreAlgorithm;
         }
         animate() {
             return __awaiter(this, void 0, void 0, function* () {
-                GraphAlgorithm.VideoControl.progressBar.setAttribute("max", this.states.maxStep.toString());
+                VisualizationUtils.VideoControl.progressBar.setAttribute("max", this.states.maxStep.toString());
                 for (const v of this.graph.vertices) {
                     v.circle.setAttribute("opacity", KCore.OPACITY);
                 }
@@ -334,37 +355,37 @@ var KCoreAlgorithm;
                 if (minShell > 0) {
                     const minStep = this.shellComponents[minShell].step;
                     vertexInfos = this.states.randomStep(minStep);
-                    GraphAlgorithm.VideoControl.progressBar.valueAsNumber = minStep;
-                    this.setAnimationDisplay(vertexInfos, this.states.currentDescriptionState());
+                    VisualizationUtils.VideoControl.progressBar.valueAsNumber = minStep;
+                    this.setAnimationDisplay(vertexInfos, this.states.getCurrentLocalStates());
                 }
                 AnimtaionLoop: while (true) {
                     const vsc = yield this.waitfor();
                     switch (vsc) {
-                        case 4 /* GraphAlgorithm.VideoControlStatus.stop */:
+                        case 4 /* VisualizationUtils.VideoControlStatus.stop */:
                             break AnimtaionLoop;
-                        case 0 /* GraphAlgorithm.VideoControlStatus.noAction */:
-                        case 1 /* GraphAlgorithm.VideoControlStatus.nextStep */:
+                        case 0 /* VisualizationUtils.VideoControlStatus.noAction */:
+                        case 1 /* VisualizationUtils.VideoControlStatus.nextStep */:
                             if ((vertexInfos = this.states.nextStep()) == null) {
                                 break AnimtaionLoop;
                             }
-                            this.setAnimationDisplay(vertexInfos, this.states.currentDescriptionState());
+                            this.setAnimationDisplay(vertexInfos, this.states.getCurrentLocalStates());
                             break;
-                        case 2 /* GraphAlgorithm.VideoControlStatus.prevStep */:
+                        case 2 /* VisualizationUtils.VideoControlStatus.prevStep */:
                             if ((vertexInfos = this.states.previousStep()) == null) {
                                 this.currentStep = 0;
                                 vertexInfos = this.states.randomStep(0);
                             }
-                            this.setAnimationDisplay(vertexInfos, this.states.currentDescriptionState());
+                            this.setAnimationDisplay(vertexInfos, this.states.getCurrentLocalStates());
                             break;
-                        case 3 /* GraphAlgorithm.VideoControlStatus.randomStep */:
+                        case 3 /* VisualizationUtils.VideoControlStatus.randomStep */:
                             if ((vertexInfos = this.states.randomStep(this.currentStep)) == null) {
                                 vertexInfos = this.states.randomStep(0);
                                 this.currentStep = 0;
                             }
-                            this.setAnimationDisplay(vertexInfos, this.states.currentDescriptionState());
+                            this.setAnimationDisplay(vertexInfos, this.states.getCurrentLocalStates());
                             break;
                     }
-                    GraphAlgorithm.VideoControl.progressBar.valueAsNumber = this.states.currentStep;
+                    VisualizationUtils.VideoControl.progressBar.valueAsNumber = this.states.currentStep;
                     if (this.states.currentStep > maxStep) {
                         break AnimtaionLoop;
                     }
@@ -440,8 +461,16 @@ var KCoreAlgorithm;
                     (_c = vertex.circle) === null || _c === void 0 ? void 0 : _c.setAttribute("fill", "var(--reverse-color2)");
                 }
             }
-            GraphAlgorithm.DescriptionDisplay.highlightCode(descriptionInfo.codeStep);
-            GraphAlgorithm.DescriptionDisplay.stepDescription.innerHTML = descriptionInfo.stepDescription;
+            if (descriptionInfo.length > 0) {
+                const lis = VisualizationUtils.DescriptionDisplay.setLocalDescriptionNumber(descriptionInfo.length);
+                for (let i = 0; i < descriptionInfo.length; ++i) {
+                    lis[i].innerHTML = descriptionInfo[i].stepDescription;
+                }
+                VisualizationUtils.DescriptionDisplay.highlightCode(descriptionInfo[descriptionInfo.length - 1].codeStep);
+            }
+            else {
+                VisualizationUtils.DescriptionDisplay.highlightCode(-1);
+            }
         }
         setVisualElementsColor(defaultColor) {
             var _a, _b;
@@ -507,7 +536,7 @@ var KCoreAlgorithm;
         }
         addEdge(a, b) {
             if (this.graph.addEdge(a, b) == false) {
-                return this;
+                return false;
             }
             const a_idx = this.vertexToInfo.get(a);
             const b_idx = this.vertexToInfo.get(b);
@@ -527,11 +556,11 @@ var KCoreAlgorithm;
                 theInfo = a_idx;
             }
             this.KCore_ConnectedComponent(theInfo);
-            return this;
+            return true;
         }
         removeEdge(a, b) {
             if (this.graph.removeEdge(a, b) == false) {
-                return this;
+                return false;
             }
             const a_idx = this.vertexToInfo.get(a);
             const b_idx = this.vertexToInfo.get(b);
@@ -548,32 +577,34 @@ var KCoreAlgorithm;
                 theInfo = a_idx;
             }
             this.KCore_ConnectedComponent(theInfo);
-            return this;
+            return true;
         }
         addVertex(a) {
             const v = this.graph.addVertex(a);
             if (v == null) {
-                return;
+                return false;
             }
             const sc = this.shellComponents[0];
             const info = new ConnectedComponetInfo(0, sc.connectedComponents.length);
-            const cc = KCoreCC.pool.get();
+            const cc = KCoreCC.POOL.get();
             sc.connectedComponents.push(cc);
             cc.shell = 0;
             this.setPolygon(cc, sc);
             cc.vertices.push(v);
             v.setColor(sc.color);
             this.vertexToInfo.set(a, info);
+            return true;
         }
         removeVertex(a) {
             if (this.graph.removeVertex(a) == null) {
-                return;
+                return false;
             }
             const info = this.vertexToInfo.get(a);
             const cc = this.shellComponents[info.shell].connectedComponents[info.index];
             cc.removeVertex(a);
             this.KCore_ConnectedComponent(info);
             this.vertexToInfo.delete(a);
+            return true;
         }
         removeComponent(shellComponent, idx, setIndex = false) {
             var _a;
@@ -606,7 +637,7 @@ var KCoreAlgorithm;
                 ccIdx.index = idx0;
             }
             (_a = b.polygon) === null || _a === void 0 ? void 0 : _a.remove();
-            KCoreCC.pool.release(b);
+            KCoreCC.POOL.release(b);
         }
         KCore_ConnectedComponent(theInfo) {
             var _a;
@@ -708,7 +739,7 @@ var KCoreAlgorithm;
                         continue;
                 }
                 const sc = this.shellComponents[info.shell].connectedComponents;
-                const cc = KCoreCC.pool.get();
+                const cc = KCoreCC.POOL.get();
                 cc.shell = info.shell;
                 info.index = sc.length;
                 cc.vertices.push(v);
@@ -793,13 +824,13 @@ var KCoreAlgorithm;
                             info.index = minIndex;
                             minCC.vertices.push(v);
                         }
-                        KCoreCC.pool.release(otherCC);
+                        KCoreCC.POOL.release(otherCC);
                     }
                     this.setPolygon(minCC, sc);
                     ConvesHull.Solve(minCC, this.svgContainer);
                 }
             }
-            KCoreCC.pool.release(theCC);
+            KCoreCC.POOL.release(theCC);
             this.checkCCs();
         }
         setPolygon(cc, sc) {
@@ -856,29 +887,10 @@ var KCoreAlgorithm;
             }
             for (const sc of this.shellComponents) {
                 for (const cc of sc.connectedComponents) {
-                    KCoreCC.pool.release(cc);
+                    KCoreCC.POOL.release(cc);
                 }
             }
             this.shellComponents.length = 0;
-        }
-        copyIndexStructure(other) {
-            other.releaseCCs();
-            other.shellComponents.length = 0;
-            other.vertexToInfo.clear();
-            for (const sc of this.shellComponents) {
-                const newSC = sc.clone();
-                other.shellComponents.push(newSC);
-                for (const cc of sc.connectedComponents) {
-                    const newCC = cc.clone();
-                    for (const v of cc.vertices) {
-                        newCC.vertices.push(other.graph.adjacencyList.get(v.id).main);
-                    }
-                    newSC.connectedComponents.push(newCC);
-                }
-            }
-            for (const kvp of this.vertexToInfo) {
-                other.vertexToInfo.set(kvp[0], kvp[1].clone());
-            }
         }
     }
     KCore.CODE_DESCRIPTION = `maintain two set:

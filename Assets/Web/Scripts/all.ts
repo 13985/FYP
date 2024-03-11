@@ -1,3 +1,8 @@
+/**************************************************Flags************************************************************/
+
+let graphHasUpdated:boolean=false;
+
+
 
 namespace AlgorithmSelect{
     let kCoreInput:HTMLInputElement;
@@ -56,11 +61,8 @@ namespace VertexGradient{
 
 
 window.onload=():void=>{
+    GraphWindow.main();
     
-    /**************************************************Flags************************************************************/
-
-    let graphHasUpdated:boolean=false;
-
     /**************************************************Vertex expand****************************************************/
     const vertexExpandInput:HTMLInputElement=<HTMLInputElement>document.getElementById("vertex-expand-input");
     const vertexSetColor:HTMLInputElement=<HTMLInputElement>document.getElementById("vertex-set-color");
@@ -82,7 +84,6 @@ window.onload=():void=>{
     {
         const visualizationControl:FloatingPanel=new FloatingPanel("#video-control",<HTMLInputElement>document.getElementById("show-video-control"));
         const statePanel:FloatingPanel=new FloatingPanel("#state-panel",<HTMLInputElement>document.getElementById("show-algo-state"));
-        //const runButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("run-algo"),stopButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("stop-algo");
         VisualizationUtils.Algorithm.setVisualizationVideoControl(visualizationControl);
         VisualizationUtils.Algorithm.setVisualizationControl(<HTMLButtonElement>document.getElementById("run-algo"),<HTMLButtonElement>document.getElementById("stop-algo"));
         VisualizationUtils.Algorithm.setStateDisplayPanel(statePanel);
@@ -91,8 +92,8 @@ window.onload=():void=>{
     const graph:Graph=new Graph();
     const resultGraph:Graph=new Graph();
     
-    const gw:GraphWindow=new GraphWindow(graph).setWH(350,350);
-    const resultGW:GraphWindow=new GraphWindow(resultGraph).setWH(350,350);
+    const gw:GraphWindow=new GraphWindow(graph).setWH(450,450);
+    const resultGW:GraphWindow=new GraphWindow(resultGraph).setWH(450,450);
     
     const kCore:KCoreAlgorithm.KCore=new KCoreAlgorithm.KCore(graph,gw.innerSVG as SVGSVGElement,gw.allG);
     const resultKCore:KCoreAlgorithm.KCore=new KCoreAlgorithm.KCore(resultGraph,resultGW.innerSVG as SVGSVGElement,resultGW.allG);
@@ -103,35 +104,42 @@ window.onload=():void=>{
     }
 
     const kClique:KCliqueAlgorithm.KClique=new KCliqueAlgorithm.KClique(graph,gw.innerSVG as SVGSVGElement);
-    const resultKClique:KCliqueAlgorithm.KClique=new KCliqueAlgorithm.KClique(graph,gw.innerSVG as SVGSVGElement);
+    const resultKClique:KCliqueAlgorithm.KClique=new KCliqueAlgorithm.KClique(resultGraph,resultGW.innerSVG as SVGSVGElement);
+
+
 
     function changeAlgo(str:string):void{
-        if(VisualizationUtils.Algorithm.isVisualizing()){
-            return;
-        }
+        if(VisualizationUtils.Algorithm.isVisualizing()){return;}
+
+        resultKCore.displayPolygons(false);
+        resultGraph.resetVisualElements();
+        graph.resetVisualElements();
 
         function helper(vt:VisualizationUtils.Algorithm,rt:VisualizationUtils.Algorithm):void{
             VisualizationUtils.Algorithm.changeAlgorithm(vt,rt);
-            gw.resetContainerTransform().updateSimulation();
-            resultGW.resetContainerTransform().updateSimulation();
-
             if(graphHasUpdated){
-                vt.setColorGradient(VertexGradient.start,VertexGradient.end).setVisualElementsColor(true).createState();
+                gw.resetContainerTransform().updateSimulation();
+                resultGW.resetContainerTransform().updateSimulation();
                 rt.createIndexStructure().setColorGradient(VertexGradient.start,VertexGradient.end).setVisualElementsColor(false);
+                vt.setIndexStructure(rt).createState().setVisualElementsColor(true);
+                graphHasUpdated=false;
+            }else{
+                rt.setVisualElementsColor(false);
+                vt.setVisualElementsColor(true);
             }
-            graphHasUpdated=false;
         }
 
         switch(str){
         case "kcore":{
             helper(kCore,resultKCore);
-            kCore.displayPolygons(false);
-            resultKCore.displayPolygons(true);
+            resultKCore.displayPolygons(true);//note they may have the same index structure
             resultGW.setVertexDragStartCallback(resultKCore.refreshPolygons.bind(resultKCore));
             break;
         }
         case "kclique":{
+            
             helper(kClique,resultKClique);
+            resultGW.setVertexDragStartCallback(undefined);
             break;
         }
         default:{
@@ -145,12 +153,18 @@ window.onload=():void=>{
         vertexExpandInput.value=v.id.toString();
         vertexSetColor.value=v.getColorHexa();
     });
-    gw.display(false);
+    //gw.display(false);
     resultKCore.showDefaultColor=false;
 
-    GraphWindow.main();
     AlgorithmSelect.main(changeAlgo);
     setThemeToggle();
+
+    //set the callback when add/remove vertex/edge successfully
+    VisualizationUtils.Algorithm.onGraphChange=():void=>{
+        setVENumber();
+        resultGW.updateSimulation();
+        gw.updateSimulation();
+    }
 
     /****************************************************Graph expand**************************************************/
 
@@ -158,6 +172,7 @@ window.onload=():void=>{
         if(fileInput.files==null||fileInput.files.length<=0){
             return;
         }
+        else if(VisualizationUtils.Algorithm.isVisualizing()){return;}
         const f:File=fileInput.files[0];
         (f as Blob).text().then((value:string):void=>{
             loadGraph(value);
@@ -178,17 +193,17 @@ window.onload=():void=>{
         graph.from(edgeList);
         gw.resetContainerTransform().updateSimulation();
         setVENumber();
-        VisualizationUtils.Algorithm.VisualizationTarget().setColorGradient(VertexGradient.start,VertexGradient.end).setVisualElementsColor(true).createState();
-
+        
         graph.copyTo(resultGraph.clear(true));
         resultGW.resetContainerTransform().updateSimulation();
-        const algo:VisualizationUtils.Algorithm|undefined=VisualizationUtils.Algorithm.ResultTarget();
-        if(algo){
-            algo.createIndexStructure().setColorGradient(VertexGradient.start,VertexGradient.end).setVisualElementsColor(false);
-            if(algo instanceof KCoreAlgorithm.KCore){
-                algo.displayPolygons(true);
-            }else if(algo instanceof KCliqueAlgorithm.KClique){
 
+        VisualizationUtils.Algorithm.loadUpdatedGraph();
+        const rt:VisualizationUtils.Algorithm|undefined=VisualizationUtils.Algorithm.ResultTarget();
+        if(rt){
+            if(rt instanceof KCoreAlgorithm.KCore){
+                rt.displayPolygons(true);
+            }else if(rt instanceof KCliqueAlgorithm.KClique){
+                
             }
         }
         graphHasUpdated=true;
@@ -229,17 +244,11 @@ window.onload=():void=>{
         const theVertex:number=parseInt(vertexExpandInput.value);
         switch(vertexUpdateSelect.value){
         case "create":{
-            VisualizationUtils.Algorithm.addVertex(theVertex);
-            gw.updateSimulation();
-            resultGW.updateSimulation();
-            setVENumber();
+            graphHasUpdated=VisualizationUtils.Algorithm.addVertex(theVertex);
             break;
         }
         case "remove":{
-            VisualizationUtils.Algorithm.removeVertex(theVertex);
-            gw.updateSimulation();
-            resultGW.updateSimulation();
-            setVENumber();
+            graphHasUpdated=VisualizationUtils.Algorithm.removeVertex(theVertex);
             break;
         }
         case "color":
@@ -290,10 +299,8 @@ window.onload=():void=>{
                 const numbers:string[]=str.split(/(\d+)/g);
                 const from:number=parseInt(numbers[0]);
                 const to:number=parseInt(numbers[0]);
-                VisualizationUtils.Algorithm.addEdge(from,to);
+                graphHasUpdated=graphHasUpdated||VisualizationUtils.Algorithm.addEdge(from,to);
             }
-            resultGW.updateSimulation();
-            gw.updateSimulation();
             break;
         }
         case "remove":{
@@ -301,10 +308,8 @@ window.onload=():void=>{
                 const numbers:string[]=str.split(/(\d+)/g);
                 const from:number=parseInt(numbers[0]);
                 const to:number=parseInt(numbers[0]);
-                VisualizationUtils.Algorithm.removeEdge(from,to);
+                graphHasUpdated=graphHasUpdated||VisualizationUtils.Algorithm.removeEdge(from,to);
             }
-            resultGW.updateSimulation();
-            gw.updateSimulation();
             break;
         }
         }

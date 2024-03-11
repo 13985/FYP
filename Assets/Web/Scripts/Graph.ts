@@ -150,7 +150,14 @@ class VerticeList implements IClone<VerticeList>{
 }
 
 
+/**
+ * @summary
+ * the hash code of getting an egde is first*MAXIMUM_VERTICES+second
+ * so it not supports MAXIMUM_VERTICES or more vertices other the code will collide
+ * maximum safe integer in javascript is 9007199254740991 and the limit of vertices number is 94906265
+ */
 class Graph{
+    public static readonly MAXIMUM_VERTICES:number=100000
     private static readonly edgeFormat:RegExp=/[\s?\d+\s?][,|\s?][\d+\s?]/;
     public adjacencyList:Map<number,VerticeList>;
     public edges:Array<Edge>;
@@ -208,15 +215,16 @@ class Graph{
                 this.edges.push(new Edge(see(vs[0],vs[1]),see(vs[1],vs[0])));
             }
         }
+
         return this;
     }
 
 
     public getEdgeHashCode(v0:number,v1:number):number{
         if(v0<v1){
-            return v0*this.vertices.length+v1;
+            return v0*Graph.MAXIMUM_VERTICES+v1;
         }else{
-            return v1*this.vertices.length+v0;
+            return v1*Graph.MAXIMUM_VERTICES+v0;
         }
     }
 
@@ -395,5 +403,20 @@ class Graph{
             const e:Edge=this.edges[this.existsEdges.get(code) as number];
             (e.line as SVGElement).setAttribute("visibility",value);
         }
+    }
+
+
+    public resetVisualElements():this{
+        for(const v of this.vertices){
+            (v.circle as SVGCircleElement).setAttribute("fill","var(--reverse-color2)");
+            (v.circle as SVGCircleElement).setAttribute("fill-opacity","1");
+        }
+        for(const e of this.edges){
+            const line=e.line as SVGLineElement;
+            line.setAttribute("stroke","var(--reverse-color2)");
+            line.setAttribute("stroke-opacity","0.6");
+            line.setAttribute("stroke-width","1");
+        }
+        return this;
     }
 }

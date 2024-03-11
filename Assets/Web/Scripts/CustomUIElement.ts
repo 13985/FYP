@@ -144,9 +144,9 @@ class GraphWindow{
 
     constructor(g:Graph){
         this.graph=g;
-
-        (document.getElementById("graphs-container") as HTMLElement).appendChild(GraphWindow.template.cloneNode(true));
-        this.container=(document.getElementById("graphs-container") as HTMLElement).lastElementChild as HTMLElement;
+        this.container=(GraphWindow.template.querySelector("div.graph-window") as HTMLElement).cloneNode(true) as HTMLElement;
+        (document.getElementById("graphs-container") as HTMLElement).appendChild(this.container);
+        
         this.innerSVG=this.container.querySelector("svg.graph-svg") as SVGElement;
         this.allG=this.innerSVG.querySelector("g.all") as SVGGElement;
 
@@ -159,7 +159,7 @@ class GraphWindow{
 
         this.linksG=(innerG.append("g") as d3.Selection<SVGGElement,unknown,null,undefined>)
         .attr("stroke", "#444")
-        .attr("stroke-opacity", 0.6);
+        .attr("stroke-opacity",1);
         this.circlesG=innerG.append("g") as d3.Selection<SVGGElement,unknown,null,undefined>;
         this.setGraph(g);
 
@@ -548,9 +548,9 @@ class GraphWindow{
             }
 
             if(this.isCreateEdge){
-                VisualizationUtils.Algorithm.addEdge(this.firstSelectedVertex,this.secondSelectedVertex);
+                graphHasUpdated=VisualizationUtils.Algorithm.addEdge(this.firstSelectedVertex,this.secondSelectedVertex);
             }else{
-                VisualizationUtils.Algorithm.removeEdge(this.firstSelectedVertex,this.secondSelectedVertex);
+                graphHasUpdated=VisualizationUtils.Algorithm.removeEdge(this.firstSelectedVertex,this.secondSelectedVertex);
             }
             this.updateSimulation();
             this.removeVerticesHighlight(this.firstSelectedVertex);

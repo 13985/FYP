@@ -40,7 +40,6 @@ namespace VisualizationUtils{
         let codesUl:HTMLUListElement;
 
         let pseudoCodes:PseudoCode[]|null;
-        let localDescription:HTMLLIElement[]=[];
 
 
         export function main(panel_:FloatingPanel):void{
@@ -53,13 +52,13 @@ namespace VisualizationUtils{
 
         export function setLocalDescriptionNumber(num:number):HTMLCollection{
             let diff=num-stepDescription.children.length;
-            if(diff<0){
+            if(diff<=0){
                 for(let i:number=0;i<stepDescription.children.length;++i){
-                    stepDescription.children[i].classList.toggle("hidden",i>=num);//hide all li with index >= num
+                    stepDescription.children[i].classList.toggle("hide",i>=num);//hide all li with index >= num
                 }
             }else if(diff>0){
                 for(let i:number=0;i<stepDescription.children.length;++i){
-                    stepDescription.children[i].classList.toggle("hidden",false);
+                    stepDescription.children[i].classList.toggle("hide",false);
                 }
                 for(let i:number=stepDescription.children.length;i<num;++i){
                     stepDescription.insertAdjacentHTML("beforeend",'<li class="step"></li>');
@@ -79,7 +78,9 @@ namespace VisualizationUtils{
 
         export function clearPanel():void{
             codeDescription.innerHTML="";
-            stepDescription.innerHTML="";
+            for(let i:number=0;i<stepDescription.children.length;++i){
+                stepDescription.children[i].classList.toggle("hidden",true);//hide all li with index >= num
+            }
             codesUl.innerHTML="";
             pseudoCodes=null;
         }
@@ -108,6 +109,17 @@ namespace VisualizationUtils{
     }
 
 
+    /**
+     * @summary 
+     * note that visualizationTarget and resultTarget share the same index structure
+     * if resultTarget is defined then it creates index structure and visualizationTarget uses it,
+     * to prevent running the same algorithm three time:
+     * resultTarget:1 (createIndexStructure()) + visualizationTarget:2 (createIndexStructure()+createState())
+     * createIndexStructure maybe slower then createState
+     * 
+     * since visualizationTarget must rerun the algorithm and use the information of preprocessed index structure
+     * resultTarget will try to do the curd first then visualizationTarget uses it results
+     */
     export abstract class Algorithm{
         private static visualizationTarget?:Algorithm;
         public static VisualizationTarget():Algorithm{
@@ -117,6 +129,7 @@ namespace VisualizationUtils{
         public static ResultTarget():Algorithm|undefined{
             return Algorithm.resultTarget
         }
+        public static onGraphChange?:()=>void;
 
         protected static readonly codeDescripton:string;
 
@@ -184,9 +197,7 @@ namespace VisualizationUtils{
             }
 
             Algorithm.visualizationTarget=algo;
-            algo.setVisualElementsColor(true);
             Algorithm.resultTarget=other;
-            other?.setVisualElementsColor(false);
             VideoControl.pauseButton.addEventListener("click",algo.onPauseButtonPressed);
             VideoControl.nextStepButton.addEventListener("click",algo.onNextStepPressed);
             VideoControl.prevStepButton.addEventListener("click",algo.onPrevStepPressed);
@@ -198,74 +209,107 @@ namespace VisualizationUtils{
             Algorithm.visualizationTarget?.start(onEnd);
         }
 
-        public static preprocess():void{
-            Algorithm.visualizationTarget?.createState();
-            Algorithm.resultTarget?.createIndexStructure();
+
+        public static loadUpdatedGraph():void{
+            if(Algorithm.resultTarget!=undefined){
+                Algorithm.resultTarget.createIndexStructure().setColorGradient(VertexGradient.start,VertexGradient.end).setVisualElementsColor(false);
+                Algorithm.visualizationTarget?.setIndexStructure(Algorithm.resultTarget).createState().setVisualElementsColor(true);
+            }else{
+                Algorithm.visualizationTarget?.createIndexStructure().setColorGradient(VertexGradient.start,VertexGradient.end).createState().setVisualElementsColor(true);
+            }
         }
+
 
         public static createState():void{
             Algorithm.visualizationTarget?.createState();
         }
 
-        public static addVertex(a:number):void{
-            const vt:Algorithm|undefined=Algorithm.visualizationTarget;
-            if(vt){
-                if(vt.graph.addVertex(a)){
-                    vt.clearState();
-                    Algorithm.resultTarget?.addVertex(a);
+
+        public static addVertex(v:number):boolean{
+            if(Algorithm.resultTarget!=undefined){
+                if(Algorithm.resultTarget.addVertex(v)){
+                    Algorithm.visualizationTarget?.createState();
+                    Algorithm.graphChangeCallBack();
+                    return true;
                 }
-            }else{
-                Algorithm.resultTarget?.addVertex(a);
+            }else if(Algorithm.visualizationTarget!=undefined){
+                if(Algorithm.visualizationTarget.addVertex(v)){
+                    Algorithm.visualizationTarget.createState();
+                    Algorithm.graphChangeCallBack();
+                    return true;
+                }
             }
+
+            return false;
         }
 
-        public static removeVertex(a:number):void{
-            const vt:Algorithm|undefined=Algorithm.visualizationTarget;
-            if(vt){
-                if(vt.graph.removeVertex(a)){
-                    vt.clearState();
-                    Algorithm.resultTarget?.removeVertex(a);
+        public static removeVertex(v:number):boolean{
+            if(Algorithm.resultTarget!=undefined){
+                if(Algorithm.resultTarget.removeVertex(v)){
+                    Algorithm.visualizationTarget?.createState();
+                    Algorithm.graphChangeCallBack();
+                    return true;
                 }
-            }else{
-                Algorithm.resultTarget?.removeVertex(a);
+            }else if(Algorithm.visualizationTarget!=undefined){
+                if(Algorithm.visualizationTarget.removeVertex(v)){
+                    Algorithm.visualizationTarget.createState();
+                    Algorithm.graphChangeCallBack();
+                    return true;
+                }
             }
+            return false;
         }
 
-        public static addEdge(from:number,to:number):void{
-            const vt:Algorithm|undefined=Algorithm.visualizationTarget;
-            if(vt){
-                if(vt.graph.addEdge(from,to)){
-                    vt.clearState();
-                    Algorithm.resultTarget?.addEdge(from,to);
+        public static addEdge(from:number,to:number):boolean{
+            if(Algorithm.resultTarget!=undefined){
+                if(Algorithm.resultTarget.addEdge(from,to)){
+                    Algorithm.visualizationTarget?.createState();
+                    Algorithm.graphChangeCallBack();
+                    return true;
                 }
-            }else{
-                Algorithm.resultTarget?.addEdge(from,to);
+            }else if(Algorithm.visualizationTarget!=undefined){
+                if(Algorithm.visualizationTarget.addEdge(from,to)){
+                    Algorithm.visualizationTarget.createState();
+                    Algorithm.graphChangeCallBack();
+                    return true;
+                }
             }
+            return false;
         }
 
-        public static removeEdge(from:number,to:number):void{
-            const vt:Algorithm|undefined=Algorithm.visualizationTarget;
-            if(vt){
-                if(vt.graph.removeEdge(from,to)){
-                    vt.clearState();
-                    Algorithm.resultTarget?.removeEdge(from,to);
+        public static removeEdge(from:number,to:number):boolean{
+            if(Algorithm.resultTarget!=undefined){
+                if(Algorithm.resultTarget.removeEdge(from,to)){
+                    Algorithm.visualizationTarget?.createState();
+                    Algorithm.graphChangeCallBack();
+                    return true;
                 }
-            }else{
-                Algorithm.resultTarget?.removeEdge(from,to);
+            }else if(Algorithm.visualizationTarget!=undefined){
+                if(Algorithm.visualizationTarget.removeEdge(from,to)){
+                    Algorithm.visualizationTarget.createState();
+                    Algorithm.graphChangeCallBack();
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static graphChangeCallBack():void{
+            if(Algorithm.onGraphChange!=undefined){
+                Algorithm.onGraphChange();
             }
         }
 
         public static setColorGradient(start:Color,end:Color):void{
-            Algorithm.visualizationTarget?.setColorGradient(start,end);
-            Algorithm.resultTarget?.setColorGradient(start,end);
+            if(Algorithm.resultTarget){
+                Algorithm.resultTarget.setColorGradient(start,end);
+            }else{
+                Algorithm.visualizationTarget?.setColorGradient(start,end);
+            }
         }
 
         public static setAllVerticesColor(defaultColor:boolean):void{
             Algorithm.visualizationTarget?.setVisualElementsColor(defaultColor);
-        }
-
-        public static setAllEdgesColor(defaultColor:boolean):void{
-            Algorithm.visualizationTarget?.setAllEdgesColor(defaultColor);
         }
 
         public graph:Graph;
@@ -331,7 +375,6 @@ namespace VisualizationUtils{
          * though generally copy the results from the first instance should be fast enough, if there
          * is any "other visual elements" eg the polygons in kcore, then index structure is necessary
          */
-
         public abstract clearState():this;
 
         protected abstract animate():void;
@@ -383,14 +426,13 @@ namespace VisualizationUtils{
             return vcs;
         }
 
-
-        public addVertex(a:number):any{}
-        public removeVertex(a:number):any{}
-        public addEdge(from:number,to:number):any{}
-        public removeEdge(from:number,to:number):any{}
-        public setAllEdgesColor(defaultColor:boolean):any{}
-
-        public copyIndexStructure(other:Algorithm){}
+        protected abstract addVertex(a:number):boolean;
+        protected abstract removeVertex(a:number):boolean;
+        protected abstract addEdge(from:number,to:number):boolean;
+        protected abstract removeEdge(from:number,to:number):boolean;
+        
+        public abstract setIndexStructure(other:this):this;
+        public copyIndexStructure(other:this){}
     }
 
 
@@ -453,7 +495,7 @@ namespace VisualizationUtils{
     }
 
 
-    export class DescriptionStateInfo implements IStep{
+    export class DescriptionState implements IStep{
         public step:number=0;
         public stepDescription:string="";
         public codeStep:number=0;
@@ -512,9 +554,9 @@ namespace VisualizationUtils{
          */
         public compareToBound(step:number):number{
             if(step<this.left){
-                return -1;
-            }else if(step>=this.right){
                 return 1;
+            }else if(step>=this.right){
+                return -1;
             }else{
                 return 0;
             }
@@ -559,23 +601,28 @@ namespace VisualizationUtils{
      * 
      * @note
      * doesnt support "global values" only support local value changes
+     * each push must be followed by pop as stack, otherwise the right bound wont be updated correctly
      */
     export abstract class StateManager<TDataState extends IStep,TLocalState extends IStep>{
         public maxStep:number=0;
         public currentStep:number=0;
+        public dataKeys:number[]=[];
+
         protected dataStates:Map<number,Array<TDataState>>=new Map();//for O(vertices.length * log(maxStep)) random step
         protected dataStatesIndices:number[]=[];//for O(vertices.length) prev step/next step
-        protected currentDataStates:TDataState[]=[];
+        protected dataStatesCurrent:TDataState[]=[];
+        public getCurrentDataStates():TDataState[]{
+            return this.dataStatesCurrent;
+        }
 
         protected localStates:TreeNodeBase<TLocalState>;
         protected localStatesIndex:TreeNodeBase<TLocalState>;
-        protected currentLocalStates:TLocalState[]=[];
-        public getCurrentLocalState():TLocalState[]{
-            return this.currentLocalStates;
+        protected localStatesCurrent:TLocalState[]=[];
+        public getCurrentLocalStates():TLocalState[]{
+            return this.localStatesCurrent;
         }
 
         protected graph:Graph;
-
 
         constructor(graph:Graph){
             this.graph=graph;
@@ -584,11 +631,14 @@ namespace VisualizationUtils{
         }
 
 
+        protected abstract setDataKeys():void;
+
+
         public init(graph?:Graph):void{
             if(graph!=undefined){
                 this.graph=graph;
             }
-            this.currentDataStates.length=this.graph.vertices.length;
+            this.dataStatesCurrent.length=this.graph.vertices.length;
             this.dataStatesIndices.length=this.graph.vertices.length;
             this.resetStep();
         }
@@ -597,6 +647,7 @@ namespace VisualizationUtils{
         public onInitEnd(step:number):void{
             this.maxStep=step;
             (this.localStates as TreeNodeBase<TLocalState>).right=step;
+            this.localStatesIndex=this.localStates;
         }
 
 
@@ -622,7 +673,7 @@ namespace VisualizationUtils{
                 this.dataStatesIndices[i]=0;
             }
             this.localStatesIndex=this.localStates;
-            this.currentLocalStates.length=0;
+            this.localStatesCurrent.length=0;
             /*
             for(let v_idx:number=0;v_idx<this.graph.vertices.length;++v_idx){
                 const stateInfos:DataState[]=this.vertexStates.get(this.graph.vertices[v_idx].id) as DataState[];
@@ -652,26 +703,28 @@ namespace VisualizationUtils{
                 const nextIdx:number=idx+1;
                 if(nextIdx<stateInfos.length&&stateInfos[nextIdx].step<=this.currentStep){
                     this.dataStatesIndices[v_idx]=nextIdx;
-                    this.currentDataStates[v_idx]=stateInfos[nextIdx];
+                    this.dataStatesCurrent[v_idx]=stateInfos[nextIdx];
                 }else{
-                    this.currentDataStates[v_idx]=stateInfos[idx];
+                    this.dataStatesCurrent[v_idx]=stateInfos[idx];
                 }
             }
 
-            if(this.localStatesIndex.right<=this.currentStep){
-                do{
-                    this.currentDataStates.pop();
-                    this.localStatesIndex=this.localStatesIndex.parent as TreeNodeBase<TLocalState>;
-                }while(this.localStatesIndex.right<=this.currentStep);
-
-                while(true){
-                    const child:TreeNodeBase<TLocalState>|null=this.localStatesIndex.getChild(this.currentStep);
-                    if(child==null){break;}
-                    this.currentLocalStates.push(child.state as TLocalState);
-                    this.localStatesIndex=child;
+            while(this.localStatesIndex.right<=this.currentStep){
+                this.localStatesCurrent.pop();
+                if(this.localStatesIndex.parent){
+                    this.localStatesIndex=this.localStatesIndex.parent;
+                }else{
+                    break;
                 }
             }
-            return this.currentDataStates;
+
+            while(true){
+                const child:TreeNodeBase<TLocalState>|null=this.localStatesIndex.getChild(this.currentStep);
+                if(child==null){break;}
+                this.localStatesCurrent.push(child.state as TLocalState);
+                this.localStatesIndex=child;
+            }
+            return this.dataStatesCurrent;
         }
 
 
@@ -687,26 +740,28 @@ namespace VisualizationUtils{
                 const nextIdx:number=idx-1;
                 if(stateInfos[idx].step>this.currentStep){
                     this.dataStatesIndices[v_idx]=nextIdx;
-                    this.currentDataStates[v_idx]=stateInfos[nextIdx];
+                    this.dataStatesCurrent[v_idx]=stateInfos[nextIdx];
                 }else{
-                    this.currentDataStates[v_idx]=stateInfos[idx];
+                    this.dataStatesCurrent[v_idx]=stateInfos[idx];
                 }
             }
 
-            if(this.localStatesIndex.left>this.currentStep){
-                do{
-                    this.currentDataStates.pop();
-                    this.localStatesIndex=this.localStatesIndex.parent as TreeNodeBase<TLocalState>;
-                }while(this.localStatesIndex.left>this.currentStep);
-
-                while(true){
-                    const child:TreeNodeBase<TLocalState>|null=this.localStatesIndex.getChild(this.currentStep);
-                    if(child==null){break;}
-                    this.currentLocalStates.push(child.state as TLocalState);
-                    this.localStatesIndex=child;
+            while(this.localStatesIndex.left>this.currentStep){
+                this.localStatesCurrent.pop();
+                if(this.localStatesIndex.parent){
+                    this.localStatesIndex=this.localStatesIndex.parent;
+                }else{
+                    break;
                 }
             }
-            return this.currentDataStates;
+
+            while(true){
+                const child:TreeNodeBase<TLocalState>|null=this.localStatesIndex.getChild(this.currentStep);
+                if(child==null){break;}
+                this.localStatesCurrent.push(child.state as TLocalState);
+                this.localStatesIndex=child;
+            }
+            return this.dataStatesCurrent;
         }
 
 
@@ -718,18 +773,18 @@ namespace VisualizationUtils{
             
             for(let v_idx:number=0;v_idx<this.graph.vertices.length;++v_idx){
                 const stateInfos=this.dataStates.get(this.graph.vertices[v_idx].id) as Array<TDataState>;
-                this.currentDataStates[v_idx]=stateInfos[0];
+                this.dataStatesCurrent[v_idx]=stateInfos[0];
                 this.dataStatesIndices[v_idx]=0;
 
                 for(let le:number=0,ri:number=stateInfos.length;le<ri;){
                     const mid:number=Math.floor((le+ri)/2);
                     const theStep:number=stateInfos[mid].step;
                     if(theStep==this.currentStep){
-                        this.currentDataStates[v_idx]=stateInfos[mid];
+                        this.dataStatesCurrent[v_idx]=stateInfos[mid];
                         this.dataStatesIndices[v_idx]=mid;
                         break;
                     }else if(theStep<this.currentStep){
-                        this.currentDataStates[v_idx]=stateInfos[mid];
+                        this.dataStatesCurrent[v_idx]=stateInfos[mid];
                         this.dataStatesIndices[v_idx]=mid;
                         le=mid+1;
                     }else{
@@ -739,40 +794,40 @@ namespace VisualizationUtils{
             }
             
             {
-                this.currentLocalStates.length=0;
+                this.localStatesCurrent.length=0;
                 this.localStatesIndex=this.localStates;
                 while(true){
                     const child:TreeNodeBase<TLocalState>|null=this.localStatesIndex.getChild(targetStep);
                     if(child==null){
                         break;
                     }
-                    this.currentLocalStates.push(child.state as TLocalState);
+                    this.localStatesCurrent.push(child.state as TLocalState);
                     this.localStatesIndex=child;
                 }
             }
-            return this.currentDataStates;
+            return this.dataStatesCurrent;
         }
 
 
-        public pushDataState(dataId:number,info:TDataState):void{
+        public dataStatePush(dataId:number,info:TDataState):void{
             (this.dataStates.get(dataId) as TDataState[]).push(info);
         }
 
 
-        public pushLocalState(state:TLocalState):void{
+        public localStatePush(state:TLocalState):void{
             const newNode:TreeNodeBase<TLocalState>=this.getTreeNode().set(state.step,state.step,this.localStatesIndex,state);
             this.localStatesIndex.children.push(newNode);
             this.localStatesIndex=newNode;
         }
         
-        public popLocalState(step:number):void{
+        public localStatePop(step:number):void{
             this.localStatesIndex.right=step;
             this.localStatesIndex=this.localStatesIndex.parent as TreeNodeBase<TLocalState>;
         }
 
-        public topLocalState(state:TLocalState):void{
-            this.popLocalState(state.step);
-            this.pushLocalState(state);
+        public localStateTop(state:TLocalState):void{
+            this.localStatePop(state.step);
+            this.localStatePush(state);
         }
 
         protected abstract getTreeNode():TreeNodeBase<TLocalState>;

@@ -8,12 +8,12 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var GraphAlgorithm;
-(function (GraphAlgorithm) {
+var VisualizationUtils;
+(function (VisualizationUtils) {
     //only one video control i believe....
     let VideoControl;
     (function (VideoControl) {
-    })(VideoControl = GraphAlgorithm.VideoControl || (GraphAlgorithm.VideoControl = {}));
+    })(VideoControl = VisualizationUtils.VideoControl || (VisualizationUtils.VideoControl = {}));
     //one panel for code description and pseudo code
     let DescriptionDisplay;
     (function (DescriptionDisplay) {
@@ -33,6 +33,24 @@ var GraphAlgorithm;
             DescriptionDisplay.stepDescription = DescriptionDisplay.panel.contentDiv.querySelector("ul.steps.description");
         }
         DescriptionDisplay.main = main;
+        function setLocalDescriptionNumber(num) {
+            let diff = num - DescriptionDisplay.stepDescription.children.length;
+            if (diff <= 0) {
+                for (let i = 0; i < DescriptionDisplay.stepDescription.children.length; ++i) {
+                    DescriptionDisplay.stepDescription.children[i].classList.toggle("hide", i >= num); //hide all li with index >= num
+                }
+            }
+            else if (diff > 0) {
+                for (let i = 0; i < DescriptionDisplay.stepDescription.children.length; ++i) {
+                    DescriptionDisplay.stepDescription.children[i].classList.toggle("hide", false);
+                }
+                for (let i = DescriptionDisplay.stepDescription.children.length; i < num; ++i) {
+                    DescriptionDisplay.stepDescription.insertAdjacentHTML("beforeend", '<li class="step"></li>');
+                }
+            }
+            return DescriptionDisplay.stepDescription.children;
+        }
+        DescriptionDisplay.setLocalDescriptionNumber = setLocalDescriptionNumber;
         function reset() {
             for (const pc of pseudoCodes) {
                 pc.li.classList.toggle("current-code", false);
@@ -42,7 +60,9 @@ var GraphAlgorithm;
         DescriptionDisplay.reset = reset;
         function clearPanel() {
             DescriptionDisplay.codeDescription.innerHTML = "";
-            DescriptionDisplay.stepDescription.innerHTML = "";
+            for (let i = 0; i < DescriptionDisplay.stepDescription.children.length; ++i) {
+                DescriptionDisplay.stepDescription.children[i].classList.toggle("hidden", true); //hide all li with index >= num
+            }
             codesUl.innerHTML = "";
             pseudoCodes = null;
         }
@@ -67,7 +87,18 @@ var GraphAlgorithm;
             }
         }
         DescriptionDisplay.highlightCode = highlightCode;
-    })(DescriptionDisplay = GraphAlgorithm.DescriptionDisplay || (GraphAlgorithm.DescriptionDisplay = {}));
+    })(DescriptionDisplay = VisualizationUtils.DescriptionDisplay || (VisualizationUtils.DescriptionDisplay = {}));
+    /**
+     * @summary
+     * note that visualizationTarget and resultTarget share the same index structure
+     * if resultTarget is defined then it creates index structure and visualizationTarget uses it,
+     * to prevent running the same algorithm three time:
+     * resultTarget:1 (createIndexStructure()) + visualizationTarget:2 (createIndexStructure()+createState())
+     * createIndexStructure maybe slower then createState
+     *
+     * since visualizationTarget must rerun the algorithm and use the information of preprocessed index structure
+     * resultTarget will try to do the curd first then visualizationTarget uses it results
+     */
     class Algorithm {
         static VisualizationTarget() {
             return Algorithm.visualizationTarget;
@@ -128,9 +159,7 @@ var GraphAlgorithm;
                 Algorithm.resultTarget.onUnregisterSelf();
             }
             Algorithm.visualizationTarget = algo;
-            algo.setVisualElementsColor(true);
             Algorithm.resultTarget = other;
-            other === null || other === void 0 ? void 0 : other.setVisualElementsColor(false);
             VideoControl.pauseButton.addEventListener("click", algo.onPauseButtonPressed);
             VideoControl.nextStepButton.addEventListener("click", algo.onNextStepPressed);
             VideoControl.prevStepButton.addEventListener("click", algo.onPrevStepPressed);
@@ -142,79 +171,109 @@ var GraphAlgorithm;
                 (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.start(onEnd);
             });
         }
-        static preprocess() {
+        static loadUpdatedGraph() {
             var _a, _b;
-            (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.createState();
-            (_b = Algorithm.resultTarget) === null || _b === void 0 ? void 0 : _b.preprocess();
+            if (Algorithm.resultTarget != undefined) {
+                Algorithm.resultTarget.createIndexStructure().setColorGradient(VertexGradient.start, VertexGradient.end).setVisualElementsColor(false);
+                (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.setIndexStructure(Algorithm.resultTarget).createState().setVisualElementsColor(true);
+            }
+            else {
+                (_b = Algorithm.visualizationTarget) === null || _b === void 0 ? void 0 : _b.createIndexStructure().setColorGradient(VertexGradient.start, VertexGradient.end).createState().setVisualElementsColor(true);
+            }
         }
         static createState() {
             var _a;
             (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.createState();
         }
-        static addVertex(a) {
-            var _a, _b;
-            const vt = Algorithm.visualizationTarget;
-            if (vt) {
-                if (vt.graph.addVertex(a)) {
-                    vt.clearState();
-                    (_a = Algorithm.resultTarget) === null || _a === void 0 ? void 0 : _a.addVertex(a);
+        static addVertex(v) {
+            var _a;
+            if (Algorithm.resultTarget != undefined) {
+                if (Algorithm.resultTarget.addVertex(v)) {
+                    (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.createState();
+                    Algorithm.graphChangeCallBack();
+                    return true;
                 }
             }
-            else {
-                (_b = Algorithm.resultTarget) === null || _b === void 0 ? void 0 : _b.addVertex(a);
+            else if (Algorithm.visualizationTarget != undefined) {
+                if (Algorithm.visualizationTarget.addVertex(v)) {
+                    Algorithm.visualizationTarget.createState();
+                    Algorithm.graphChangeCallBack();
+                    return true;
+                }
             }
+            return false;
         }
-        static removeVertex(a) {
-            var _a, _b;
-            const vt = Algorithm.visualizationTarget;
-            if (vt) {
-                if (vt.graph.removeVertex(a)) {
-                    vt.clearState();
-                    (_a = Algorithm.resultTarget) === null || _a === void 0 ? void 0 : _a.removeVertex(a);
+        static removeVertex(v) {
+            var _a;
+            if (Algorithm.resultTarget != undefined) {
+                if (Algorithm.resultTarget.removeVertex(v)) {
+                    (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.createState();
+                    Algorithm.graphChangeCallBack();
+                    return true;
                 }
             }
-            else {
-                (_b = Algorithm.resultTarget) === null || _b === void 0 ? void 0 : _b.removeVertex(a);
+            else if (Algorithm.visualizationTarget != undefined) {
+                if (Algorithm.visualizationTarget.removeVertex(v)) {
+                    Algorithm.visualizationTarget.createState();
+                    Algorithm.graphChangeCallBack();
+                    return true;
+                }
             }
+            return false;
         }
         static addEdge(from, to) {
-            var _a, _b;
-            const vt = Algorithm.visualizationTarget;
-            if (vt) {
-                if (vt.graph.addEdge(from, to)) {
-                    vt.clearState();
-                    (_a = Algorithm.resultTarget) === null || _a === void 0 ? void 0 : _a.addEdge(from, to);
+            var _a;
+            if (Algorithm.resultTarget != undefined) {
+                if (Algorithm.resultTarget.addEdge(from, to)) {
+                    (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.createState();
+                    Algorithm.graphChangeCallBack();
+                    return true;
                 }
             }
-            else {
-                (_b = Algorithm.resultTarget) === null || _b === void 0 ? void 0 : _b.addEdge(from, to);
+            else if (Algorithm.visualizationTarget != undefined) {
+                if (Algorithm.visualizationTarget.addEdge(from, to)) {
+                    Algorithm.visualizationTarget.createState();
+                    Algorithm.graphChangeCallBack();
+                    return true;
+                }
             }
+            return false;
         }
         static removeEdge(from, to) {
-            var _a, _b;
-            const vt = Algorithm.visualizationTarget;
-            if (vt) {
-                if (vt.graph.removeEdge(from, to)) {
-                    vt.clearState();
-                    (_a = Algorithm.resultTarget) === null || _a === void 0 ? void 0 : _a.removeEdge(from, to);
+            var _a;
+            if (Algorithm.resultTarget != undefined) {
+                if (Algorithm.resultTarget.removeEdge(from, to)) {
+                    (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.createState();
+                    Algorithm.graphChangeCallBack();
+                    return true;
                 }
             }
-            else {
-                (_b = Algorithm.resultTarget) === null || _b === void 0 ? void 0 : _b.removeEdge(from, to);
+            else if (Algorithm.visualizationTarget != undefined) {
+                if (Algorithm.visualizationTarget.removeEdge(from, to)) {
+                    Algorithm.visualizationTarget.createState();
+                    Algorithm.graphChangeCallBack();
+                    return true;
+                }
+            }
+            return false;
+        }
+        static graphChangeCallBack() {
+            if (Algorithm.onGraphChange != undefined) {
+                Algorithm.onGraphChange();
             }
         }
         static setColorGradient(start, end) {
-            var _a, _b;
-            (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.setColorGradient(start, end);
-            (_b = Algorithm.resultTarget) === null || _b === void 0 ? void 0 : _b.setColorGradient(start, end);
+            var _a;
+            if (Algorithm.resultTarget) {
+                Algorithm.resultTarget.setColorGradient(start, end);
+            }
+            else {
+                (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.setColorGradient(start, end);
+            }
         }
         static setAllVerticesColor(defaultColor) {
             var _a;
             (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.setVisualElementsColor(defaultColor);
-        }
-        static setAllEdgesColor(defaultColor) {
-            var _a;
-            (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.setAllEdgesColor(defaultColor);
         }
         constructor(g, svg) {
             this.showDefaultColor = true;
@@ -290,14 +349,9 @@ var GraphAlgorithm;
                 return vcs;
             });
         }
-        addVertex(a) { }
-        removeVertex(a) { }
-        addEdge(from, to) { }
-        removeEdge(from, to) { }
-        setAllEdgesColor(defaultColor) { }
         copyIndexStructure(other) { }
     }
-    GraphAlgorithm.Algorithm = Algorithm;
+    VisualizationUtils.Algorithm = Algorithm;
     class ObjectPool {
         constructor(iNew, poolCapacity = 128) {
             this.pool = [];
@@ -319,7 +373,7 @@ var GraphAlgorithm;
             this.pool.push(t);
         }
     }
-    GraphAlgorithm.ObjectPool = ObjectPool;
+    VisualizationUtils.ObjectPool = ObjectPool;
     class ConnectedComponent {
         constructor() {
             this.vertices = [];
@@ -336,81 +390,163 @@ var GraphAlgorithm;
             this.vertices.length = 0;
         }
     }
-    GraphAlgorithm.ConnectedComponent = ConnectedComponent;
-    /**
-     * @brief
-     * maintain a data structure as (5 vertex, step=20):
-     * v id: info at step X
-     * 0:1 3 5 9 10 15
-     * 1:6 7 8 9 10 11 15 16 17 19
-     * 2:0 1 2 3 7 9 15 16 18
-     * 3:0 3 4 7 8 9
-     * 4:0 8 16 17 18 19
-     *
-     * query state of vertex at target_step: lower bound search (search the state with step<=target_step)
-     * eg
-     * query states of vertex 1 at
-     * step 10-->return state at step 9
-     * step 3--->return state at step 3
-     *
-     * query all states at
-     * step 15--->return
-     * 0:15
-     * 1:15
-     * 2:15
-     * 3:9
-     * 4:8
-     * step 19--->return
-     * 0:15
-     * 1:19
-     * 2:18
-     * 3:9
-     * 4:19
-     *
-     * @complexity
-     * same as time complexity of the target algorithm (since the step is linerally related to the time complexity)
-     */
-    class DescriptionStateInfo {
+    VisualizationUtils.ConnectedComponent = ConnectedComponent;
+    class DescriptionState {
         constructor() {
             this.step = 0;
             this.stepDescription = "";
             this.codeStep = 0;
         }
     }
-    GraphAlgorithm.DescriptionStateInfo = DescriptionStateInfo;
+    VisualizationUtils.DescriptionState = DescriptionState;
+    /**
+     * @summary
+     * query the display of stack
+     * eg
+     * [            ][                           ][                                ][              ] base   descripton...
+     * [  ][][][    ][         ][       ][  ][   ][      ][       ][ ][      ][][  ][ ][   ][ ][   ]  |     descripton...
+     * [][]    [][  ][     ][][][   ][  ][][][ ][][   ][ ][       ][] [   ][ ]   [ ] [] [  ][] [   ]  |     descripton...
+     *           [][][][   ]    [][ ][][]    []   [] [] [][   ][  ]   [] []      []     [][]   [  ]   V     descripton...
+     *                 [][ ]       []                     [  ]  []                              [ ]  top
+     */
+    class TreeNodeBase {
+        constructor() {
+            this.children = [];
+            this.left = 0;
+            this.right = 0;
+        }
+        set(le, ri, parent, state) {
+            this.state = state;
+            this.parent = parent;
+            this.left = le;
+            this.right = ri;
+            return this;
+        }
+        getChild(step) {
+            for (let le = 0, ri = this.children.length; le < ri;) {
+                const mid = Math.floor((le + ri) / 2);
+                const node = this.children[mid];
+                const status = node.compareToBound(step);
+                switch (status) {
+                    case -1:
+                        le = mid + 1;
+                        break;
+                    case 0:
+                        return node;
+                    case 1:
+                        ri = mid;
+                        break;
+                }
+            }
+            return null;
+        }
+        /**
+         * @return
+         * [....le)[le,ri)[ri....)
+         *     -1     0       1
+         */
+        compareToBound(step) {
+            if (step < this.left) {
+                return 1;
+            }
+            else if (step >= this.right) {
+                return -1;
+            }
+            else {
+                return 0;
+            }
+        }
+        clear() { }
+    }
+    VisualizationUtils.TreeNodeBase = TreeNodeBase;
+    /**
+    * @summary
+    * maintain a data structure as (5 vertex, step=20):
+    * v id: info at step X
+    * 0:1 3 5 9 10 15
+    * 1:6 7 8 9 10 11 15 16 17 19
+    * 2:0 1 2 3 7 9 15 16 18
+    * 3:0 3 4 7 8 9
+    * 4:0 8 16 17 18 19
+    *
+    * query state of vertex at target_step: lower bound search (search the state with step<=target_step)
+    * eg
+    * query states of vertex 1 at
+    * step 10-->return state at step 9
+    * step 3--->return state at step 3
+    *
+    * query all states at
+    * step 15--->return
+    * 0:15
+    * 1:15
+    * 2:15
+    * 3:9
+    * 4:8
+    * step 19--->return
+    * 0:15
+    * 1:19
+    * 2:18
+    * 3:9
+    * 4:19
+    *
+    * @complexity
+    * same as time complexity of the target algorithm (since the step is linerally related to the time complexity)
+    *
+    * @note
+    * doesnt support "global values" only support local value changes
+    * each push must be followed by pop as stack, otherwise the right bound wont be updated correctly
+    */
     class StateManager {
+        getCurrentDataStates() {
+            return this.dataStatesCurrent;
+        }
+        getCurrentLocalStates() {
+            return this.localStatesCurrent;
+        }
         constructor(graph) {
             this.maxStep = 0;
             this.currentStep = 0;
-            this.vertexStates = new Map(); //for O(vertices.length * log(maxStep)) random step
-            this.vertexStatesIndices = []; //for O(vertices.length) prev step/next step
-            this.descriptionStates = [];
-            this.descriptionStatesIndex = 0;
-            this.returnbuffer = [];
+            this.dataKeys = [];
+            this.dataStates = new Map(); //for O(vertices.length * log(maxStep)) random step
+            this.dataStatesIndices = []; //for O(vertices.length) prev step/next step
+            this.dataStatesCurrent = [];
+            this.localStatesCurrent = [];
             this.graph = graph;
+            this.localStates = this.getTreeNode();
+            this.localStatesIndex = this.localStates;
         }
         init(graph) {
             if (graph != undefined) {
                 this.graph = graph;
             }
-            this.returnbuffer.length = this.graph.vertices.length;
-            this.vertexStatesIndices.length = this.graph.vertices.length;
-            this.descriptionStates.length = 0;
+            this.dataStatesCurrent.length = this.graph.vertices.length;
+            this.dataStatesIndices.length = this.graph.vertices.length;
             this.resetStep();
         }
         onInitEnd(step) {
             this.maxStep = step;
+            this.localStates.right = step;
+            this.localStatesIndex = this.localStates;
         }
         clear() {
             this.maxStep = 0;
-            this.vertexStates.clear();
+            this.dataStates.clear();
+            this.clearTreeChild(this.localStates);
+            this.localStatesIndex = this.localStates;
+        }
+        clearTreeChild(root) {
+            for (const node of root.children) {
+                this.clearTreeChild(node);
+                this.releaseTreeNode(node);
+            }
         }
         resetStep() {
             this.currentStep = 0;
-            for (let i = 0; i < this.vertexStatesIndices.length; ++i) {
-                this.vertexStatesIndices[i] = 0;
+            for (let i = 0; i < this.dataStatesIndices.length; ++i) {
+                this.dataStatesIndices[i] = 0;
             }
-            this.descriptionStatesIndex = 0;
+            this.localStatesIndex = this.localStates;
+            this.localStatesCurrent.length = 0;
             /*
             for(let v_idx:number=0;v_idx<this.graph.vertices.length;++v_idx){
                 const stateInfos:DataState[]=this.vertexStates.get(this.graph.vertices[v_idx].id) as DataState[];
@@ -432,24 +568,35 @@ var GraphAlgorithm;
             }
             ++this.currentStep;
             for (let v_idx = 0; v_idx < this.graph.vertices.length; ++v_idx) {
-                const idx = this.vertexStatesIndices[v_idx];
-                const stateInfos = this.vertexStates.get(this.graph.vertices[v_idx].id);
+                const idx = this.dataStatesIndices[v_idx];
+                const stateInfos = this.dataStates.get(this.graph.vertices[v_idx].id);
                 const nextIdx = idx + 1;
                 if (nextIdx < stateInfos.length && stateInfos[nextIdx].step <= this.currentStep) {
-                    this.vertexStatesIndices[v_idx] = nextIdx;
-                    this.returnbuffer[v_idx] = stateInfos[nextIdx];
+                    this.dataStatesIndices[v_idx] = nextIdx;
+                    this.dataStatesCurrent[v_idx] = stateInfos[nextIdx];
                 }
                 else {
-                    this.returnbuffer[v_idx] = stateInfos[idx];
+                    this.dataStatesCurrent[v_idx] = stateInfos[idx];
                 }
             }
-            {
-                const nextIdx = this.descriptionStatesIndex + 1;
-                if (nextIdx < this.descriptionStates.length && this.descriptionStates[nextIdx].step <= this.currentStep) {
-                    this.descriptionStatesIndex = nextIdx;
+            while (this.localStatesIndex.right <= this.currentStep) {
+                this.localStatesCurrent.pop();
+                if (this.localStatesIndex.parent) {
+                    this.localStatesIndex = this.localStatesIndex.parent;
+                }
+                else {
+                    break;
                 }
             }
-            return this.returnbuffer;
+            while (true) {
+                const child = this.localStatesIndex.getChild(this.currentStep);
+                if (child == null) {
+                    break;
+                }
+                this.localStatesCurrent.push(child.state);
+                this.localStatesIndex = child;
+            }
+            return this.dataStatesCurrent;
         }
         previousStep() {
             if (this.currentStep <= 0) {
@@ -457,23 +604,35 @@ var GraphAlgorithm;
             }
             --this.currentStep;
             for (let v_idx = 0; v_idx < this.graph.vertices.length; ++v_idx) {
-                const idx = this.vertexStatesIndices[v_idx];
-                const stateInfos = this.vertexStates.get(this.graph.vertices[v_idx].id);
+                const idx = this.dataStatesIndices[v_idx];
+                const stateInfos = this.dataStates.get(this.graph.vertices[v_idx].id);
                 const nextIdx = idx - 1;
                 if (stateInfos[idx].step > this.currentStep) {
-                    this.vertexStatesIndices[v_idx] = nextIdx;
-                    this.returnbuffer[v_idx] = stateInfos[nextIdx];
+                    this.dataStatesIndices[v_idx] = nextIdx;
+                    this.dataStatesCurrent[v_idx] = stateInfos[nextIdx];
                 }
                 else {
-                    this.returnbuffer[v_idx] = stateInfos[idx];
+                    this.dataStatesCurrent[v_idx] = stateInfos[idx];
                 }
             }
-            {
-                if (this.descriptionStates[this.descriptionStatesIndex].step > this.currentStep) {
-                    --this.descriptionStatesIndex;
+            while (this.localStatesIndex.left > this.currentStep) {
+                this.localStatesCurrent.pop();
+                if (this.localStatesIndex.parent) {
+                    this.localStatesIndex = this.localStatesIndex.parent;
+                }
+                else {
+                    break;
                 }
             }
-            return this.returnbuffer;
+            while (true) {
+                const child = this.localStatesIndex.getChild(this.currentStep);
+                if (child == null) {
+                    break;
+                }
+                this.localStatesCurrent.push(child.state);
+                this.localStatesIndex = child;
+            }
+            return this.dataStatesCurrent;
         }
         randomStep(targetStep) {
             if (targetStep < 0 || targetStep >= this.maxStep) {
@@ -481,20 +640,20 @@ var GraphAlgorithm;
             }
             this.currentStep = targetStep;
             for (let v_idx = 0; v_idx < this.graph.vertices.length; ++v_idx) {
-                const stateInfos = this.vertexStates.get(this.graph.vertices[v_idx].id);
-                this.returnbuffer[v_idx] = stateInfos[0];
-                this.vertexStatesIndices[v_idx] = 0;
+                const stateInfos = this.dataStates.get(this.graph.vertices[v_idx].id);
+                this.dataStatesCurrent[v_idx] = stateInfos[0];
+                this.dataStatesIndices[v_idx] = 0;
                 for (let le = 0, ri = stateInfos.length; le < ri;) {
                     const mid = Math.floor((le + ri) / 2);
                     const theStep = stateInfos[mid].step;
                     if (theStep == this.currentStep) {
-                        this.returnbuffer[v_idx] = stateInfos[mid];
-                        this.vertexStatesIndices[v_idx] = mid;
+                        this.dataStatesCurrent[v_idx] = stateInfos[mid];
+                        this.dataStatesIndices[v_idx] = mid;
                         break;
                     }
                     else if (theStep < this.currentStep) {
-                        this.returnbuffer[v_idx] = stateInfos[mid];
-                        this.vertexStatesIndices[v_idx] = mid;
+                        this.dataStatesCurrent[v_idx] = stateInfos[mid];
+                        this.dataStatesIndices[v_idx] = mid;
                         le = mid + 1;
                     }
                     else {
@@ -502,35 +661,39 @@ var GraphAlgorithm;
                     }
                 }
             }
-            for (let le = 0, ri = this.descriptionStates.length; le < ri;) {
-                const mid = Math.floor((le + ri) / 2);
-                const theStep = this.descriptionStates[mid].step;
-                if (theStep == this.currentStep) {
-                    this.descriptionStatesIndex = mid;
-                    break;
-                }
-                else if (theStep < this.currentStep) {
-                    this.descriptionStatesIndex = mid;
-                    le = mid + 1;
-                }
-                else {
-                    ri = mid;
+            {
+                this.localStatesCurrent.length = 0;
+                this.localStatesIndex = this.localStates;
+                while (true) {
+                    const child = this.localStatesIndex.getChild(targetStep);
+                    if (child == null) {
+                        break;
+                    }
+                    this.localStatesCurrent.push(child.state);
+                    this.localStatesIndex = child;
                 }
             }
-            return this.returnbuffer;
+            return this.dataStatesCurrent;
         }
-        addDataState(vertexId, info) {
-            this.vertexStates.get(vertexId).push(info);
+        dataStatePush(dataId, info) {
+            this.dataStates.get(dataId).push(info);
         }
-        addDescriptionState(info) {
-            this.descriptionStates.push(info);
+        localStatePush(state) {
+            const newNode = this.getTreeNode().set(state.step, state.step, this.localStatesIndex, state);
+            this.localStatesIndex.children.push(newNode);
+            this.localStatesIndex = newNode;
         }
-        currentDescriptionState() {
-            return this.descriptionStates[this.descriptionStatesIndex];
+        localStatePop(step) {
+            this.localStatesIndex.right = step;
+            this.localStatesIndex = this.localStatesIndex.parent;
+        }
+        localStateTop(state) {
+            this.localStatePop(state.step);
+            this.localStatePush(state);
         }
     }
-    GraphAlgorithm.StateManager = StateManager;
-})(GraphAlgorithm || (GraphAlgorithm = {}));
+    VisualizationUtils.StateManager = StateManager;
+})(VisualizationUtils || (VisualizationUtils = {}));
 class Color {
     constructor(r, g, b, a = 255) {
         this.r = r;

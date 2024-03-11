@@ -168,10 +168,10 @@ class GraphWindow {
                         return;
                     }
                     if (this.isCreateEdge) {
-                        GraphAlgorithm.Algorithm.addEdge(this.firstSelectedVertex, this.secondSelectedVertex);
+                        graphHasUpdated = VisualizationUtils.Algorithm.addEdge(this.firstSelectedVertex, this.secondSelectedVertex);
                     }
                     else {
-                        GraphAlgorithm.Algorithm.removeEdge(this.firstSelectedVertex, this.secondSelectedVertex);
+                        graphHasUpdated = VisualizationUtils.Algorithm.removeEdge(this.firstSelectedVertex, this.secondSelectedVertex);
                     }
                     this.updateSimulation();
                     this.removeVerticesHighlight(this.firstSelectedVertex);
@@ -184,8 +184,8 @@ class GraphWindow {
             }
         };
         this.graph = g;
-        document.getElementById("graphs-container").appendChild(GraphWindow.template.cloneNode(true));
-        this.container = document.getElementById("graphs-container").lastElementChild;
+        this.container = GraphWindow.template.querySelector("div.graph-window").cloneNode(true);
+        document.getElementById("graphs-container").appendChild(this.container);
         this.innerSVG = this.container.querySelector("svg.graph-svg");
         this.allG = this.innerSVG.querySelector("g.all");
         const svg = d3.select(this.innerSVG)
@@ -195,7 +195,7 @@ class GraphWindow {
         const innerG = svg.select("g.all");
         this.linksG = innerG.append("g")
             .attr("stroke", "#444")
-            .attr("stroke-opacity", 0.6);
+            .attr("stroke-opacity", 1);
         this.circlesG = innerG.append("g");
         this.setGraph(g);
         this.forceToX.x(this.width / 2);

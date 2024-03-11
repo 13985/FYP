@@ -1,7 +1,7 @@
 nav.side-nav{
     --color-transition:background-color var(--g-transition-time), border-color var(--g-transition-time), color var(--g-transition-time);
 
-    min-width:4rem;
+    min-width:6rem;
     max-width: 30vw;
     width: min-content;
     padding-right: 1rem;
@@ -228,6 +228,12 @@ h3.switch{
     width: 100%;
     margin: 0;
     padding: 0;
+}
+
+
+#state-panel.floating-panel hr{
+    border: none;
+    border-bottom:1.2px solid var(--reverse-color3);
 }
 
 

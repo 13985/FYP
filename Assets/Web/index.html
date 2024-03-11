@@ -16,16 +16,20 @@
     <script src="./JS/Graph.js"></script>
     <script src="./JS/all.js"></script>
     <script src="./JS/KCore.js"></script>
+    <script src="./JS/KClique.js"></script>
     <script src="./JS/CustomUIElement.js"></script>
 </head>
 <body>
     <header class="row-display">
         <nav class="algorithm-select row-display">
-            <input type="radio" name="current-algorithm" class="switch" id="kcore-select" value="kcore" checked>
+            <p class="comment">
+                add checked to input to set the default algorithm
+            </p>
+            <input type="radio" name="current-algorithm" class="switch" id="kcore-select" value="kcore">
             <label class="switch text-black" for="kcore-select">
                 <span>KCore</span>
             </label>
-            <input type="radio" name="current-algorithm" class="switch" id="kclique-select" value="kclique">
+            <input type="radio" name="current-algorithm" class="switch" id="kclique-select" value="kclique" checked>
             <label class="switch text-black" for="kclique-select">
                 <span>KClique</span>
             </label>
@@ -137,7 +141,7 @@
                                         <input type="range" class="progress-bar slider-0" min="0"/>
                                         <div class="row-display">
                                             <div class="row-display">
-                                                <span class="speed-text">Speed:</span><input type="range" class="speed-control slider-0" min="0"/>
+                                                <span class="speed-text">Speed:</span><input type="range" class="speed-control slider-0" min="0" value="1"/>
                                             </div>
                                             <button type="button" class="button button-reverse previousStep" title="previous step">&lt;&lt;</button>
                                             <button type="button" class="button button-reverse pause" title="pause/play">&gt;</button>
@@ -158,12 +162,13 @@
                                     <div class="panel-content">
                                         <p class="code description">
                                         </p>
+                                        <hr>
                                         <ul class="steps description">
                                         </ul>
                                         <template>
                                             <li class="step"></li>
                                         </template>
-                            
+                                        <hr>
                                         <ul class="pseudo-codes">
                                         </ul>
                                         <template>

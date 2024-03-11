@@ -1,7 +1,7 @@
 namespace KCliqueAlgorithm{
 
     class KCliqueCC extends VisualizationUtils.ConnectedComponent{
-        public static readonly pool:VisualizationUtils.ObjectPool<KCliqueCC>=new VisualizationUtils.ObjectPool(KCliqueCC);
+        public static readonly POOL:VisualizationUtils.ObjectPool<KCliqueCC>=new VisualizationUtils.ObjectPool(KCliqueCC);
 
         public clique:number=-1;
         public polygonOpacity:number=0.4;
@@ -36,12 +36,40 @@ namespace KCliqueAlgorithm{
     }
 
 
+    class TreeNode extends VisualizationUtils.TreeNodeBase<VisualizationUtils.DescriptionState> implements VisualizationUtils.IClearable{
+        public static readonly POOL=new VisualizationUtils.ObjectPool<TreeNode>(TreeNode);
+
+        public clear():void{}
+    }
+
+
+    class DataState implements VisualizationUtils.IStep{
+        public step:number=0;
+
+        constructor(step:number){
+            this.step=step;
+        }
+    }
+
+
+    class State extends VisualizationUtils.StateManager<DataState,VisualizationUtils.DescriptionState>{
+        protected setDataKeys(): void {
+            throw new Error("Method not implemented.");
+        }
+        protected getTreeNode(): VisualizationUtils.TreeNodeBase<VisualizationUtils.DescriptionState> {
+            return TreeNode.POOL.get();
+        }
+        protected releaseTreeNode(node: VisualizationUtils.TreeNodeBase<VisualizationUtils.DescriptionState>): void {
+            TreeNode.POOL.release(node);
+        }
+    }
+
+
     /**
      * @brief
      * note that any subgraph of a fully connected graph is also fully connected
      */
     export class KClique extends VisualizationUtils.Algorithm{
-        public readonly CliqueComponents:CliqueComponets[]=[];
 
         /**************************UI******************************************/
 
@@ -49,10 +77,15 @@ namespace KCliqueAlgorithm{
         private readonly set:Set<number>=new Set();
 
         /**************************index data structures**********************/
-        public readonly KCliqueComponets:Array<CliqueComponets>=[];
+        private cliqueComponents:Array<CliqueComponets>=[];
         private readonly vertexToInfo:Map<number,ConnectedComponetInfo>=new Map();
 
         /**************************animation state***************************/
+
+        public setIndexStructure(other: KClique): this {
+            this.cliqueComponents=other.cliqueComponents;
+            return this;
+        }
 
         constructor(graph:Graph,svg:SVGSVGElement){
             super(graph,svg);
@@ -65,11 +98,11 @@ namespace KCliqueAlgorithm{
         public setColorGradient(start_:Color,end_:Color):this{
             const start:Color=start_.clone();//copy the value, otherwise if it points to the same space of some shellcomponent[].color, broken
             const end:Color=end_.clone();//copy the value, otherwise if it points to the same space of some shellcomponent[].color, broken
-            const kCliqueCount:number=this.CliqueComponents.length;
+            const kCliqueCount:number=this.cliqueComponents.length;
             const interval:number=kCliqueCount-1;
 
             for(let i:number=0;i<kCliqueCount;++i){
-                Color.lerp(this.CliqueComponents[i].color,start,end,i/interval);
+                Color.lerp(this.cliqueComponents[i].color,start,end,i/interval);
             }
             return this;
         }
@@ -77,10 +110,16 @@ namespace KCliqueAlgorithm{
 
         public setVisualElementsColor(defaultColor:boolean):this{
             if(defaultColor){
-
+                this.graph.resetVisualElements();
             }else{
-                for(const cc_ of this.CliqueComponents){
+                for(const cc_ of this.cliqueComponents){
                     if(cc_.clique<=1){
+                        for(const cc of cc_.connectedComponents){
+                            for(const v of cc.vertices){
+                                v.setColor(cc_.color);
+                                (v.circle as SVGCircleElement).setAttribute("fill-opacity","0.5");
+                            }
+                        }
                         continue;
                     }
                     for(const cc of cc_.connectedComponents){
@@ -89,8 +128,12 @@ namespace KCliqueAlgorithm{
                             for(const to of cc.vertices){
                                 if(from.id==to.id){continue;}
                                 const e=this.graph.getEdge(from.id,to.id) as Edge;
-                                (e.line as SVGLineElement).setAttribute("stroke",colorStr);
-                                (e.line as SVGLineElement).setAttribute("opacity","1");
+                                const line=e.line as SVGLineElement;
+                                line.setAttribute("stroke",colorStr);
+                                line.setAttribute("stroke-opacity","1");
+                                line.setAttribute("stroke-width",`${1+cc.clique*2/this.cliqueComponents.length}`);
+                                from.setColorString(colorStr);
+                                (from.circle as SVGCircleElement).setAttribute("fill-opacity","0.5");
                             }
                         }
                     }
@@ -101,11 +144,12 @@ namespace KCliqueAlgorithm{
 
 
         public createIndexStructure():this{
-            for(const kc of this.CliqueComponents){
+            for(const kc of this.cliqueComponents){
                 for(const cc of kc.connectedComponents){
-                    KCliqueCC.pool.release(cc);
+                    KCliqueCC.POOL.release(cc);
                 }
             }
+            this.cliqueComponents.length=0;
             /*
             foreach k-clique=>find k+1-clique
             
@@ -120,13 +164,13 @@ namespace KCliqueAlgorithm{
 
             {//for 1 cliques
                 const kc:CliqueComponets=new CliqueComponets(1);
-                this.CliqueComponents.push(kc);
+                this.cliqueComponents.push(kc);
     
                 this.graph.adjacencyList.forEach((vl:VerticeList,v_id:number):void=>{
                     if(vl.others.length>0){
                         return;
                     }
-                    const cc:KCliqueCC=KCliqueCC.pool.get();
+                    const cc:KCliqueCC=KCliqueCC.POOL.get();
                     cc.clique=1;
                     cc.vertices.push(vl.main);
                     kc.connectedComponents.push(cc);
@@ -137,10 +181,10 @@ namespace KCliqueAlgorithm{
                 
             }else{
                 const kc:CliqueComponets=new CliqueComponets(2);
-                this.CliqueComponents.push(kc);
+                this.cliqueComponents.push(kc);
 
                 for(const e of this.graph.edges){
-                    const cc:KCliqueCC=KCliqueCC.pool.get();
+                    const cc:KCliqueCC=KCliqueCC.POOL.get();
                     cc.clique=2;
                     cc.vertices.push(e.source);
                     cc.vertices.push(e.target);
@@ -152,19 +196,21 @@ namespace KCliqueAlgorithm{
             for(let currentClique:number=3,noUpdate:boolean=false;noUpdate==false;++currentClique,noUpdate=true){
                 const kc:CliqueComponets=new CliqueComponets(currentClique);
 
-                const previous:KCliqueCC[]=this.CliqueComponents[currentClique-2].connectedComponents;//currentClique == .length+2
+                const previous:KCliqueCC[]=this.cliqueComponents[currentClique-2].connectedComponents;//currentClique == .length+2
 
                 for(let i:number=0;i<previous.length;++i){
-
+                    const first:KCliqueCC=previous[i];
                     Label_1:for(let j:number=i+1;j<previous.length;++j){
-                        for(const v of previous[i].vertices){
+                        const second:KCliqueCC=previous[j];
+                        this.set.clear();
+                        for(const v of first.vertices){
                             this.set.add(v.id);
                         }
                         let nonIntersectSize:number=0;
 
                         Label_2:{
                             let left_v:Vertex|undefined;
-                            for(const v of previous[j].vertices){
+                            for(const v of second.vertices){
                                 if(this.set.has(v.id)){
                                     this.set.delete(v.id);
                                 }else if(nonIntersectSize>=1){
@@ -180,15 +226,16 @@ namespace KCliqueAlgorithm{
                                     break Label_2;
                                 }
                             }
-
                             previous[i].vertices.push(left_v as Vertex);
                             previous[i]=previous[previous.length-1];
                             previous.pop();
-                            kc.connectedComponents.push(previous[i]);
+                            kc.connectedComponents.push(first);
 
-                            KCliqueCC.pool.release(previous[j]);
-                            previous[j]=previous[previous.length-1];
-                            previous.pop();
+                            KCliqueCC.POOL.release(second);
+                            if(j<=previous.length-1){
+                                previous[j]=previous[previous.length-1];
+                                previous.pop();
+                            }
 
                             --i;//prevent the increment of i
                             noUpdate=false;
@@ -197,7 +244,7 @@ namespace KCliqueAlgorithm{
                     }
                 }
 
-                this.CliqueComponents.push(kc);
+                this.cliqueComponents.push(kc);
             }
 
             return this;
@@ -218,6 +265,35 @@ namespace KCliqueAlgorithm{
             
 
 
+        }
+
+        protected addVertex(a: number): boolean {
+            if(this.graph.addVertex(a)==null){
+                return false;
+            }
+            throw new Error("Method not implemented.");
+            return true;
+        }
+        protected removeVertex(a: number): boolean {
+            if(this.graph.removeVertex(a)==null){
+                return false;
+            }
+            throw new Error("Method not implemented.");
+            return true;
+        }
+        protected addEdge(from: number, to: number): boolean {
+            if(this.graph.addEdge(from,to)==false){
+                return false;
+            }
+            throw new Error("Method not implemented.");
+            return true;
+        }
+        protected removeEdge(from: number, to: number): boolean {
+            if(this.graph.removeEdge(from,to)==false){
+                return false;
+            }
+            throw new Error("Method not implemented.");
+            return true;
         }
     }
 }

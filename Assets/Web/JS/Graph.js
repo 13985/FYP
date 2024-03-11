@@ -104,6 +104,12 @@ class VerticeList {
         return list;
     }
 }
+/**
+ * @summary
+ * the hash code of getting an egde is first*MAXIMUM_VERTICES+second
+ * so it not supports MAXIMUM_VERTICES or more vertices other the code will collide
+ * maximum safe integer in javascript is 9007199254740991 and the limit of vertices number is 94906265
+ */
 class Graph {
     constructor() {
         this.adjacencyList = new Map();
@@ -156,10 +162,10 @@ class Graph {
     }
     getEdgeHashCode(v0, v1) {
         if (v0 < v1) {
-            return v0 * this.vertices.length + v1;
+            return v0 * Graph.MAXIMUM_VERTICES + v1;
         }
         else {
-            return v1 * this.vertices.length + v0;
+            return v1 * Graph.MAXIMUM_VERTICES + v0;
         }
     }
     copyTo(g) {
@@ -320,5 +326,19 @@ class Graph {
             e.line.setAttribute("visibility", value);
         }
     }
+    resetVisualElements() {
+        for (const v of this.vertices) {
+            v.circle.setAttribute("fill", "var(--reverse-color2)");
+            v.circle.setAttribute("fill-opacity", "1");
+        }
+        for (const e of this.edges) {
+            const line = e.line;
+            line.setAttribute("stroke", "var(--reverse-color2)");
+            line.setAttribute("stroke-opacity", "0.6");
+            line.setAttribute("stroke-width", "1");
+        }
+        return this;
+    }
 }
+Graph.MAXIMUM_VERTICES = 100000;
 Graph.edgeFormat = /[\s?\d+\s?][,|\s?][\d+\s?]/;
