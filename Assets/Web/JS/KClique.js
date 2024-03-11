@@ -75,9 +75,6 @@ var KCliqueAlgorithm;
             /**************************index data structures**********************/
             this.cliqueComponents = [];
             this.vertexToInfo = new Map();
-            if (graph.vertices.length > 0) {
-                this.createIndexStructure();
-            }
         }
         setColorGradient(start_, end_) {
             const start = start_.clone(); //copy the value, otherwise if it points to the same space of some shellcomponent[].color, broken
@@ -94,7 +91,6 @@ var KCliqueAlgorithm;
                 this.graph.resetVisualElements();
             }
             else {
-            console.log(this.cliqueComponents);
                 for (const cc_ of this.cliqueComponents) {
                     if (cc_.clique <= 1) {
                         for (const cc of cc_.connectedComponents) {
@@ -112,8 +108,10 @@ var KCliqueAlgorithm;
                                 if (from.id == to.id) {
                                     continue;
                                 }
-                                console.log(from,to);
                                 const e = this.graph.getEdge(from.id, to.id);
+                                if(e==undefined){
+                                    console.log(`fail at ${from.id} ${to.id}`);
+                                }
                                 const line = e.line;
                                 line.setAttribute("stroke", colorStr);
                                 line.setAttribute("stroke-opacity", "1");
@@ -133,7 +131,7 @@ var KCliqueAlgorithm;
                     KCliqueCC.POOL.release(cc);
                 }
             }
-            this.cliqueComponents.length=0;
+            this.cliqueComponents.length = 0;
             /*
             foreach k-clique=>find k+1-clique
             
@@ -166,14 +164,22 @@ var KCliqueAlgorithm;
                 for (const e of this.graph.edges) {
                     const cc = KCliqueCC.POOL.get();
                     cc.clique = 2;
+                    cc.vertices.length=0;
                     cc.vertices.push(e.source);
                     cc.vertices.push(e.target);
+                    console.log(`${e.source.id} ${e.target.id}`);
+                    console.log(cc.vertices.length);
                     kc.connectedComponents.push(cc);
                 }
             }
-            for (let currentClique = 3, noUpdate = false; noUpdate == false; ++currentClique, noUpdate = true) {
+            for (let currentClique = 3, noUpdate = false; noUpdate == false; ++currentClique) {
                 const kc = new CliqueComponets(currentClique);
+                noUpdate=true;
                 const previous = this.cliqueComponents[currentClique - 2].connectedComponents; //currentClique == .length+2
+                for(const cc of previous){
+                    
+                    console.log(`${cc.clique} ${cc.vertices[0].id} ${cc.vertices[1].id} ${cc.vertices.length}`)
+                }
                 for (let i = 0; i < previous.length; ++i) {
                     const first = previous[i];
                     Label_1: for (let j = i + 1; j < previous.length; ++j) {
@@ -202,16 +208,17 @@ var KCliqueAlgorithm;
                                     break Label_2;
                                 }
                             }
-                            previous[i].vertices.push(left_v);
-                            previous[i] = previous[previous.length - 1];
-                            previous.pop();
-                            kc.connectedComponents.push(first);
+                            first.vertices.push(left_v);
                             KCliqueCC.POOL.release(second);
-                            if (j <= previous.length - 1) {
-                                previous[j] = previous[previous.length - 1];
+                            kc.connectedComponents.push(first);
+                            
+                            previous[j]=previous[previous.length-1];
+                            previous.pop();
+                            if(i<previous.length-1){
+                                previous[i]=previous[previous.length-1];
                                 previous.pop();
+                                --i;//prevent the increment of i
                             }
-                            --i; //prevent the increment of i
                             noUpdate = false;
                             break Label_1;
                         }

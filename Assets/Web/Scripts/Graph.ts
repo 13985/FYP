@@ -3,7 +3,7 @@ interface IClone<T>{
 }
 
 class Vertex implements d3.SimulationNodeDatum,IClone<Vertex>{
-    public id:number;
+    public readonly id:number;
     public radius:number;
     public x?:number;
     public y?:number;
@@ -70,8 +70,8 @@ class Vertex implements d3.SimulationNodeDatum,IClone<Vertex>{
 
 
 class Edge implements d3.SimulationLinkDatum<Vertex>{
-    public source:Vertex;
-    public target:Vertex;
+    public readonly source:Vertex;
+    public readonly target:Vertex;
     public line:SVGLineElement|null;
 
     constructor(from:Vertex,to:Vertex){

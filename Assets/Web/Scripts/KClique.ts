@@ -89,9 +89,6 @@ namespace KCliqueAlgorithm{
 
         constructor(graph:Graph,svg:SVGSVGElement){
             super(graph,svg);
-            if(graph.vertices.length>0){
-                this.createIndexStructure();
-            }
         }
 
 
@@ -193,9 +190,9 @@ namespace KCliqueAlgorithm{
             }
 
             
-            for(let currentClique:number=3,noUpdate:boolean=false;noUpdate==false;++currentClique,noUpdate=true){
+            for(let currentClique:number=3,noUpdate:boolean=false;noUpdate==false;++currentClique){
                 const kc:CliqueComponets=new CliqueComponets(currentClique);
-
+                noUpdate=true;
                 const previous:KCliqueCC[]=this.cliqueComponents[currentClique-2].connectedComponents;//currentClique == .length+2
 
                 for(let i:number=0;i<previous.length;++i){
@@ -226,18 +223,18 @@ namespace KCliqueAlgorithm{
                                     break Label_2;
                                 }
                             }
-                            previous[i].vertices.push(left_v as Vertex);
-                            previous[i]=previous[previous.length-1];
-                            previous.pop();
-                            kc.connectedComponents.push(first);
-
+                            first.vertices.push(left_v as Vertex);
                             KCliqueCC.POOL.release(second);
-                            if(j<=previous.length-1){
-                                previous[j]=previous[previous.length-1];
+                            kc.connectedComponents.push(first);
+                            
+                            previous[j]=previous[previous.length-1];
+                            previous.pop();
+                            if(i<previous.length-1){
+                                previous[i]=previous[previous.length-1];
                                 previous.pop();
+                                --i;//prevent the increment of i
                             }
 
-                            --i;//prevent the increment of i
                             noUpdate=false;
                             break Label_1;
                         }
