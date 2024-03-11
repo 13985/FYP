@@ -1,7 +1,7 @@
 namespace KCliqueAlgorithm{
 
-    class KCliqueCC extends GraphAlgorithm.ConnectedComponent{
-        public static readonly pool:GraphAlgorithm.ObjectPool<KCliqueCC>=new GraphAlgorithm.ObjectPool(KCliqueCC);
+    class KCliqueCC extends VisualizationUtils.ConnectedComponent{
+        public static readonly pool:VisualizationUtils.ObjectPool<KCliqueCC>=new VisualizationUtils.ObjectPool(KCliqueCC);
 
         public clique:number=-1;
         public polygonOpacity:number=0.4;
@@ -40,7 +40,7 @@ namespace KCliqueAlgorithm{
      * @brief
      * note that any subgraph of a fully connected graph is also fully connected
      */
-    export class KClique extends GraphAlgorithm.Algorithm{
+    export class KClique extends VisualizationUtils.Algorithm{
         public readonly CliqueComponents:CliqueComponets[]=[];
 
         /**************************UI******************************************/
@@ -57,7 +57,7 @@ namespace KCliqueAlgorithm{
         constructor(graph:Graph,svg:SVGSVGElement){
             super(graph,svg);
             if(graph.vertices.length>0){
-                this.preprocess();
+                this.createIndexStructure();
             }
         }
 
@@ -90,6 +90,7 @@ namespace KCliqueAlgorithm{
                                 if(from.id==to.id){continue;}
                                 const e=this.graph.getEdge(from.id,to.id) as Edge;
                                 (e.line as SVGLineElement).setAttribute("stroke",colorStr);
+                                (e.line as SVGLineElement).setAttribute("opacity","1");
                             }
                         }
                     }
@@ -97,16 +98,9 @@ namespace KCliqueAlgorithm{
             }
             return this;
         }
-        
-
-        public setGraph(g: Graph):this{
-            this.graph=g;
-            this.preprocess();
-            return this;
-        }
 
 
-        public preprocess():this{
+        public createIndexStructure():this{
             for(const kc of this.CliqueComponents){
                 for(const cc of kc.connectedComponents){
                     KCliqueCC.pool.release(cc);

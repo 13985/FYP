@@ -1,4 +1,4 @@
-namespace GraphAlgorithm{
+namespace VisualizationUtils{
     type NormalFunction=()=>void;
 
 
@@ -40,6 +40,7 @@ namespace GraphAlgorithm{
         let codesUl:HTMLUListElement;
 
         let pseudoCodes:PseudoCode[]|null;
+        let localDescription:HTMLLIElement[]=[];
 
 
         export function main(panel_:FloatingPanel):void{
@@ -47,6 +48,24 @@ namespace GraphAlgorithm{
             codesUl=panel.contentDiv.querySelector("ul.pseudo-codes") as HTMLUListElement;
             codeDescription=panel.contentDiv.querySelector("p.code.description") as HTMLParagraphElement;
             stepDescription=panel.contentDiv.querySelector("ul.steps.description") as HTMLUListElement;
+        }
+
+
+        export function setLocalDescriptionNumber(num:number):HTMLCollection{
+            let diff=num-stepDescription.children.length;
+            if(diff<0){
+                for(let i:number=0;i<stepDescription.children.length;++i){
+                    stepDescription.children[i].classList.toggle("hidden",i>=num);//hide all li with index >= num
+                }
+            }else if(diff>0){
+                for(let i:number=0;i<stepDescription.children.length;++i){
+                    stepDescription.children[i].classList.toggle("hidden",false);
+                }
+                for(let i:number=stepDescription.children.length;i<num;++i){
+                    stepDescription.insertAdjacentHTML("beforeend",'<li class="step"></li>');
+                }
+            }
+            return stepDescription.children;
         }
 
 
@@ -180,8 +199,8 @@ namespace GraphAlgorithm{
         }
 
         public static preprocess():void{
-            Algorithm.visualizationTarget?.preprocess();
-            Algorithm.resultTarget?.preprocess();
+            Algorithm.visualizationTarget?.createState();
+            Algorithm.resultTarget?.createIndexStructure();
         }
 
         public static createState():void{
@@ -189,23 +208,51 @@ namespace GraphAlgorithm{
         }
 
         public static addVertex(a:number):void{
-            Algorithm.visualizationTarget?.addVertex(a);
-            Algorithm.resultTarget?.addVertex(a);
+            const vt:Algorithm|undefined=Algorithm.visualizationTarget;
+            if(vt){
+                if(vt.graph.addVertex(a)){
+                    vt.clearState();
+                    Algorithm.resultTarget?.addVertex(a);
+                }
+            }else{
+                Algorithm.resultTarget?.addVertex(a);
+            }
         }
 
         public static removeVertex(a:number):void{
-            Algorithm.visualizationTarget?.removeVertex(a);
-            Algorithm.resultTarget?.removeVertex(a);
+            const vt:Algorithm|undefined=Algorithm.visualizationTarget;
+            if(vt){
+                if(vt.graph.removeVertex(a)){
+                    vt.clearState();
+                    Algorithm.resultTarget?.removeVertex(a);
+                }
+            }else{
+                Algorithm.resultTarget?.removeVertex(a);
+            }
         }
 
         public static addEdge(from:number,to:number):void{
-            Algorithm.visualizationTarget?.addEdge(from,to);
-            Algorithm.resultTarget?.addEdge(from,to);
+            const vt:Algorithm|undefined=Algorithm.visualizationTarget;
+            if(vt){
+                if(vt.graph.addEdge(from,to)){
+                    vt.clearState();
+                    Algorithm.resultTarget?.addEdge(from,to);
+                }
+            }else{
+                Algorithm.resultTarget?.addEdge(from,to);
+            }
         }
 
         public static removeEdge(from:number,to:number):void{
-            Algorithm.visualizationTarget?.removeEdge(from,to);
-            Algorithm.resultTarget?.removeEdge(from,to);
+            const vt:Algorithm|undefined=Algorithm.visualizationTarget;
+            if(vt){
+                if(vt.graph.removeEdge(from,to)){
+                    vt.clearState();
+                    Algorithm.resultTarget?.removeEdge(from,to);
+                }
+            }else{
+                Algorithm.resultTarget?.removeEdge(from,to);
+            }
         }
 
         public static setColorGradient(start:Color,end:Color):void{
@@ -265,12 +312,7 @@ namespace GraphAlgorithm{
 
         public abstract setVisualElementsColor(defaultColor:boolean):this;
 
-        public abstract setGraph(g:Graph):this;
-
-        /**
-         * @summary create index structre for curl query on graph
-         */
-        public abstract preprocess():this;
+        public abstract createIndexStructure():this;
 
         /**
          * @summary
@@ -279,6 +321,16 @@ namespace GraphAlgorithm{
          * note that the content inside #state-panel also needed to be setted in here
          */
         public abstract createState():this;
+
+        /**
+         * note that this viusalization is designed to have two displays so two Algorithm instances.
+         * first is animtion and second is the "colorful result and other visual elements",
+         * so createState() must be reran after any CURD on the graph of first Algorithm instance
+         * but changing index structure is enough after any CURD on the graph of second Algorithm instance
+         * 
+         * though generally copy the results from the first instance should be fast enough, if there
+         * is any "other visual elements" eg the polygons in kcore, then index structure is necessary
+         */
 
         public abstract clearState():this;
 
@@ -356,7 +408,7 @@ namespace GraphAlgorithm{
         private pool:T[]=[];
         private iNew:new()=>T;
 
-        public constructor(iNew:new()=>T,poolCapacity:number=128){
+        public constructor(iNew:new(...args:any)=>T,poolCapacity:number=128){
             this.iNew=iNew;
             for(let i:number=0;i<poolCapacity;++i){
                 this.pool.push(new iNew());
@@ -401,8 +453,79 @@ namespace GraphAlgorithm{
     }
 
 
+    export class DescriptionStateInfo implements IStep{
+        public step:number=0;
+        public stepDescription:string="";
+        public codeStep:number=0;
+    }
+
+
     /**
-     * @brief
+     * @summary
+     * query the display of stack
+     * eg
+     * [            ][                           ][                                ][              ] base   descripton...
+     * [  ][][][    ][         ][       ][  ][   ][      ][       ][ ][      ][][  ][ ][   ][ ][   ]  |     descripton...
+     * [][]    [][  ][     ][][][   ][  ][][][ ][][   ][ ][       ][] [   ][ ]   [ ] [] [  ][] [   ]  |     descripton...
+     *           [][][][   ]    [][ ][][]    []   [] [] [][   ][  ]   [] []      []     [][]   [  ]   V     descripton...
+     *                 [][ ]       []                     [  ]  []                              [ ]  top
+     */
+    export abstract class TreeNodeBase<TLocalState extends IStep> implements IClearable{
+        public parent?:TreeNodeBase<TLocalState>;
+        public children:TreeNodeBase<TLocalState>[]=[];
+
+        public left:number=0;
+        public right:number=0;
+        public state?:TLocalState;
+
+        public set(le:number,ri:number,parent?:TreeNodeBase<TLocalState>,state?:TLocalState):this{
+            this.state=state;
+            this.parent=parent;
+            this.left=le;
+            this.right=ri;
+            return this;
+        }
+
+        public getChild(step:number):TreeNodeBase<TLocalState>|null{
+            for(let le:number=0,ri:number=this.children.length;le<ri;){
+                const mid:number=Math.floor((le+ri)/2);
+                const node:TreeNodeBase<TLocalState>=this.children[mid];
+                const status:number=node.compareToBound(step);
+                switch(status){
+                case -1:
+                    le=mid+1;
+                    break;
+                case 0:
+                    return node;
+                case 1:
+                    ri=mid;
+                    break;
+                }
+            }
+            return null;
+        }
+
+        /** 
+         * @return
+         * [....le)[le,ri)[ri....)
+         *     -1     0       1
+         */
+        public compareToBound(step:number):number{
+            if(step<this.left){
+                return -1;
+            }else if(step>=this.right){
+                return 1;
+            }else{
+                return 0;
+            }
+        }
+
+        public clear():void{}
+    }
+
+
+     /**
+     * @summary
      * maintain a data structure as (5 vertex, step=20):
      * v id: info at step X
      * 0:1 3 5 9 10 15
@@ -433,29 +556,31 @@ namespace GraphAlgorithm{
      * 
      * @complexity
      * same as time complexity of the target algorithm (since the step is linerally related to the time complexity)
+     * 
+     * @note
+     * doesnt support "global values" only support local value changes
      */
-
-    export class DescriptionStateInfo implements IStep{
-        public step:number=0;
-        public stepDescription:string="";
-        public codeStep:number=0;
-    }
-
-    export abstract class StateManager<DataState extends IStep,DescriptionState extends IStep>{
+    export abstract class StateManager<TDataState extends IStep,TLocalState extends IStep>{
         public maxStep:number=0;
         public currentStep:number=0;
-        protected vertexStates:Map<number,Array<DataState>>=new Map();//for O(vertices.length * log(maxStep)) random step
-        protected vertexStatesIndices:number[]=[];//for O(vertices.length) prev step/next step
+        protected dataStates:Map<number,Array<TDataState>>=new Map();//for O(vertices.length * log(maxStep)) random step
+        protected dataStatesIndices:number[]=[];//for O(vertices.length) prev step/next step
+        protected currentDataStates:TDataState[]=[];
 
-        protected descriptionStates:Array<DescriptionState>=[];
-        protected descriptionStatesIndex:number=0;
-        protected returnbuffer:DataState[]=[];
+        protected localStates:TreeNodeBase<TLocalState>;
+        protected localStatesIndex:TreeNodeBase<TLocalState>;
+        protected currentLocalStates:TLocalState[]=[];
+        public getCurrentLocalState():TLocalState[]{
+            return this.currentLocalStates;
+        }
 
         protected graph:Graph;
 
 
         constructor(graph:Graph){
             this.graph=graph;
+            this.localStates=this.getTreeNode();
+            this.localStatesIndex=this.localStates;
         }
 
 
@@ -463,30 +588,41 @@ namespace GraphAlgorithm{
             if(graph!=undefined){
                 this.graph=graph;
             }
-            this.returnbuffer.length=this.graph.vertices.length;
-            this.vertexStatesIndices.length=this.graph.vertices.length;
-            this.descriptionStates.length=0;
+            this.currentDataStates.length=this.graph.vertices.length;
+            this.dataStatesIndices.length=this.graph.vertices.length;
             this.resetStep();
         }
 
         
         public onInitEnd(step:number):void{
             this.maxStep=step;
+            (this.localStates as TreeNodeBase<TLocalState>).right=step;
         }
 
 
         public clear():void{
             this.maxStep=0;
-            this.vertexStates.clear();
+            this.dataStates.clear();
+            this.clearTreeChild(this.localStates);
+            this.localStatesIndex=this.localStates;
+        }
+
+
+        protected clearTreeChild(root:TreeNodeBase<TLocalState>):void{
+            for(const node of root.children){
+                this.clearTreeChild(node);
+                this.releaseTreeNode(node);
+            }
         }
 
 
         public resetStep():void{
             this.currentStep=0;
-            for(let i:number=0;i<this.vertexStatesIndices.length;++i){
-                this.vertexStatesIndices[i]=0;
+            for(let i:number=0;i<this.dataStatesIndices.length;++i){
+                this.dataStatesIndices[i]=0;
             }
-            this.descriptionStatesIndex=0;
+            this.localStatesIndex=this.localStates;
+            this.currentLocalStates.length=0;
             /*
             for(let v_idx:number=0;v_idx<this.graph.vertices.length;++v_idx){
                 const stateInfos:DataState[]=this.vertexStates.get(this.graph.vertices[v_idx].id) as DataState[];
@@ -504,80 +640,97 @@ namespace GraphAlgorithm{
          * vertex at idx 2<=>info at idx 2
          * ...
          */
-        public nextStep():DataState[]|null{
+        public nextStep():TDataState[]|null{
             if(this.currentStep>=this.maxStep){
                 return null;
             }
             ++this.currentStep;
 
             for(let v_idx:number=0;v_idx<this.graph.vertices.length;++v_idx){
-                const idx:number=this.vertexStatesIndices[v_idx];
-                const stateInfos:DataState[]=this.vertexStates.get(this.graph.vertices[v_idx].id) as DataState[];
+                const idx:number=this.dataStatesIndices[v_idx];
+                const stateInfos:TDataState[]=this.dataStates.get(this.graph.vertices[v_idx].id) as TDataState[];
                 const nextIdx:number=idx+1;
                 if(nextIdx<stateInfos.length&&stateInfos[nextIdx].step<=this.currentStep){
-                    this.vertexStatesIndices[v_idx]=nextIdx;
-                    this.returnbuffer[v_idx]=stateInfos[nextIdx];
+                    this.dataStatesIndices[v_idx]=nextIdx;
+                    this.currentDataStates[v_idx]=stateInfos[nextIdx];
                 }else{
-                    this.returnbuffer[v_idx]=stateInfos[idx];
+                    this.currentDataStates[v_idx]=stateInfos[idx];
                 }
             }
-            {
-                const nextIdx=this.descriptionStatesIndex+1;
-                if(nextIdx<this.descriptionStates.length&&this.descriptionStates[nextIdx].step<=this.currentStep){
-                    this.descriptionStatesIndex=nextIdx;
+
+            if(this.localStatesIndex.right<=this.currentStep){
+                do{
+                    this.currentDataStates.pop();
+                    this.localStatesIndex=this.localStatesIndex.parent as TreeNodeBase<TLocalState>;
+                }while(this.localStatesIndex.right<=this.currentStep);
+
+                while(true){
+                    const child:TreeNodeBase<TLocalState>|null=this.localStatesIndex.getChild(this.currentStep);
+                    if(child==null){break;}
+                    this.currentLocalStates.push(child.state as TLocalState);
+                    this.localStatesIndex=child;
                 }
             }
-            return this.returnbuffer;
+            return this.currentDataStates;
         }
 
 
-        public previousStep():DataState[]|null{
+        public previousStep():TDataState[]|null{
             if(this.currentStep<=0){
                 return null;
             }
             --this.currentStep;
 
             for(let v_idx:number=0;v_idx<this.graph.vertices.length;++v_idx){
-                const idx:number=this.vertexStatesIndices[v_idx];
-                const stateInfos:DataState[]=this.vertexStates.get(this.graph.vertices[v_idx].id) as DataState[];
+                const idx:number=this.dataStatesIndices[v_idx];
+                const stateInfos:TDataState[]=this.dataStates.get(this.graph.vertices[v_idx].id) as TDataState[];
                 const nextIdx:number=idx-1;
                 if(stateInfos[idx].step>this.currentStep){
-                    this.vertexStatesIndices[v_idx]=nextIdx;
-                    this.returnbuffer[v_idx]=stateInfos[nextIdx];
+                    this.dataStatesIndices[v_idx]=nextIdx;
+                    this.currentDataStates[v_idx]=stateInfos[nextIdx];
                 }else{
-                    this.returnbuffer[v_idx]=stateInfos[idx];
+                    this.currentDataStates[v_idx]=stateInfos[idx];
                 }
             }
-            {
-                if(this.descriptionStates[this.descriptionStatesIndex].step>this.currentStep){
-                    --this.descriptionStatesIndex;
+
+            if(this.localStatesIndex.left>this.currentStep){
+                do{
+                    this.currentDataStates.pop();
+                    this.localStatesIndex=this.localStatesIndex.parent as TreeNodeBase<TLocalState>;
+                }while(this.localStatesIndex.left>this.currentStep);
+
+                while(true){
+                    const child:TreeNodeBase<TLocalState>|null=this.localStatesIndex.getChild(this.currentStep);
+                    if(child==null){break;}
+                    this.currentLocalStates.push(child.state as TLocalState);
+                    this.localStatesIndex=child;
                 }
             }
-            return this.returnbuffer;
+            return this.currentDataStates;
         }
 
 
-        public randomStep(targetStep:number):DataState[]|null{
+        public randomStep(targetStep:number):TDataState[]|null{
             if(targetStep<0||targetStep>=this.maxStep){
                 return null;
             }
             this.currentStep=targetStep;
             
             for(let v_idx:number=0;v_idx<this.graph.vertices.length;++v_idx){
-                const stateInfos=this.vertexStates.get(this.graph.vertices[v_idx].id) as Array<DataState>;
-                this.returnbuffer[v_idx]=stateInfos[0];
-                this.vertexStatesIndices[v_idx]=0;
+                const stateInfos=this.dataStates.get(this.graph.vertices[v_idx].id) as Array<TDataState>;
+                this.currentDataStates[v_idx]=stateInfos[0];
+                this.dataStatesIndices[v_idx]=0;
 
                 for(let le:number=0,ri:number=stateInfos.length;le<ri;){
                     const mid:number=Math.floor((le+ri)/2);
                     const theStep:number=stateInfos[mid].step;
                     if(theStep==this.currentStep){
-                        this.returnbuffer[v_idx]=stateInfos[mid];
-                        this.vertexStatesIndices[v_idx]=mid;
+                        this.currentDataStates[v_idx]=stateInfos[mid];
+                        this.dataStatesIndices[v_idx]=mid;
                         break;
                     }else if(theStep<this.currentStep){
-                        this.returnbuffer[v_idx]=stateInfos[mid];
-                        this.vertexStatesIndices[v_idx]=mid;
+                        this.currentDataStates[v_idx]=stateInfos[mid];
+                        this.dataStatesIndices[v_idx]=mid;
                         le=mid+1;
                     }else{
                         ri=mid;
@@ -585,36 +738,45 @@ namespace GraphAlgorithm{
                 }
             }
             
-            for(let le:number=0,ri:number=this.descriptionStates.length;le<ri;){
-                const mid:number=Math.floor((le+ri)/2);
-                const theStep:number=this.descriptionStates[mid].step;
-                if(theStep==this.currentStep){
-                    this.descriptionStatesIndex=mid;
-                    break;
-                }else if(theStep<this.currentStep){
-                    this.descriptionStatesIndex=mid;
-                    le=mid+1;
-                }else{
-                    ri=mid;
+            {
+                this.currentLocalStates.length=0;
+                this.localStatesIndex=this.localStates;
+                while(true){
+                    const child:TreeNodeBase<TLocalState>|null=this.localStatesIndex.getChild(targetStep);
+                    if(child==null){
+                        break;
+                    }
+                    this.currentLocalStates.push(child.state as TLocalState);
+                    this.localStatesIndex=child;
                 }
             }
-            return this.returnbuffer;
+            return this.currentDataStates;
         }
 
 
-        public addDataState(vertexId:number,info:DataState):void{
-            (this.vertexStates.get(vertexId) as DataState[]).push(info);
+        public pushDataState(dataId:number,info:TDataState):void{
+            (this.dataStates.get(dataId) as TDataState[]).push(info);
         }
 
 
-        public addDescriptionState(info:DescriptionState):void{
-            this.descriptionStates.push(info);
+        public pushLocalState(state:TLocalState):void{
+            const newNode:TreeNodeBase<TLocalState>=this.getTreeNode().set(state.step,state.step,this.localStatesIndex,state);
+            this.localStatesIndex.children.push(newNode);
+            this.localStatesIndex=newNode;
+        }
+        
+        public popLocalState(step:number):void{
+            this.localStatesIndex.right=step;
+            this.localStatesIndex=this.localStatesIndex.parent as TreeNodeBase<TLocalState>;
         }
 
-
-        public currentDescriptionState():DescriptionState{
-            return this.descriptionStates[this.descriptionStatesIndex];
+        public topLocalState(state:TLocalState):void{
+            this.popLocalState(state.step);
+            this.pushLocalState(state);
         }
+
+        protected abstract getTreeNode():TreeNodeBase<TLocalState>;
+        protected abstract releaseTreeNode(node:TreeNodeBase<TLocalState>):void;
     }
 }
 

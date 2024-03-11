@@ -144,7 +144,7 @@ var GraphAlgorithm;
         }
         static preprocess() {
             var _a, _b;
-            (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.preprocess();
+            (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.createState();
             (_b = Algorithm.resultTarget) === null || _b === void 0 ? void 0 : _b.preprocess();
         }
         static createState() {
@@ -153,23 +153,55 @@ var GraphAlgorithm;
         }
         static addVertex(a) {
             var _a, _b;
-            (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.addVertex(a);
-            (_b = Algorithm.resultTarget) === null || _b === void 0 ? void 0 : _b.addVertex(a);
+            const vt = Algorithm.visualizationTarget;
+            if (vt) {
+                if (vt.graph.addVertex(a)) {
+                    vt.clearState();
+                    (_a = Algorithm.resultTarget) === null || _a === void 0 ? void 0 : _a.addVertex(a);
+                }
+            }
+            else {
+                (_b = Algorithm.resultTarget) === null || _b === void 0 ? void 0 : _b.addVertex(a);
+            }
         }
         static removeVertex(a) {
             var _a, _b;
-            (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.removeVertex(a);
-            (_b = Algorithm.resultTarget) === null || _b === void 0 ? void 0 : _b.removeVertex(a);
+            const vt = Algorithm.visualizationTarget;
+            if (vt) {
+                if (vt.graph.removeVertex(a)) {
+                    vt.clearState();
+                    (_a = Algorithm.resultTarget) === null || _a === void 0 ? void 0 : _a.removeVertex(a);
+                }
+            }
+            else {
+                (_b = Algorithm.resultTarget) === null || _b === void 0 ? void 0 : _b.removeVertex(a);
+            }
         }
         static addEdge(from, to) {
             var _a, _b;
-            (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.addEdge(from, to);
-            (_b = Algorithm.resultTarget) === null || _b === void 0 ? void 0 : _b.addEdge(from, to);
+            const vt = Algorithm.visualizationTarget;
+            if (vt) {
+                if (vt.graph.addEdge(from, to)) {
+                    vt.clearState();
+                    (_a = Algorithm.resultTarget) === null || _a === void 0 ? void 0 : _a.addEdge(from, to);
+                }
+            }
+            else {
+                (_b = Algorithm.resultTarget) === null || _b === void 0 ? void 0 : _b.addEdge(from, to);
+            }
         }
         static removeEdge(from, to) {
             var _a, _b;
-            (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.removeEdge(from, to);
-            (_b = Algorithm.resultTarget) === null || _b === void 0 ? void 0 : _b.removeEdge(from, to);
+            const vt = Algorithm.visualizationTarget;
+            if (vt) {
+                if (vt.graph.removeEdge(from, to)) {
+                    vt.clearState();
+                    (_a = Algorithm.resultTarget) === null || _a === void 0 ? void 0 : _a.removeEdge(from, to);
+                }
+            }
+            else {
+                (_b = Algorithm.resultTarget) === null || _b === void 0 ? void 0 : _b.removeEdge(from, to);
+            }
         }
         static setColorGradient(start, end) {
             var _a, _b;

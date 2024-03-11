@@ -548,9 +548,9 @@ class GraphWindow{
             }
 
             if(this.isCreateEdge){
-                GraphAlgorithm.Algorithm.addEdge(this.firstSelectedVertex,this.secondSelectedVertex);
+                VisualizationUtils.Algorithm.addEdge(this.firstSelectedVertex,this.secondSelectedVertex);
             }else{
-                GraphAlgorithm.Algorithm.removeEdge(this.firstSelectedVertex,this.secondSelectedVertex);
+                VisualizationUtils.Algorithm.removeEdge(this.firstSelectedVertex,this.secondSelectedVertex);
             }
             this.updateSimulation();
             this.removeVerticesHighlight(this.firstSelectedVertex);

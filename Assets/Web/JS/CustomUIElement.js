@@ -154,7 +154,6 @@ class GraphWindow {
             }
         };
         this.edgeEditMode = (ke) => {
-            var _a, _b;
             switch (ke.key) {
                 case "KeyC": {
                     this.removeVerticesHighlight(this.firstSelectedVertex);
@@ -169,10 +168,10 @@ class GraphWindow {
                         return;
                     }
                     if (this.isCreateEdge) {
-                        (_a = this.algo) === null || _a === void 0 ? void 0 : _a.addEdge(this.firstSelectedVertex, this.secondSelectedVertex);
+                        GraphAlgorithm.Algorithm.addEdge(this.firstSelectedVertex, this.secondSelectedVertex);
                     }
                     else {
-                        (_b = this.algo) === null || _b === void 0 ? void 0 : _b.removeEdge(this.firstSelectedVertex, this.secondSelectedVertex);
+                        GraphAlgorithm.Algorithm.removeEdge(this.firstSelectedVertex, this.secondSelectedVertex);
                     }
                     this.updateSimulation();
                     this.removeVerticesHighlight(this.firstSelectedVertex);

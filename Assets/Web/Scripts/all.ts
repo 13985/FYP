@@ -83,9 +83,9 @@ window.onload=():void=>{
         const visualizationControl:FloatingPanel=new FloatingPanel("#video-control",<HTMLInputElement>document.getElementById("show-video-control"));
         const statePanel:FloatingPanel=new FloatingPanel("#state-panel",<HTMLInputElement>document.getElementById("show-algo-state"));
         //const runButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("run-algo"),stopButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("stop-algo");
-        GraphAlgorithm.Algorithm.setVisualizationVideoControl(visualizationControl);
-        GraphAlgorithm.Algorithm.setVisualizationControl(<HTMLButtonElement>document.getElementById("run-algo"),<HTMLButtonElement>document.getElementById("stop-algo"));
-        GraphAlgorithm.Algorithm.setStateDisplayPanel(statePanel);
+        VisualizationUtils.Algorithm.setVisualizationVideoControl(visualizationControl);
+        VisualizationUtils.Algorithm.setVisualizationControl(<HTMLButtonElement>document.getElementById("run-algo"),<HTMLButtonElement>document.getElementById("stop-algo"));
+        VisualizationUtils.Algorithm.setStateDisplayPanel(statePanel);
     }
     
     const graph:Graph=new Graph();
@@ -106,18 +106,18 @@ window.onload=():void=>{
     const resultKClique:KCliqueAlgorithm.KClique=new KCliqueAlgorithm.KClique(graph,gw.innerSVG as SVGSVGElement);
 
     function changeAlgo(str:string):void{
-        if(GraphAlgorithm.Algorithm.isVisualizing()){
+        if(VisualizationUtils.Algorithm.isVisualizing()){
             return;
         }
 
-        function helper(vt:GraphAlgorithm.Algorithm,rt:GraphAlgorithm.Algorithm):void{
-            GraphAlgorithm.Algorithm.changeAlgorithm(vt,rt);
+        function helper(vt:VisualizationUtils.Algorithm,rt:VisualizationUtils.Algorithm):void{
+            VisualizationUtils.Algorithm.changeAlgorithm(vt,rt);
             gw.resetContainerTransform().updateSimulation();
             resultGW.resetContainerTransform().updateSimulation();
 
             if(graphHasUpdated){
-                vt.preprocess().setColorGradient(VertexGradient.start,VertexGradient.end).setVisualElementsColor(true).createState();
-                rt.preprocess().setColorGradient(VertexGradient.start,VertexGradient.end).setVisualElementsColor(false);
+                vt.setColorGradient(VertexGradient.start,VertexGradient.end).setVisualElementsColor(true).createState();
+                rt.createIndexStructure().setColorGradient(VertexGradient.start,VertexGradient.end).setVisualElementsColor(false);
             }
             graphHasUpdated=false;
         }
@@ -178,13 +178,13 @@ window.onload=():void=>{
         graph.from(edgeList);
         gw.resetContainerTransform().updateSimulation();
         setVENumber();
-        GraphAlgorithm.Algorithm.VisualizationTarget().preprocess().setColorGradient(VertexGradient.start,VertexGradient.end).setVisualElementsColor(true).createState();
+        VisualizationUtils.Algorithm.VisualizationTarget().setColorGradient(VertexGradient.start,VertexGradient.end).setVisualElementsColor(true).createState();
 
         graph.copyTo(resultGraph.clear(true));
         resultGW.resetContainerTransform().updateSimulation();
-        const algo:GraphAlgorithm.Algorithm|undefined=GraphAlgorithm.Algorithm.ResultTarget();
+        const algo:VisualizationUtils.Algorithm|undefined=VisualizationUtils.Algorithm.ResultTarget();
         if(algo){
-            algo.preprocess().setColorGradient(VertexGradient.start,VertexGradient.end).setVisualElementsColor(false);
+            algo.createIndexStructure().setColorGradient(VertexGradient.start,VertexGradient.end).setVisualElementsColor(false);
             if(algo instanceof KCoreAlgorithm.KCore){
                 algo.displayPolygons(true);
             }else if(algo instanceof KCliqueAlgorithm.KClique){
@@ -229,14 +229,14 @@ window.onload=():void=>{
         const theVertex:number=parseInt(vertexExpandInput.value);
         switch(vertexUpdateSelect.value){
         case "create":{
-            GraphAlgorithm.Algorithm.addVertex(theVertex);
+            VisualizationUtils.Algorithm.addVertex(theVertex);
             gw.updateSimulation();
             resultGW.updateSimulation();
             setVENumber();
             break;
         }
         case "remove":{
-            GraphAlgorithm.Algorithm.addVertex(theVertex);
+            VisualizationUtils.Algorithm.removeVertex(theVertex);
             gw.updateSimulation();
             resultGW.updateSimulation();
             setVENumber();
@@ -290,7 +290,7 @@ window.onload=():void=>{
                 const numbers:string[]=str.split(/(\d+)/g);
                 const from:number=parseInt(numbers[0]);
                 const to:number=parseInt(numbers[0]);
-                GraphAlgorithm.Algorithm.addEdge(from,to);
+                VisualizationUtils.Algorithm.addEdge(from,to);
             }
             resultGW.updateSimulation();
             gw.updateSimulation();
@@ -301,7 +301,7 @@ window.onload=():void=>{
                 const numbers:string[]=str.split(/(\d+)/g);
                 const from:number=parseInt(numbers[0]);
                 const to:number=parseInt(numbers[0]);
-                GraphAlgorithm.Algorithm.removeEdge(from,to);
+                VisualizationUtils.Algorithm.removeEdge(from,to);
             }
             resultGW.updateSimulation();
             gw.updateSimulation();
@@ -373,15 +373,6 @@ window.onload=():void=>{
     });
     */
     /****************************************************Algo expand **********************************************/
-
-    const partialResultCheckBos:HTMLInputElement=document.getElementById("partial-results-set") as HTMLInputElement;
-    partialResultCheckBos.addEventListener("input",():void=>{
-        if(GraphAlgorithm.Algorithm.isVisualizing()==false){
-            partialResultCheckBos.checked=false;
-            return;
-        }
-        kCore.displayPartialResult(partialResultCheckBos.checked);
-    });
 
 
     /******************************************************after initialization************************************/

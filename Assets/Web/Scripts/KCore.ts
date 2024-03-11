@@ -8,8 +8,8 @@ add edge! deature  (bonus during visualzation)
 */
 
 namespace KCoreAlgorithm{
-    class KCoreCC extends GraphAlgorithm.ConnectedComponent implements GraphAlgorithm.IClearable{
-        public static readonly pool:GraphAlgorithm.ObjectPool<KCoreCC>=new GraphAlgorithm.ObjectPool<KCoreCC>(KCoreCC);
+    class KCoreCC extends VisualizationUtils.ConnectedComponent implements VisualizationUtils.IClearable{
+        public static readonly pool:VisualizationUtils.ObjectPool<KCoreCC>=new VisualizationUtils.ObjectPool<KCoreCC>(KCoreCC);
 
         public shell:number=-1;
         public polygonOpacity:number=0.4;
@@ -61,8 +61,8 @@ namespace KCoreAlgorithm{
     }
 
 
-    class VertexStateInfo implements GraphAlgorithm.IStep, GraphAlgorithm.IClearable{
-        public static readonly pool=new GraphAlgorithm.ObjectPool<VertexStateInfo>(VertexStateInfo,1024);
+    class VertexStateInfo implements VisualizationUtils.IStep, VisualizationUtils.IClearable{
+        public static readonly pool=new VisualizationUtils.ObjectPool<VertexStateInfo>(VertexStateInfo,1024);
         public step:number;
         public degree:number;
         public shell:number;
@@ -91,24 +91,22 @@ namespace KCoreAlgorithm{
     }
 
 
-    class DisplayStateInfo implements GraphAlgorithm.IStep{
-        public step:number=0;
+    class TreeNode extends VisualizationUtils.TreeNodeBase<VisualizationUtils.DescriptionStateInfo>{
+        public static readonly pool=new VisualizationUtils.ObjectPool<TreeNode>(TreeNode);
     }
-
 
     /**
      * @complexity
      * space: O(V+E)
      */
-    class State extends GraphAlgorithm.StateManager<VertexStateInfo,GraphAlgorithm.DescriptionStateInfo>{
+    class State extends VisualizationUtils.StateManager<VertexStateInfo,VisualizationUtils.DescriptionStateInfo>{
         constructor(graph:Graph){
             super(graph);
             this.init();
         }
 
-
         public init(graph?:Graph):void{
-            for(const kvp of this.vertexStates){
+            for(const kvp of this.dataStates){
                 for(const state of kvp[1]){
                     VertexStateInfo.pool.release(state);
                 }
@@ -118,19 +116,26 @@ namespace KCoreAlgorithm{
                 const vsi:VertexStateInfo=VertexStateInfo.pool.get();
                 vsi.degree=vl.others.length;
                 vsi.step=0;
-                this.vertexStates.set(v_id,[vsi]);
+                this.dataStates.set(v_id,[vsi]);
             });
+        }
+
+        protected getTreeNode(): VisualizationUtils.TreeNodeBase<VisualizationUtils.DescriptionStateInfo> {
+            return TreeNode.pool.get();
+        }
+        protected releaseTreeNode(node: VisualizationUtils.TreeNodeBase<VisualizationUtils.DescriptionStateInfo>): void {
+            TreeNode.pool.release(node);
         }
     }
 
 
-    export class KCore extends GraphAlgorithm.Algorithm{
+    export class KCore extends VisualizationUtils.Algorithm{
         protected static readonly CODE_DESCRIPTION:string=
 `maintain two set:
 set0: storing all vertices wait for processing
 set1: storing all unprocessed vertices with degree > expored current_core`;
 
-        protected static readonly PSEUDO_CODES:GraphAlgorithm.DescriptionDisplay.PseudoCode[]=[
+        protected static readonly PSEUDO_CODES:VisualizationUtils.DescriptionDisplay.PseudoCode[]=[
             {code:"push all vertices into set1, set current_core = 0;",step:1},
             {code:"while set1 is not empty :{",step:2},
             {code:"   push all vertices with degree <= current_core to set0;",step:3},
@@ -178,13 +183,6 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
         }
 
 
-        public setGraph(g:Graph):this{
-            this.graph=g;
-            this.preprocess();
-            return this;
-        }
-
-
         public setColorGradient(start_:Color,end_:Color):this{
             const start:Color=start_.clone();//copy the value, otherwise if it points to the same space of some shellcomponent[].color, broken
             const end:Color=end_.clone();//copy the value, otherwise if it points to the same space of some shellcomponent[].color, broken
@@ -204,14 +202,14 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             }else{
                 this.states=new State(this.graph);
             }
-            GraphAlgorithm.DescriptionDisplay.clearPanel();
-            GraphAlgorithm.DescriptionDisplay.codeDescription.innerText=KCore.CODE_DESCRIPTION;
-            GraphAlgorithm.DescriptionDisplay.setCodes(KCore.PSEUDO_CODES);
+            VisualizationUtils.DescriptionDisplay.clearPanel();
+            VisualizationUtils.DescriptionDisplay.codeDescription.innerText=KCore.CODE_DESCRIPTION;
+            VisualizationUtils.DescriptionDisplay.setCodes(KCore.PSEUDO_CODES);
 
             this.clearHelpers();
             let currentShell=0,nextShell=1;
             let step:number=0;
-            this.states.addDescriptionState({step:step,codeStep:1,stepDescription:"initization"});
+            this.states.pushLocalState({step:step,codeStep:1,stepDescription:"initization"});
 
             this.graph.adjacencyList.forEach((vl:VerticeList,k:number):void=>{
                 if(vl.others.length<=0){
@@ -229,9 +227,9 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             while(true){
                 ++step;
                 this.shellComponents[currentShell].step=step;
-                this.states.addDescriptionState({step:step,codeStep:2,stepDescription:`set1.length:${this.set1.length} current_core:${currentShell}`});
+                this.states.topLocalState({step:step,codeStep:2,stepDescription:`set1.length:${this.set1.length} current_core:${currentShell}`});
                 ++step;
-                this.states.addDescriptionState({step:step,codeStep:3,stepDescription:`push vertices with degree < ${currentShell} to set0`});
+                this.states.topLocalState({step:step,codeStep:3,stepDescription:`push vertices with degree < ${currentShell} to set0`});
 
                 while(this.set0.length>0){
                     const v_id:number=<number>this.set0.pop();
@@ -239,37 +237,43 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                     (this.vertexToInfo.get(v_id) as ConnectedComponetInfo).shell=currentShell;
 
                     ++step;
-                    this.states.addDataState(v_id,VertexStateInfo.pool.get().set(step,undefined,currentShell,"1"));
-                    this.states.addDescriptionState({step:step,codeStep:4,stepDescription:`process vertex ${v_id} in core ${currentShell}`});
+                    this.states.pushDataState(v_id,VertexStateInfo.pool.get().set(step,undefined,currentShell,"1"));
+                    this.states.pushLocalState({step:step,codeStep:4,stepDescription:`process vertex ${v_id}`});
 
                     for(const neighbor of vl.others){
                         let degree:number=(this.degrees.get(neighbor) as number);
 
                         ++step;
-                        this.states.addDescriptionState({step:step,codeStep:5,stepDescription:`check neighbor ${neighbor} of vertex ${v_id} in core ${currentShell}<br>processed:${degree<0}`});
+                        this.states.pushLocalState({step:step,codeStep:5,stepDescription:`check neighbor ${neighbor}`});
 
-                        if(degree<0){
-                            continue;
-                        }
                         ++step;
-                        this.states.addDataState(neighbor,VertexStateInfo.pool.get().set(step,degree,undefined,"1"));
+                        if(degree<0){
+                            this.states.pushLocalState({step:step,codeStep:6,stepDescription:`neighbor ${neighbor} is processed`});
+                            continue;
+                        }else{
+                            this.states.pushDataState(neighbor,VertexStateInfo.pool.get().set(step,degree,undefined,"1"));
+                        }
 
                         --degree;
 
                         ++step;
-                        this.states.addDescriptionState({step:step,codeStep:7,stepDescription:`decrement degree of ${neighbor} from ${degree+1} to ${degree}<br>less than or equal to current_core (${currentShell})? ${degree<=currentShell}`});
+                        this.states.topLocalState({step:step,codeStep:7,stepDescription:`decrement degree of ${neighbor} from ${degree+1} to ${degree}`});
 
                         if(degree<=currentShell){
+                            ++step;
+                            this.states.topLocalState({step:step,codeStep:8,stepDescription:`degree (${degree}) of neighbor ${neighbor} is less than current_core (${currentShell})`});
                             this.removeFromSet1(neighbor);
                         }else{
                             nextShell=Math.min(nextShell,degree);
                             this.degrees.set(neighbor,degree);
                         }
                         ++step;
-                        this.states.addDataState(neighbor,VertexStateInfo.pool.get().set(step,degree,undefined,KCore.OPACITY));
+                        this.states.pushDataState(neighbor,VertexStateInfo.pool.get().set(step,degree,undefined,KCore.OPACITY));
+                        this.states.popLocalState(step);
                     }
                     ++step;
-                    this.states.addDataState(v_id,VertexStateInfo.pool.get().set(step,undefined,currentShell,KCore.OPACITY));
+                    this.states.pushDataState(v_id,VertexStateInfo.pool.get().set(step,undefined,currentShell,KCore.OPACITY));
+                    this.states.popLocalState(step);
                 }
                 
                 currentShell=nextShell;
@@ -278,7 +282,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                 }
                 
                 ++step;
-                this.states.addDescriptionState({step:step,codeStep:9,stepDescription:`increment current_core ${currentShell}`});
+                this.states.topLocalState({step:step,codeStep:9,stepDescription:`increment current_core ${currentShell}`});
                                 
                 nextShell=currentShell+1;
                 for(let i:number=0;i<this.set1.length;){
@@ -290,6 +294,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                     }
                 }
             }
+            ++step;
             this.states.onInitEnd(step);
             return this;
         }
@@ -301,7 +306,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
         }
 
 
-        public preprocess():this{
+        public createIndexStructure():this{
             this.unionFind.set(this.graph.vertices.length);
             this.releaseCCs();
             this.shellComponents.length=0;
@@ -392,7 +397,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
         
         
         protected async animate():Promise<void>{
-            GraphAlgorithm.VideoControl.progressBar.setAttribute("max",(this.states as State).maxStep.toString());
+            VisualizationUtils.VideoControl.progressBar.setAttribute("max",(this.states as State).maxStep.toString());
             for(const v of this.graph.vertices){
                 (v.circle as SVGCircleElement).setAttribute("opacity",KCore.OPACITY);
             }
@@ -410,38 +415,38 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             if(minShell>0){
                 const minStep:number=this.shellComponents[minShell].step;
                 vertexInfos=this.states.randomStep(minStep);
-                GraphAlgorithm.VideoControl.progressBar.valueAsNumber=minStep;
-                this.setAnimationDisplay(vertexInfos,this.states.currentDescriptionState());
+                VisualizationUtils.VideoControl.progressBar.valueAsNumber=minStep;
+                this.setAnimationDisplay(vertexInfos,this.states.getCurrentLocalState());
             }
 
             AnimtaionLoop:while(true){
-                const vsc:GraphAlgorithm.VideoControlStatus=await this.waitfor();
+                const vsc:VisualizationUtils.VideoControlStatus=await this.waitfor();
                 switch(vsc){
-                case GraphAlgorithm.VideoControlStatus.stop:
+                case VisualizationUtils.VideoControlStatus.stop:
                     break AnimtaionLoop;
-                case GraphAlgorithm.VideoControlStatus.noAction:
-                case GraphAlgorithm.VideoControlStatus.nextStep:
+                case VisualizationUtils.VideoControlStatus.noAction:
+                case VisualizationUtils.VideoControlStatus.nextStep:
                     if((vertexInfos=this.states.nextStep())==null){
                         break AnimtaionLoop;
                     }
-                    this.setAnimationDisplay(vertexInfos,this.states.currentDescriptionState());
+                    this.setAnimationDisplay(vertexInfos,this.states.getCurrentLocalState());
                     break;
-                case GraphAlgorithm.VideoControlStatus.prevStep:
+                case VisualizationUtils.VideoControlStatus.prevStep:
                     if((vertexInfos=this.states.previousStep())==null){
                         this.currentStep=0;
                         vertexInfos=this.states.randomStep(0);
                     }
-                    this.setAnimationDisplay(vertexInfos,this.states.currentDescriptionState());
+                    this.setAnimationDisplay(vertexInfos,this.states.getCurrentLocalState());
                     break;
-                case GraphAlgorithm.VideoControlStatus.randomStep:
+                case VisualizationUtils.VideoControlStatus.randomStep:
                     if((vertexInfos=this.states.randomStep(this.currentStep))==null){
                         vertexInfos=this.states.randomStep(0);
                         this.currentStep=0;
                     }
-                    this.setAnimationDisplay(vertexInfos,this.states.currentDescriptionState());
+                    this.setAnimationDisplay(vertexInfos,this.states.getCurrentLocalState());
                     break;
                 }
-                GraphAlgorithm.VideoControl.progressBar.valueAsNumber=this.states.currentStep;
+                VisualizationUtils.VideoControl.progressBar.valueAsNumber=this.states.currentStep;
                 if(this.states.currentStep>maxStep){
                     break AnimtaionLoop;
                 }
@@ -511,7 +516,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
         }
 
 
-        private setAnimationDisplay(vertexInfos:VertexStateInfo[]|null,descriptionInfo:GraphAlgorithm.DescriptionStateInfo):void{
+        private setAnimationDisplay(vertexInfos:VertexStateInfo[]|null,descriptionInfo:VisualizationUtils.DescriptionStateInfo[]):void{
             if(vertexInfos==null){return;}
             for(let i:number=0;i<this.graph.vertices.length;++i){
                 const vertex:Vertex=this.graph.vertices[i];
@@ -524,8 +529,11 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                 }
             }
 
-            GraphAlgorithm.DescriptionDisplay.highlightCode(descriptionInfo.codeStep);
-            GraphAlgorithm.DescriptionDisplay.stepDescription.innerHTML=descriptionInfo.stepDescription;
+            const lis:HTMLCollection=VisualizationUtils.DescriptionDisplay.setLocalDescriptionNumber(descriptionInfo.length);
+            for(let i:number=0;i<descriptionInfo.length;++i){
+                lis[i].innerHTML=descriptionInfo[i].stepDescription;
+            }
+            VisualizationUtils.DescriptionDisplay.highlightCode(descriptionInfo[descriptionInfo.length-1].codeStep);
         }
 
 
@@ -560,28 +568,6 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                 for(const cc of sc.connectedComponents){
                     for(const v of cc.vertices){
                         this.graph.displayVertex(v.id,visibile);
-                    }
-                }
-            }
-            return this;
-        }
-
-
-        public displayPartialResult(show:boolean):KCore{
-            const min:number=parseInt((this.minOption as HTMLSelectElement).value),max:number=parseInt((this.maxOption as HTMLSelectElement).value);
-            if(show){
-                for(let shell:number=min;shell<=max;++shell){
-                    const sc:ShellComponet=this.shellComponents[shell];
-                    for(const cc of sc.connectedComponents){
-                        for(const v of cc.vertices){
-                            v.setColor(sc.color);
-                        }
-                    }
-                }
-            }else{
-                for(const v of this.graph.vertices){
-                    if(this.degrees.get(v.id) as number!=KCore.PROCESSED){
-                        (v.circle as SVGCircleElement).setAttribute("fill","var(--reverse-color2)");
                     }
                 }
             }

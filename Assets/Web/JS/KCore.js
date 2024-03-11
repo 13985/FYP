@@ -479,27 +479,6 @@ var KCoreAlgorithm;
             }
             return this;
         }
-        displayPartialResult(show) {
-            const min = parseInt(this.minOption.value), max = parseInt(this.maxOption.value);
-            if (show) {
-                for (let shell = min; shell <= max; ++shell) {
-                    const sc = this.shellComponents[shell];
-                    for (const cc of sc.connectedComponents) {
-                        for (const v of cc.vertices) {
-                            v.setColor(sc.color);
-                        }
-                    }
-                }
-            }
-            else {
-                for (const v of this.graph.vertices) {
-                    if (this.degrees.get(v.id) != KCore.PROCESSED) {
-                        v.circle.setAttribute("fill", "var(--reverse-color2)");
-                    }
-                }
-            }
-            return this;
-        }
         hideVerticesOutsideShells() {
             const min = parseInt(this.minOption.value), max = parseInt(this.maxOption.value);
             this.displayVerticesInRange(min, max + 1, true); //set the edges visible first (some edge may connected to outside shell)
