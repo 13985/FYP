@@ -515,12 +515,10 @@ var VisualizationUtils;
             this.localStates = this.getTreeNode();
             this.localStatesIndex = this.localStates;
         }
-        init(graph) {
-            if (graph != undefined) {
-                this.graph = graph;
-            }
-            this.dataStatesCurrent.length = this.graph.vertices.length;
-            this.dataStatesIndices.length = this.graph.vertices.length;
+        init() {
+            this.setDataKeys();
+            this.dataStatesCurrent.length = this.dataKeys.length;
+            this.dataStatesIndices.length = this.dataKeys.length;
             this.resetStep();
         }
         onInitEnd(step) {
@@ -567,16 +565,17 @@ var VisualizationUtils;
                 return null;
             }
             ++this.currentStep;
-            for (let v_idx = 0; v_idx < this.graph.vertices.length; ++v_idx) {
-                const idx = this.dataStatesIndices[v_idx];
-                const stateInfos = this.dataStates.get(this.graph.vertices[v_idx].id);
+            for (let i = 0; i < this.dataKeys.length; ++i) {
+                const dataKey = this.dataKeys[i];
+                const idx = this.dataStatesIndices[i];
+                const stateInfos = this.dataStates.get(dataKey);
                 const nextIdx = idx + 1;
                 if (nextIdx < stateInfos.length && stateInfos[nextIdx].step <= this.currentStep) {
-                    this.dataStatesIndices[v_idx] = nextIdx;
-                    this.dataStatesCurrent[v_idx] = stateInfos[nextIdx];
+                    this.dataStatesIndices[i] = nextIdx;
+                    this.dataStatesCurrent[i] = stateInfos[nextIdx];
                 }
                 else {
-                    this.dataStatesCurrent[v_idx] = stateInfos[idx];
+                    this.dataStatesCurrent[i] = stateInfos[idx];
                 }
             }
             while (this.localStatesIndex.right <= this.currentStep) {
@@ -603,16 +602,17 @@ var VisualizationUtils;
                 return null;
             }
             --this.currentStep;
-            for (let v_idx = 0; v_idx < this.graph.vertices.length; ++v_idx) {
-                const idx = this.dataStatesIndices[v_idx];
-                const stateInfos = this.dataStates.get(this.graph.vertices[v_idx].id);
+            for (let i = 0; i < this.dataKeys.length; ++i) {
+                const dataKey = this.dataKeys[i];
+                const idx = this.dataStatesIndices[i];
+                const stateInfos = this.dataStates.get(dataKey);
                 const nextIdx = idx - 1;
                 if (stateInfos[idx].step > this.currentStep) {
-                    this.dataStatesIndices[v_idx] = nextIdx;
-                    this.dataStatesCurrent[v_idx] = stateInfos[nextIdx];
+                    this.dataStatesIndices[i] = nextIdx;
+                    this.dataStatesCurrent[i] = stateInfos[nextIdx];
                 }
                 else {
-                    this.dataStatesCurrent[v_idx] = stateInfos[idx];
+                    this.dataStatesCurrent[i] = stateInfos[idx];
                 }
             }
             while (this.localStatesIndex.left > this.currentStep) {
@@ -639,21 +639,22 @@ var VisualizationUtils;
                 return null;
             }
             this.currentStep = targetStep;
-            for (let v_idx = 0; v_idx < this.graph.vertices.length; ++v_idx) {
-                const stateInfos = this.dataStates.get(this.graph.vertices[v_idx].id);
-                this.dataStatesCurrent[v_idx] = stateInfos[0];
-                this.dataStatesIndices[v_idx] = 0;
+            for (let i = 0; i < this.graph.vertices.length; ++i) {
+                const dataKey = this.dataKeys[i];
+                const stateInfos = this.dataStates.get(dataKey);
+                this.dataStatesCurrent[i] = stateInfos[0];
+                this.dataStatesIndices[i] = 0;
                 for (let le = 0, ri = stateInfos.length; le < ri;) {
                     const mid = Math.floor((le + ri) / 2);
                     const theStep = stateInfos[mid].step;
                     if (theStep == this.currentStep) {
-                        this.dataStatesCurrent[v_idx] = stateInfos[mid];
-                        this.dataStatesIndices[v_idx] = mid;
+                        this.dataStatesCurrent[i] = stateInfos[mid];
+                        this.dataStatesIndices[i] = mid;
                         break;
                     }
                     else if (theStep < this.currentStep) {
-                        this.dataStatesCurrent[v_idx] = stateInfos[mid];
-                        this.dataStatesIndices[v_idx] = mid;
+                        this.dataStatesCurrent[i] = stateInfos[mid];
+                        this.dataStatesIndices[i] = mid;
                         le = mid + 1;
                     }
                     else {
@@ -675,8 +676,8 @@ var VisualizationUtils;
             }
             return this.dataStatesCurrent;
         }
-        dataStatePush(dataId, info) {
-            this.dataStates.get(dataId).push(info);
+        dataStatePush(dataKey, info) {
+            this.dataStates.get(dataKey).push(info);
         }
         localStatePush(state) {
             const newNode = this.getTreeNode().set(state.step, state.step, this.localStatesIndex, state);

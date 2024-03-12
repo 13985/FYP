@@ -92,20 +92,26 @@ var KCoreAlgorithm;
      * space: O(V+E)
      */
     class State extends VisualizationUtils.StateManager {
-        setDataKeys() {
-            throw new Error("Method not implemented.");
-        }
         constructor(graph) {
             super(graph);
             this.init();
         }
-        init(graph) {
+        /**
+         * @summary order of dataKey is the same as order of vertex in graph.vertices
+         */
+        setDataKeys() {
+            for (let i = 0; i < this.graph.vertices.length; ++i) {
+                this.dataKeys[i] = this.graph.vertices[i].id;
+            }
+        }
+        init() {
             for (const kvp of this.dataStates) {
                 for (const state of kvp[1]) {
                     VertexStateInfo.POOL.release(state);
                 }
             }
-            super.init(graph);
+            super.clear();
+            super.init();
             this.graph.adjacencyList.forEach((vl, v_id) => {
                 const vsi = VertexStateInfo.POOL.get();
                 vsi.degree = vl.others.length;
@@ -152,7 +158,7 @@ var KCoreAlgorithm;
         }
         createState() {
             if (this.states) {
-                this.states.init(this.graph);
+                this.states.init();
             }
             else {
                 this.states = new State(this.graph);
@@ -199,7 +205,7 @@ var KCoreAlgorithm;
                         this.states.localStatePush({ step: step, codeStep: 5, stepDescription: `check neighbor ${neighbor}` });
                         ++step;
                         if (degree < 0) {
-                            this.states.localStateTop({ step: step, codeStep: 6, stepDescription: `neighbor ${neighbor} is processed` });
+                            this.states.localStateTop({ step: step, codeStep: 6, stepDescription: `neighbor ${neighbor} is not in set1` });
                             ++step;
                         }
                         else {
@@ -208,7 +214,7 @@ var KCoreAlgorithm;
                             this.states.localStateTop({ step: step, codeStep: 7, stepDescription: `decrement degree of ${neighbor} from ${degree + 1} to ${degree}` });
                             ++step;
                             if (degree <= currentShell) {
-                                this.states.localStateTop({ step: step, codeStep: 8, stepDescription: `degree (${degree}) of neighbor ${neighbor} is less than current_core (${currentShell})` });
+                                this.states.localStateTop({ step: step, codeStep: 8, stepDescription: `degree (${degree}) of neighbor ${neighbor} is <= current_core (${currentShell})` });
                                 ++step;
                                 this.removeFromSet1(neighbor);
                             }
@@ -902,7 +908,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
         { code: "   push all vertices with degree <= current_core to set0;", step: 3 },
         { code: "   for all v in set0 :{", step: 4 },
         { code: "      check for its all neighbors:{", step: 5 },
-        { code: "         if it is processed: continue;", step: 6 },
+        { code: "         if it is not in set1: continue;", step: 6 },
         { code: "         else:{", step: undefined },
         { code: "            decrement its degree;", step: 7 },
         { code: "            if its degree <= current_core, push it to set0;", step: 8 },

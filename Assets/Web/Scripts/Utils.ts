@@ -631,15 +631,16 @@ namespace VisualizationUtils{
         }
 
 
+        /**
+         * @summary datakeys must be called before creating state since the data is identified by dataKey:number
+         */
         protected abstract setDataKeys():void;
 
 
-        public init(graph?:Graph):void{
-            if(graph!=undefined){
-                this.graph=graph;
-            }
-            this.dataStatesCurrent.length=this.graph.vertices.length;
-            this.dataStatesIndices.length=this.graph.vertices.length;
+        public init():void{
+            this.setDataKeys();
+            this.dataStatesCurrent.length=this.dataKeys.length;
+            this.dataStatesIndices.length=this.dataKeys.length;
             this.resetStep();
         }
 
@@ -697,15 +698,16 @@ namespace VisualizationUtils{
             }
             ++this.currentStep;
 
-            for(let v_idx:number=0;v_idx<this.graph.vertices.length;++v_idx){
-                const idx:number=this.dataStatesIndices[v_idx];
-                const stateInfos:TDataState[]=this.dataStates.get(this.graph.vertices[v_idx].id) as TDataState[];
+            for(let i:number=0;i<this.dataKeys.length;++i){
+                const dataKey:number=this.dataKeys[i];
+                const idx:number=this.dataStatesIndices[i];
+                const stateInfos:TDataState[]=this.dataStates.get(dataKey) as TDataState[];
                 const nextIdx:number=idx+1;
                 if(nextIdx<stateInfos.length&&stateInfos[nextIdx].step<=this.currentStep){
-                    this.dataStatesIndices[v_idx]=nextIdx;
-                    this.dataStatesCurrent[v_idx]=stateInfos[nextIdx];
+                    this.dataStatesIndices[i]=nextIdx;
+                    this.dataStatesCurrent[i]=stateInfos[nextIdx];
                 }else{
-                    this.dataStatesCurrent[v_idx]=stateInfos[idx];
+                    this.dataStatesCurrent[i]=stateInfos[idx];
                 }
             }
 
@@ -734,15 +736,16 @@ namespace VisualizationUtils{
             }
             --this.currentStep;
 
-            for(let v_idx:number=0;v_idx<this.graph.vertices.length;++v_idx){
-                const idx:number=this.dataStatesIndices[v_idx];
-                const stateInfos:TDataState[]=this.dataStates.get(this.graph.vertices[v_idx].id) as TDataState[];
+            for(let i:number=0;i<this.dataKeys.length;++i){
+                const dataKey:number=this.dataKeys[i];
+                const idx:number=this.dataStatesIndices[i];
+                const stateInfos:TDataState[]=this.dataStates.get(dataKey) as TDataState[];
                 const nextIdx:number=idx-1;
                 if(stateInfos[idx].step>this.currentStep){
-                    this.dataStatesIndices[v_idx]=nextIdx;
-                    this.dataStatesCurrent[v_idx]=stateInfos[nextIdx];
+                    this.dataStatesIndices[i]=nextIdx;
+                    this.dataStatesCurrent[i]=stateInfos[nextIdx];
                 }else{
-                    this.dataStatesCurrent[v_idx]=stateInfos[idx];
+                    this.dataStatesCurrent[i]=stateInfos[idx];
                 }
             }
 
@@ -771,21 +774,22 @@ namespace VisualizationUtils{
             }
             this.currentStep=targetStep;
             
-            for(let v_idx:number=0;v_idx<this.graph.vertices.length;++v_idx){
-                const stateInfos=this.dataStates.get(this.graph.vertices[v_idx].id) as Array<TDataState>;
-                this.dataStatesCurrent[v_idx]=stateInfos[0];
-                this.dataStatesIndices[v_idx]=0;
+            for(let i:number=0;i<this.graph.vertices.length;++i){
+                const dataKey:number=this.dataKeys[i];
+                const stateInfos=this.dataStates.get(dataKey) as Array<TDataState>;
+                this.dataStatesCurrent[i]=stateInfos[0];
+                this.dataStatesIndices[i]=0;
 
                 for(let le:number=0,ri:number=stateInfos.length;le<ri;){
                     const mid:number=Math.floor((le+ri)/2);
                     const theStep:number=stateInfos[mid].step;
                     if(theStep==this.currentStep){
-                        this.dataStatesCurrent[v_idx]=stateInfos[mid];
-                        this.dataStatesIndices[v_idx]=mid;
+                        this.dataStatesCurrent[i]=stateInfos[mid];
+                        this.dataStatesIndices[i]=mid;
                         break;
                     }else if(theStep<this.currentStep){
-                        this.dataStatesCurrent[v_idx]=stateInfos[mid];
-                        this.dataStatesIndices[v_idx]=mid;
+                        this.dataStatesCurrent[i]=stateInfos[mid];
+                        this.dataStatesIndices[i]=mid;
                         le=mid+1;
                     }else{
                         ri=mid;
@@ -809,8 +813,8 @@ namespace VisualizationUtils{
         }
 
 
-        public dataStatePush(dataId:number,info:TDataState):void{
-            (this.dataStates.get(dataId) as TDataState[]).push(info);
+        public dataStatePush(dataKey:number,info:TDataState):void{
+            (this.dataStates.get(dataKey) as TDataState[]).push(info);
         }
 
 
