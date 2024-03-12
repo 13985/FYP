@@ -109,9 +109,6 @@ var KCliqueAlgorithm;
                                     continue;
                                 }
                                 const e = this.graph.getEdge(from.id, to.id);
-                                if(e==undefined){
-                                    console.log(`fail at ${from.id} ${to.id}`);
-                                }
                                 const line = e.line;
                                 line.setAttribute("stroke", colorStr);
                                 line.setAttribute("stroke-opacity", "1");
@@ -164,22 +161,15 @@ var KCliqueAlgorithm;
                 for (const e of this.graph.edges) {
                     const cc = KCliqueCC.POOL.get();
                     cc.clique = 2;
-                    cc.vertices.length=0;
                     cc.vertices.push(e.source);
                     cc.vertices.push(e.target);
-                    console.log(`${e.source.id} ${e.target.id}`);
-                    console.log(cc.vertices.length);
                     kc.connectedComponents.push(cc);
                 }
             }
             for (let currentClique = 3, noUpdate = false; noUpdate == false; ++currentClique) {
                 const kc = new CliqueComponets(currentClique);
-                noUpdate=true;
+                noUpdate = true;
                 const previous = this.cliqueComponents[currentClique - 2].connectedComponents; //currentClique == .length+2
-                for(const cc of previous){
-                    
-                    console.log(`${cc.clique} ${cc.vertices[0].id} ${cc.vertices[1].id} ${cc.vertices.length}`)
-                }
                 for (let i = 0; i < previous.length; ++i) {
                     const first = previous[i];
                     Label_1: for (let j = i + 1; j < previous.length; ++j) {
@@ -211,13 +201,12 @@ var KCliqueAlgorithm;
                             first.vertices.push(left_v);
                             KCliqueCC.POOL.release(second);
                             kc.connectedComponents.push(first);
-                            
-                            previous[j]=previous[previous.length-1];
+                            previous[j] = previous[previous.length - 1];
                             previous.pop();
-                            if(i<previous.length-1){
-                                previous[i]=previous[previous.length-1];
+                            if (i < previous.length - 1) {
+                                previous[i] = previous[previous.length - 1];
                                 previous.pop();
-                                --i;//prevent the increment of i
+                                --i; //prevent the increment of i
                             }
                             noUpdate = false;
                             break Label_1;

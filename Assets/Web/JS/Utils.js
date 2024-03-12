@@ -174,11 +174,6 @@ var VisualizationUtils;
         static loadUpdatedGraph() {
             var _a, _b;
             if (Algorithm.resultTarget != undefined) {
-                /*
-                for(const e of Algorithm.resultTarget.graph.edges){
-                    console.log(`${e.source.id} ${e.target.id}`);
-                }
-                */
                 Algorithm.resultTarget.createIndexStructure().setColorGradient(VertexGradient.start, VertexGradient.end).setVisualElementsColor(false);
                 (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.setIndexStructure(Algorithm.resultTarget).createState().setVisualElementsColor(true);
             }
@@ -375,11 +370,6 @@ var VisualizationUtils;
         }
         release(t) {
             t.clear();
-            for(const _t of this.pool){
-                if(_t==t){
-                    throw Error("double free");
-                }
-            }
             this.pool.push(t);
         }
     }
