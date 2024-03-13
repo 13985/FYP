@@ -133,7 +133,7 @@ window.onload=():void=>{
         case "kcore":{
             helper(kCore,resultKCore);
             resultKCore.displayPolygons(true);//note they may have the same index structure
-            resultGW.setVertexDragStartCallback(resultKCore.refreshPolygons.bind(resultKCore));
+            resultGW.setVertexDragStartCallback(resultKCore.calculateBound.bind(resultKCore));
             break;
         }
         case "kclique":{

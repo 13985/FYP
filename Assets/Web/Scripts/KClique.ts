@@ -50,7 +50,7 @@ namespace KCliqueAlgorithm{
         public static readonly POOL=new VisualizationUtils.ObjectPool<DataState>(DataState);
         public step:number=0;
         public color:string="var(--reverse-color-2)";
-        public opacity:number=0.6;
+        public opacity:number=0.4;
         public width:number=1;
 
         constructor(){
@@ -63,6 +63,12 @@ namespace KCliqueAlgorithm{
 
 
     class State extends VisualizationUtils.StateManager<DataState,VisualizationUtils.DescriptionState>{
+        constructor(graph:Graph){
+            super(graph);
+            this.init();
+        }
+
+
         protected setDataKeys():void{
             this.dataKeys.length=this.graph.vertices.length+this.graph.edges.length;
             const verticesCount:number=this.graph.vertices.length;
@@ -109,6 +115,7 @@ namespace KCliqueAlgorithm{
      * note that any subgraph of a fully connected graph is also fully connected
      */
     export class KClique extends VisualizationUtils.Algorithm{
+        protected static readonly VERTEX_OPACITY:number=0.4;
         protected static readonly CODE_DESCRIPTION:string=
 `iteration manner`;
 
@@ -189,7 +196,7 @@ namespace KCliqueAlgorithm{
                                 line.setAttribute("stroke-opacity","1");
                                 line.setAttribute("stroke-width",`${1+cc.clique*3/(this.cliqueComponents.length)}`);
                                 from.setColorString(colorStr);
-                                (from.circle as SVGCircleElement).setAttribute("fill-opacity","0.5");
+                                (from.circle as SVGCircleElement).setAttribute("fill-opacity",KClique.VERTEX_OPACITY.toString());
                             }
                         }
                     }
@@ -225,6 +232,11 @@ namespace KCliqueAlgorithm{
             if(this.graph.edges.length<=0){
                 
             }else{
+                /**
+                clique 1 {a0 a1 a2 ai an} 
+                clique 2 {a0 a1 a2 aj an}
+
+                 */
                 const kc:CliqueComponets=new CliqueComponets(2);
                 this.cliqueComponents.push(kc);
 
@@ -363,24 +375,55 @@ namespace KCliqueAlgorithm{
                             return ret.substring(0,ret.length-1);
                         }
 
-
                         /**
                          * @todo find a way to do this....
                          */
-                        function highlightCC(cc:KClique):void{
-                            
+                        const highlightCC=(cc:KCliqueCC):void=>{
+                            for(const v of cc.vertices){
+                                const ds:DataState=DataState.POOL.get();
+                                ds.opacity=1;
+                                ds.step=step;
+                                this.state?.dataStatePush(v.id,ds);
+                            }
+                            const verticesCount:number=cc.vertices.length;
+                            for(let i:number=0;i<verticesCount;++i){
+                                for(let j:number=i+1;j<verticesCount;++j){
+                                    const ds:DataState=DataState.POOL.get();
+                                    ds.opacity=1;
+                                    ds.step=step;
+                                    ds.width=1+(cc.clique*3/this.cliqueComponents.length+2);
+                                    this.state?.dataStatePush(this.graph.getEdgeHashCode(cc.vertices[i].id,cc.vertices[j].id),ds);
+                                }
+                            }
                         }
 
-                        function unhighlightCC(cc:KClique):void{
-                            
+                        const unhighlightCC=(cc:KCliqueCC):void=>{
+                            for(const v of cc.vertices){
+                                const ds:DataState=DataState.POOL.get();
+                                ds.opacity=KClique.VERTEX_OPACITY;
+                                ds.step=step;
+                                this.state?.dataStatePush(v.id,ds);
+                            }
+                            const verticesCount:number=cc.vertices.length;
+                            for(let i:number=0;i<verticesCount;++i){
+                                for(let j:number=i+1;j<verticesCount;++j){
+                                    const ds:DataState=DataState.POOL.get();
+                                    ds.opacity=KClique.VERTEX_OPACITY;
+                                    ds.step=step;
+                                    ds.width=1;
+                                    this.state?.dataStatePush(this.graph.getEdgeHashCode(cc.vertices[i].id,cc.vertices[j].id),ds);
+                                }
+                            }
                         }
 
                         const first:KCliqueCC=previous[i];
+                        highlightCC(first);
                         this.state.localStatePush({step:step,codeStep:4,stepDescription:`clique: ${ccToString(first)}`});
                         ++step;
 
                         Label_1:for(let j:number=i+1;j<previous.length;++j){
                             const second:KCliqueCC=previous[j];
+                            highlightCC(second);
                             this.set.clear();
 
                             this.state.localStatePush({step:step,codeStep:5,stepDescription:`check with clique: ${ccToString(second)}`});
@@ -429,11 +472,15 @@ namespace KCliqueAlgorithm{
                                 ++step;
                                 this.state.localStatePop(step);
                                 ++step;
+                                unhighlightCC(second);
+                                ++step;
                                 break Label_1;
                             }
                             this.state.localStatePop(step);
                             ++step;
+                            unhighlightCC(second);
                         }
+                        unhighlightCC(first);
                         this.state.localStatePop(step);
                         ++step;
                     }
@@ -442,11 +489,6 @@ namespace KCliqueAlgorithm{
                 }
             }
             this.state.localStatePop(step);
-            return this;
-        }
-
-
-        public clearState():this{
             return this;
         }
 

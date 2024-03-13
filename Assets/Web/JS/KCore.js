@@ -22,13 +22,10 @@ var KCoreAlgorithm;
         constructor(shell = 1) {
             super();
             this.shell = -1;
-            this.polygonOpacity = 0.4;
-            this.polygon = null;
             this.shell = shell;
         }
         clone() {
             const cc = KCoreCC.POOL.get();
-            cc.polygonOpacity = this.polygonOpacity;
             cc.shell = this.shell;
             return cc;
         }
@@ -40,6 +37,7 @@ var KCoreAlgorithm;
             this.shell = -1;
             this.color = new Color(0, 0, 0);
             this.step = -1;
+            this.bound = [];
         }
         clone() {
             const sc = new ShellComponet();
@@ -61,11 +59,11 @@ var KCoreAlgorithm;
         }
     }
     class VertexStateInfo {
-        constructor(step, degree, shell, opacity) {
-            this.degree = degree != undefined ? degree : 0;
-            this.step = step != undefined ? step : 1;
-            this.opacity = opacity != undefined ? opacity : "0.3";
-            this.shell = shell != undefined ? shell : -1;
+        constructor() {
+            this.step = 0;
+            this.degree = -1;
+            this.shell = -1;
+            this.opacity = "0.3";
         }
         set(step, degree, shell, opacity) {
             this.degree = degree != undefined ? degree : 0;
@@ -100,6 +98,7 @@ var KCoreAlgorithm;
          * @summary order of dataKey is the same as order of vertex in graph.vertices
          */
         setDataKeys() {
+            this.dataKeys.length = this.graph.vertices.length;
             for (let i = 0; i < this.graph.vertices.length; ++i) {
                 this.dataKeys[i] = this.graph.vertices[i].id;
             }
@@ -253,15 +252,13 @@ var KCoreAlgorithm;
             this.refreshSelect();
             return this;
         }
-        clearState() {
-            var _a;
-            (_a = this.states) === null || _a === void 0 ? void 0 : _a.clear();
-            return this;
-        }
         createIndexStructure() {
+            var _a;
             this.unionFind.set(this.graph.vertices.length);
+            for (const sc of this.shellComponents) {
+                (_a = sc.polygon) === null || _a === void 0 ? void 0 : _a.remove();
+            }
             this.releaseCCs();
-            this.shellComponents.length = 0;
             this.vertexToInfo.clear();
             this.clearHelpers();
             let currentShell = 0, nextShell = 1;
@@ -301,10 +298,10 @@ var KCoreAlgorithm;
                         }
                     }
                 }
-                currentShell = nextShell;
                 if (this.set1.length <= 0) {
                     break;
                 }
+                currentShell = nextShell;
                 nextShell = currentShell + 1;
                 for (let i = 0; i < this.set1.length;) {
                     const d = this.degrees.get(this.set1[i]);
@@ -316,9 +313,12 @@ var KCoreAlgorithm;
                     }
                 }
             }
-            for (let i = 0; i < currentShell; ++i) {
-                this.shellComponents.push(new ShellComponet());
-                this.shellComponents[i].shell = i;
+            this.shellComponents.length = currentShell + 1;
+            for (let i = currentShell; i >= 0; --i) {
+                const sc = new ShellComponet();
+                this.shellComponents[i] = sc;
+                sc.shell = i;
+                this.polygonsContainer.insertAdjacentElement("afterbegin", this.createPolygon(sc)); //make the polygon highest shell at the lowest relative position in dom tree so iterate reversely
             }
             this.degrees.clear();
             this.unionFind.flatten();
@@ -340,6 +340,7 @@ var KCoreAlgorithm;
                 this.shellComponents[parentInfo.shell].connectedComponents[parentInfo.index].vertices.push(this.graph.adjacencyList.get(node).main);
                 this.vertexToInfo.get(node).index = parentInfo.index;
             }
+            this.calculateBound();
             return this;
         }
         animate() {
@@ -486,15 +487,13 @@ var KCoreAlgorithm;
                     v.circle.setAttribute("fill", "var(--reverse-color2)");
                 }
                 for (const sc of this.shellComponents) {
-                    for (const cc of sc.connectedComponents) {
-                        (_a = cc.polygon) === null || _a === void 0 ? void 0 : _a.setAttribute("visibility", "hidden");
-                    }
+                    (_a = sc.polygon) === null || _a === void 0 ? void 0 : _a.setAttribute("visibility", "hidden");
                 }
             }
             else {
                 for (const sc of this.shellComponents) {
+                    (_b = sc.polygon) === null || _b === void 0 ? void 0 : _b.setAttribute("fill", `color-mix(in srgb, ${sc.color.toString()} 30%, var(--main-color1) 70%)`);
                     for (const cc of sc.connectedComponents) {
-                        (_b = cc.polygon) === null || _b === void 0 ? void 0 : _b.setAttribute("fill", sc.color.toString());
                         for (const v of cc.vertices) {
                             v.setColor(sc.color);
                         }
@@ -521,24 +520,20 @@ var KCoreAlgorithm;
             this.displayVerticesInRange(max + 1, this.shellComponents.length, false);
         }
         displayPolygons(show) {
+            var _a;
             const value = show ? "visible" : "hidden";
             for (const sc of this.shellComponents) {
-                for (const cc of sc.connectedComponents) {
-                    if (cc.vertices.length < 3) {
-                        continue;
-                    }
-                    else {
-                        this.setPolygon(cc, sc);
-                        cc.polygon.setAttribute("visibility", value);
-                    }
-                }
+                (_a = sc.polygon) === null || _a === void 0 ? void 0 : _a.setAttribute("visibility", value);
             }
             return this;
         }
-        refreshPolygons(vertex) {
-            const info = this.vertexToInfo.get(vertex.id);
-            const cc = this.shellComponents[info.shell].connectedComponents[info.index];
-            ConvesHull.Solve(cc, this.svgContainer);
+        calculateBound() {
+            let i = this.shellComponents.length - 1;
+            ConvesHull.Solve(this.shellComponents[i], this.svgContainer);
+            for (--i; i >= 0; --i) {
+                const sc = this.shellComponents[i];
+                ConvesHull.Solve(sc, this.svgContainer, this.shellComponents[i + 1].bound);
+            }
         }
         addEdge(a, b) {
             if (this.graph.addEdge(a, b) == false) {
@@ -595,10 +590,10 @@ var KCoreAlgorithm;
             const cc = KCoreCC.POOL.get();
             sc.connectedComponents.push(cc);
             cc.shell = 0;
-            this.setPolygon(cc, sc);
             cc.vertices.push(v);
             v.setColor(sc.color);
             this.vertexToInfo.set(a, info);
+            this.calculateBound();
             return true;
         }
         removeVertex(a) {
@@ -613,7 +608,6 @@ var KCoreAlgorithm;
             return true;
         }
         removeComponent(shellComponent, idx, setIndex = false) {
-            var _a;
             const ret = shellComponent.connectedComponents[idx];
             const lastIdx = shellComponent.connectedComponents.length - 1;
             if (setIndex && idx < lastIdx) {
@@ -625,11 +619,9 @@ var KCoreAlgorithm;
                 shellComponent.connectedComponents[idx] = last;
             }
             shellComponent.connectedComponents.pop();
-            (_a = ret.polygon) === null || _a === void 0 ? void 0 : _a.remove();
             return ret;
         }
         mergeComponent(shellComponent, idx0, idx1) {
-            var _a;
             if (idx0 > idx1) {
                 const temp = idx0;
                 idx0 = idx1;
@@ -642,7 +634,6 @@ var KCoreAlgorithm;
                 const ccIdx = this.vertexToInfo.get(v.id);
                 ccIdx.index = idx0;
             }
-            (_a = b.polygon) === null || _a === void 0 ? void 0 : _a.remove();
             KCoreCC.POOL.release(b);
         }
         KCore_ConnectedComponent(theInfo) {
@@ -730,6 +721,12 @@ var KCoreAlgorithm;
                 this.shellComponents.push(sc);
                 this.setColorGradient(this.shellComponents[0].color, this.shellComponents[this.shellComponents.length - 2].color);
                 this.refreshSelect();
+                /**
+                 * @summary
+                 * GraphWindow will append two g to its allG and its allG is the polygonsContainer of this,
+                 * so query the first g and insert before it
+                 */
+                this.polygonsContainer.insertBefore(this.polygonsContainer.querySelector("g"), this.createPolygon(sc));
             }
             //parents create the connected component
             for (const v of theCC.vertices) { //separate the vertex into two group depend on if their shell change
@@ -765,8 +762,6 @@ var KCoreAlgorithm;
                 const info = this.vertexToInfo.get(v);
                 const sc = this.shellComponents[info.shell];
                 const cc = sc.connectedComponents[info.index];
-                this.setPolygon(cc, sc);
-                ConvesHull.Solve(cc, this.svgContainer);
             }
             //console.log(`new ${newShell}`);
             //console.log(`old ${oldShell}`);
@@ -832,27 +827,24 @@ var KCoreAlgorithm;
                         }
                         KCoreCC.POOL.release(otherCC);
                     }
-                    this.setPolygon(minCC, sc);
-                    ConvesHull.Solve(minCC, this.svgContainer);
                 }
             }
+            this.calculateBound();
             KCoreCC.POOL.release(theCC);
             this.checkCCs();
         }
-        setPolygon(cc, sc) {
-            if (cc.vertices.length < 3) {
-                return;
+        createPolygon(sc) {
+            let polygon;
+            if (sc.polygon == undefined) {
+                polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+                sc.polygon = polygon;
             }
-            if (cc.polygon == undefined || cc.polygon == null) {
-                cc.polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-                ConvesHull.Solve(cc, this.svgContainer);
-                this.polygonsContainer.insertAdjacentElement("afterbegin", cc.polygon);
+            else {
+                polygon = sc.polygon;
             }
-            cc.polygon.setAttribute("opacity", cc.polygonOpacity.toString());
-            cc.polygon.setAttribute("fill", sc.color.toString());
-            if (this.showDefaultColor) {
-                cc.polygon.setAttribute("visibility", "hidden");
-            }
+            polygon.setAttribute("fill", `color-mix(in srgb, ${sc.color.toString()} 30%, var(--main-color1) 70%)`);
+            polygon.setAttribute("visibility", "hidden");
+            return polygon;
         }
         checkCCs() {
             for (let shell = 0; shell < this.shellComponents.length; ++shell) {
@@ -885,12 +877,6 @@ var KCoreAlgorithm;
             }
         }
         releaseCCs() {
-            var _a;
-            for (const sc of this.shellComponents) {
-                for (const cc of sc.connectedComponents) {
-                    (_a = cc.polygon) === null || _a === void 0 ? void 0 : _a.remove();
-                }
-            }
             for (const sc of this.shellComponents) {
                 for (const cc of sc.connectedComponents) {
                     KCoreCC.POOL.release(cc);
@@ -931,25 +917,36 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
         static cross(o, a, b) {
             return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
         }
-        static Solve(cc, svg) {
-            if (cc.vertices.length < 3) {
+        static Solve(sc, svg, otherBound) {
+            const verticesBuffer = ConvesHull.verticesBuffer;
+            if (otherBound == undefined) {
+                verticesBuffer.length = 0;
+            }
+            else {
+                Array.prototype.push.apply(verticesBuffer, otherBound);
+            }
+            for (const cc of sc.connectedComponents) {
+                Array.prototype.push.apply(verticesBuffer, cc.vertices);
+            }
+            if (verticesBuffer.length < 3) {
                 return;
             }
-            const polygon = cc.polygon;
-            polygon.points.clear();
-            if (cc.vertices.length < 4) {
-                for (const vertex of cc.vertices) {
+            else if (verticesBuffer.length < 4) {
+                const polygon = sc.polygon;
+                polygon.points.clear();
+                for (const vertex of verticesBuffer) {
                     const p = svg.createSVGPoint();
                     p.x = vertex.x;
                     p.y = vertex.y;
                     polygon.points.appendItem(p);
                 }
+                sc.polygon = polygon;
                 return;
             }
             function approximately(a, b) {
                 return Math.abs(a - b) < 0.0001;
             }
-            cc.vertices.sort((a, b) => {
+            verticesBuffer.sort((a, b) => {
                 if (approximately(a.x, b.x)) {
                     if (approximately(a.y, b.y)) {
                         return 0;
@@ -963,32 +960,45 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                 }
             });
             ConvesHull.points.length = 0;
-            for (const vertex of cc.vertices) {
+            sc.bound.length = 0;
+            for (const vertex of verticesBuffer) {
                 const p = new Point(vertex.x, vertex.y);
                 while (ConvesHull.points.length > 1 && ConvesHull.cross(ConvesHull.points[ConvesHull.points.length - 2], ConvesHull.points[ConvesHull.points.length - 1], p) <= 0) {
                     --ConvesHull.points.length;
+                    --sc.bound.length;
                 }
                 ConvesHull.points.push(p);
+                sc.bound.push(vertex);
             }
             const base = ConvesHull.points.length;
-            for (let i = cc.vertices.length - 2; i >= 0; --i) {
-                const vertex = cc.vertices[i];
+            for (let i = verticesBuffer.length - 2; i >= 0; --i) {
+                const vertex = verticesBuffer[i];
                 const p = new Point(vertex.x, vertex.y);
                 while (ConvesHull.points.length > base && ConvesHull.cross(ConvesHull.points[ConvesHull.points.length - 2], ConvesHull.points[ConvesHull.points.length - 1], p) <= 0) {
                     --ConvesHull.points.length;
+                    --sc.bound.length;
                 }
                 ConvesHull.points.push(p);
+                sc.bound.push(vertex);
             }
+            if (sc.bound[sc.bound.length - 1].id == sc.bound[0].id) {
+                ConvesHull.points.pop();
+                sc.bound.pop();
+            }
+            const polygon = sc.polygon;
+            polygon.points.clear();
             for (const p of ConvesHull.points) {
                 const realPoint = svg.createSVGPoint();
                 realPoint.x = p.x;
                 realPoint.y = p.y;
                 polygon.points.appendItem(realPoint);
             }
+            sc.polygon = polygon;
+            return;
         }
     }
     ConvesHull.points = [];
-    KCoreAlgorithm.ConvesHull = ConvesHull;
+    ConvesHull.verticesBuffer = [];
 })(KCoreAlgorithm || (KCoreAlgorithm = {}));
 class UnionFind {
     constructor() {

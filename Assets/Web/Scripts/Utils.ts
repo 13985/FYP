@@ -375,7 +375,6 @@ namespace VisualizationUtils{
          * though generally copy the results from the first instance should be fast enough, if there
          * is any "other visual elements" eg the polygons in kcore, then index structure is necessary
          */
-        public abstract clearState():this;
 
         protected abstract animate():void;
 
