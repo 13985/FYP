@@ -58,18 +58,20 @@ var KCoreAlgorithm;
             return info;
         }
     }
-    class VertexStateInfo {
+    class VertexState {
         constructor() {
             this.step = 0;
             this.degree = -1;
             this.shell = -1;
             this.opacity = "0.3";
+            this.text = "";
         }
-        set(step, degree, shell, opacity) {
+        set(step, degree, shell, opacity, text) {
             this.degree = degree != undefined ? degree : 0;
             this.step = step != undefined ? step : 1;
             this.opacity = opacity != undefined ? opacity : "0.3";
             this.shell = shell != undefined ? shell : -1;
+            this.text = text != undefined ? text : "";
             return this;
         }
         isProcessed() {
@@ -81,7 +83,7 @@ var KCoreAlgorithm;
             this.opacity = "0.3";
         }
     }
-    VertexStateInfo.POOL = new VisualizationUtils.ObjectPool(VertexStateInfo, 1024);
+    VertexState.POOL = new VisualizationUtils.ObjectPool(VertexState, 1024);
     class TreeNode extends VisualizationUtils.TreeNodeBase {
     }
     TreeNode.POOL = new VisualizationUtils.ObjectPool(TreeNode, 1024);
@@ -106,13 +108,13 @@ var KCoreAlgorithm;
         init() {
             for (const kvp of this.dataStates) {
                 for (const state of kvp[1]) {
-                    VertexStateInfo.POOL.release(state);
+                    VertexState.POOL.release(state);
                 }
             }
             super.clear();
             super.init();
             this.graph.adjacencyList.forEach((vl, v_id) => {
-                const vsi = VertexStateInfo.POOL.get();
+                const vsi = VertexState.POOL.get();
                 vsi.degree = vl.others.length;
                 vsi.step = 0;
                 this.dataStates.set(v_id, [vsi]);
@@ -165,13 +167,12 @@ var KCoreAlgorithm;
             VisualizationUtils.DescriptionDisplay.clearPanel();
             VisualizationUtils.DescriptionDisplay.codeDescription.innerText = KCore.CODE_DESCRIPTION;
             VisualizationUtils.DescriptionDisplay.setCodes(KCore.PSEUDO_CODES);
-            const shellToStep = new Map();
             this.clearHelpers();
             let currentShell = 0, nextShell = 1;
             let step = 0;
             this.states.localStatePush({ step: step, codeStep: 1, stepDescription: "initization" });
-            ++step;
             this.graph.adjacencyList.forEach((vl, k) => {
+                var _a;
                 if (vl.others.length <= 0) {
                     this.set0.push(k);
                     this.degrees.set(k, -1);
@@ -182,10 +183,10 @@ var KCoreAlgorithm;
                     this.degrees.set(k, vl.others.length);
                     nextShell = Math.min(nextShell, vl.others.length);
                 }
-                this.vertexToInfo.set(vl.main.id, new ConnectedComponetInfo(0, 0));
+                (_a = this.states) === null || _a === void 0 ? void 0 : _a.dataStatePush(vl.main.id, VertexState.POOL.get().set(step, vl.others.length, undefined, KCore.OPACITY, `${vl.main.id}: (?,${vl.others.length})`));
             });
+            ++step;
             while (true) {
-                shellToStep.set(currentShell, step);
                 this.states.localStateTop({ step: step, codeStep: 2, stepDescription: `set1.length:${this.set1.length} current_core:${currentShell}` });
                 ++step;
                 this.states.localStateTop({ step: step, codeStep: 3, stepDescription: `push vertices with degree < ${currentShell} to set0` });
@@ -195,8 +196,7 @@ var KCoreAlgorithm;
                 while (this.set0.length > 0) {
                     const v_id = this.set0.pop();
                     const vl = this.graph.adjacencyList.get(v_id);
-                    this.vertexToInfo.get(v_id).shell = currentShell;
-                    this.states.dataStatePush(v_id, VertexStateInfo.POOL.get().set(step, undefined, currentShell, "1"));
+                    this.states.dataStatePush(v_id, VertexState.POOL.get().set(step, undefined, currentShell, "1", `(${currentShell},/)`));
                     this.states.localStatePush({ step: step, codeStep: 4, stepDescription: `process vertex ${v_id}` });
                     ++step;
                     for (const neighbor of vl.others) {
@@ -209,7 +209,7 @@ var KCoreAlgorithm;
                         }
                         else {
                             --degree;
-                            this.states.dataStatePush(neighbor, VertexStateInfo.POOL.get().set(step, degree, undefined, "1"));
+                            this.states.dataStatePush(neighbor, VertexState.POOL.get().set(step, degree, undefined, "1", `(?,${degree})`));
                             this.states.localStateTop({ step: step, codeStep: 7, stepDescription: `decrement degree of ${neighbor} from ${degree + 1} to ${degree}` });
                             ++step;
                             if (degree <= currentShell) {
@@ -221,12 +221,12 @@ var KCoreAlgorithm;
                                 nextShell = Math.min(nextShell, degree);
                                 this.degrees.set(neighbor, degree);
                             }
-                            this.states.dataStatePush(neighbor, VertexStateInfo.POOL.get().set(step, degree, undefined, KCore.OPACITY));
+                            this.states.dataStatePush(neighbor, VertexState.POOL.get().set(step, degree, undefined, KCore.OPACITY, `(?,${degree})`));
                             ++step;
                         }
                         this.states.localStatePop(step);
                     }
-                    this.states.dataStatePush(v_id, VertexStateInfo.POOL.get().set(step, undefined, currentShell, KCore.OPACITY));
+                    this.states.dataStatePush(v_id, VertexState.POOL.get().set(step, undefined, currentShell, KCore.OPACITY, `(${currentShell},/)`));
                     this.states.localStatePop(step);
                     ++step;
                 }
@@ -354,16 +354,16 @@ var KCoreAlgorithm;
                 if (this.states == undefined) {
                     return;
                 }
-                let vertexInfos;
+                let dataStates;
                 this.states.resetStep();
                 const minShell = parseInt(this.minOption.value);
                 const maxShell = parseInt(this.maxOption.value);
                 const maxStep = maxShell + 1 >= this.shellComponents.length ? Number.MAX_SAFE_INTEGER : this.shellComponents[maxShell + 1].step;
                 if (minShell > 0) {
                     const minStep = this.shellComponents[minShell].step;
-                    vertexInfos = this.states.randomStep(minStep);
+                    dataStates = this.states.randomStep(minStep);
                     VisualizationUtils.VideoControl.progressBar.valueAsNumber = minStep;
-                    this.setAnimationDisplay(vertexInfos, this.states.getCurrentLocalStates());
+                    this.setAnimationDisplay(dataStates, this.states.getCurrentLocalStates());
                 }
                 AnimtaionLoop: while (true) {
                     const vsc = yield this.waitfor();
@@ -372,24 +372,24 @@ var KCoreAlgorithm;
                             break AnimtaionLoop;
                         case 0 /* VisualizationUtils.VideoControlStatus.noAction */:
                         case 1 /* VisualizationUtils.VideoControlStatus.nextStep */:
-                            if ((vertexInfos = this.states.nextStep()) == null) {
+                            if ((dataStates = this.states.nextStep()) == null) {
                                 break AnimtaionLoop;
                             }
-                            this.setAnimationDisplay(vertexInfos, this.states.getCurrentLocalStates());
+                            this.setAnimationDisplay(dataStates, this.states.getCurrentLocalStates());
                             break;
                         case 2 /* VisualizationUtils.VideoControlStatus.prevStep */:
-                            if ((vertexInfos = this.states.previousStep()) == null) {
+                            if ((dataStates = this.states.previousStep()) == null) {
                                 this.currentStep = 0;
-                                vertexInfos = this.states.randomStep(0);
+                                dataStates = this.states.randomStep(0);
                             }
-                            this.setAnimationDisplay(vertexInfos, this.states.getCurrentLocalStates());
+                            this.setAnimationDisplay(dataStates, this.states.getCurrentLocalStates());
                             break;
                         case 3 /* VisualizationUtils.VideoControlStatus.randomStep */:
-                            if ((vertexInfos = this.states.randomStep(this.currentStep)) == null) {
-                                vertexInfos = this.states.randomStep(0);
+                            if ((dataStates = this.states.randomStep(this.currentStep)) == null) {
+                                dataStates = this.states.randomStep(0);
                                 this.currentStep = 0;
                             }
-                            this.setAnimationDisplay(vertexInfos, this.states.getCurrentLocalStates());
+                            this.setAnimationDisplay(dataStates, this.states.getCurrentLocalStates());
                             break;
                     }
                     VisualizationUtils.VideoControl.progressBar.valueAsNumber = this.states.currentStep;
@@ -401,6 +401,7 @@ var KCoreAlgorithm;
                     const circle = v.circle;
                     circle.setAttribute("opacity", "1");
                     circle.setAttribute("visibility", "visible");
+                    v.text.innerHTML = v.id.toString();
                 }
                 ;
             });
@@ -452,14 +453,14 @@ var KCoreAlgorithm;
             }
             select.value = Math.max(start, Math.min(end - 1, val)).toString();
         }
-        setAnimationDisplay(vertexInfos, descriptionInfo) {
+        setAnimationDisplay(vertexStates, descriptionInfo) {
             var _a, _b, _c;
-            if (vertexInfos == null) {
+            if (vertexStates == null) {
                 return;
             }
             for (let i = 0; i < this.graph.vertices.length; ++i) {
                 const vertex = this.graph.vertices[i];
-                const info = vertexInfos[i];
+                const info = vertexStates[i];
                 (_a = vertex.circle) === null || _a === void 0 ? void 0 : _a.setAttribute("opacity", info.opacity);
                 if (info.isProcessed()) {
                     (_b = vertex.circle) === null || _b === void 0 ? void 0 : _b.setAttribute("fill", this.shellComponents[info.shell].color.toString());
@@ -467,6 +468,7 @@ var KCoreAlgorithm;
                 else {
                     (_c = vertex.circle) === null || _c === void 0 ? void 0 : _c.setAttribute("fill", "var(--reverse-color2)");
                 }
+                vertex.text.innerHTML = info.text;
             }
             if (descriptionInfo.length > 0) {
                 const lis = VisualizationUtils.DescriptionDisplay.setLocalDescriptionNumber(descriptionInfo.length);
@@ -502,22 +504,21 @@ var KCoreAlgorithm;
             }
             return this;
         }
-        displayVerticesInRange(minShell, maxShell, visibile) {
-            for (let i = minShell; i < maxShell; ++i) {
-                const sc = this.shellComponents[i];
-                for (const cc of sc.connectedComponents) {
-                    for (const v of cc.vertices) {
-                        this.graph.displayVertex(v.id, visibile);
+        hideVerticesOutsideShells() {
+            const displayVerticesInRange = (minShell, maxShell, visibile) => {
+                for (let i = minShell; i < maxShell; ++i) {
+                    const sc = this.shellComponents[i];
+                    for (const cc of sc.connectedComponents) {
+                        for (const v of cc.vertices) {
+                            this.graph.displayVertex(v.id, visibile);
+                        }
                     }
                 }
-            }
-            return this;
-        }
-        hideVerticesOutsideShells() {
+            };
             const min = parseInt(this.minOption.value), max = parseInt(this.maxOption.value);
-            this.displayVerticesInRange(min, max + 1, true); //set the edges visible first (some edge may connected to outside shell)
-            this.displayVerticesInRange(0, min, false); //then for the edge connected to outside shell, hide them
-            this.displayVerticesInRange(max + 1, this.shellComponents.length, false);
+            displayVerticesInRange(min, max + 1, true); //set the edges visible first (some edge may connected to outside shell)
+            displayVerticesInRange(0, min, false); //then for the edge connected to outside shell, hide them
+            displayVerticesInRange(max + 1, this.shellComponents.length, false);
         }
         displayPolygons(show) {
             var _a;
@@ -755,13 +756,6 @@ var KCoreAlgorithm;
                 const parentInfo = this.vertexToInfo.get(this.unionFind.parents[v]);
                 this.shellComponents[parentInfo.shell].connectedComponents[parentInfo.index].vertices.push(this.graph.adjacencyList.get(v).main);
                 info.index = parentInfo.index;
-            }
-            for (const v of oldShell) { //construct the convex hull
-                if (v != this.unionFind.parents[v])
-                    continue;
-                const info = this.vertexToInfo.get(v);
-                const sc = this.shellComponents[info.shell];
-                const cc = sc.connectedComponents[info.index];
             }
             //console.log(`new ${newShell}`);
             //console.log(`old ${oldShell}`);

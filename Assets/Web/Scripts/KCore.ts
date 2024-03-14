@@ -60,21 +60,23 @@ namespace KCoreAlgorithm{
     }
 
 
-    class VertexStateInfo implements VisualizationUtils.IStep, VisualizationUtils.IClearable{
-        public static readonly POOL=new VisualizationUtils.ObjectPool<VertexStateInfo>(VertexStateInfo,1024);
+    class VertexState implements VisualizationUtils.IStep, VisualizationUtils.IClearable{
+        public static readonly POOL=new VisualizationUtils.ObjectPool<VertexState>(VertexState,1024);
         public step:number=0;
         public degree:number=-1;
         public shell:number=-1;
         public opacity:string="0.3";
+        public text:string="";
 
         public constructor(){}
         
 
-        public set(step?:number,degree?:number,shell?:number,opacity?:string):this{
+        public set(step?:number,degree?:number,shell?:number,opacity?:string,text?:string):this{
             this.degree=degree!=undefined?degree:0;
             this.step=step!=undefined?step:1;
             this.opacity=opacity!=undefined?opacity:"0.3";
             this.shell=shell!=undefined?shell:-1;
+            this.text=text!=undefined?text:"";
             return this;
         }
 
@@ -98,7 +100,7 @@ namespace KCoreAlgorithm{
      * @complexity
      * space: O(V+E)
      */
-    class State extends VisualizationUtils.StateManager<VertexStateInfo,VisualizationUtils.DescriptionState>{
+    class State extends VisualizationUtils.StateManager<VertexState,VisualizationUtils.DescriptionState>{
         constructor(graph:Graph){
             super(graph);
             this.init();
@@ -117,13 +119,13 @@ namespace KCoreAlgorithm{
         public init():void{
             for(const kvp of this.dataStates){
                 for(const state of kvp[1]){
-                    VertexStateInfo.POOL.release(state);
+                    VertexState.POOL.release(state);
                 }
             }
             super.clear();
             super.init();
             this.graph.adjacencyList.forEach((vl:VerticeList,v_id:number):void=>{
-                const vsi:VertexStateInfo=VertexStateInfo.POOL.get();
+                const vsi:VertexState=VertexState.POOL.get();
                 vsi.degree=vl.others.length;
                 vsi.step=0;
                 this.dataStates.set(v_id,[vsi]);
@@ -165,8 +167,8 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
         private static readonly PROCESSED:number=-2;
         
         /**************************UI******************************************/
-        public maxOption:HTMLSelectElement|null;
-        public minOption:HTMLSelectElement|null;
+        private maxOption:HTMLSelectElement|null;
+        private minOption:HTMLSelectElement|null;
 
         public static readonly OPACITY:string="0.3";
         private readonly polygonsContainer:SVGGElement;
@@ -221,14 +223,12 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             VisualizationUtils.DescriptionDisplay.clearPanel();
             VisualizationUtils.DescriptionDisplay.codeDescription.innerText=KCore.CODE_DESCRIPTION;
             VisualizationUtils.DescriptionDisplay.setCodes(KCore.PSEUDO_CODES);
-            const shellToStep=new Map<number,number>();
 
             this.clearHelpers();
             let currentShell=0,nextShell=1;
             let step:number=0;
-            this.states.localStatePush({step:step,codeStep:1,stepDescription:"initization"});
-            ++step;
 
+            this.states.localStatePush({step:step,codeStep:1,stepDescription:"initization"});
             this.graph.adjacencyList.forEach((vl:VerticeList,k:number):void=>{
                 if(vl.others.length<=0){
                     this.set0.push(k);
@@ -239,11 +239,11 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                     this.degrees.set(k,vl.others.length);
                     nextShell=Math.min(nextShell,vl.others.length);
                 }
-                this.vertexToInfo.set(vl.main.id,new ConnectedComponetInfo(0,0));
+                this.states?.dataStatePush(vl.main.id,VertexState.POOL.get().set(step,vl.others.length,undefined,KCore.OPACITY,`${vl.main.id}: (?,${vl.others.length})`));
             });
+            ++step;
             
             while(true){
-                shellToStep.set(currentShell,step);
                 this.states.localStateTop({step:step,codeStep:2,stepDescription:`set1.length:${this.set1.length} current_core:${currentShell}`});
                 ++step;
                 this.states.localStateTop({step:step,codeStep:3,stepDescription:`push vertices with degree < ${currentShell} to set0`});
@@ -254,9 +254,8 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                 while(this.set0.length>0){
                     const v_id:number=<number>this.set0.pop();
                     const vl:VerticeList=<VerticeList>this.graph.adjacencyList.get(v_id);
-                    (this.vertexToInfo.get(v_id) as ConnectedComponetInfo).shell=currentShell;
 
-                    this.states.dataStatePush(v_id,VertexStateInfo.POOL.get().set(step,undefined,currentShell,"1"));
+                    this.states.dataStatePush(v_id,VertexState.POOL.get().set(step,undefined,currentShell,"1",`(${currentShell},/)`));
                     this.states.localStatePush({step:step,codeStep:4,stepDescription:`process vertex ${v_id}`});
                     ++step;
 
@@ -272,7 +271,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                         }else{
                             --degree;
                             
-                            this.states.dataStatePush(neighbor,VertexStateInfo.POOL.get().set(step,degree,undefined,"1"));
+                            this.states.dataStatePush(neighbor,VertexState.POOL.get().set(step,degree,undefined,"1",`(?,${degree})`));
                             this.states.localStateTop({step:step,codeStep:7,stepDescription:`decrement degree of ${neighbor} from ${degree+1} to ${degree}`});
                             ++step;
                             if(degree<=currentShell){
@@ -283,12 +282,12 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                                 nextShell=Math.min(nextShell,degree);
                                 this.degrees.set(neighbor,degree);
                             }
-                            this.states.dataStatePush(neighbor,VertexStateInfo.POOL.get().set(step,degree,undefined,KCore.OPACITY));
+                            this.states.dataStatePush(neighbor,VertexState.POOL.get().set(step,degree,undefined,KCore.OPACITY,`(?,${degree})`));
                             ++step;
                         }
                         this.states.localStatePop(step);
                     }
-                    this.states.dataStatePush(v_id,VertexStateInfo.POOL.get().set(step,undefined,currentShell,KCore.OPACITY));
+                    this.states.dataStatePush(v_id,VertexState.POOL.get().set(step,undefined,currentShell,KCore.OPACITY,`(${currentShell},/)`));
                     this.states.localStatePop(step);
                     ++step;
                 }
@@ -422,7 +421,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             this.hideVerticesOutsideShells();
 
             if(this.states==undefined){return;}
-            let vertexInfos:VertexStateInfo[]|null;
+            let dataStates:VertexState[]|null;
             this.states.resetStep();
 
             const minShell:number=parseInt((this.minOption as HTMLSelectElement).value);
@@ -431,9 +430,9 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             
             if(minShell>0){
                 const minStep:number=this.shellComponents[minShell].step;
-                vertexInfos=this.states.randomStep(minStep);
+                dataStates=this.states.randomStep(minStep);
                 VisualizationUtils.VideoControl.progressBar.valueAsNumber=minStep;
-                this.setAnimationDisplay(vertexInfos,this.states.getCurrentLocalStates());
+                this.setAnimationDisplay(dataStates,this.states.getCurrentLocalStates());
             }
 
             AnimtaionLoop:while(true){
@@ -443,24 +442,24 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                     break AnimtaionLoop;
                 case VisualizationUtils.VideoControlStatus.noAction:
                 case VisualizationUtils.VideoControlStatus.nextStep:
-                    if((vertexInfos=this.states.nextStep())==null){
+                    if((dataStates=this.states.nextStep())==null){
                         break AnimtaionLoop;
                     }
-                    this.setAnimationDisplay(vertexInfos,this.states.getCurrentLocalStates());
+                    this.setAnimationDisplay(dataStates,this.states.getCurrentLocalStates());
                     break;
                 case VisualizationUtils.VideoControlStatus.prevStep:
-                    if((vertexInfos=this.states.previousStep())==null){
+                    if((dataStates=this.states.previousStep())==null){
                         this.currentStep=0;
-                        vertexInfos=this.states.randomStep(0);
+                        dataStates=this.states.randomStep(0);
                     }
-                    this.setAnimationDisplay(vertexInfos,this.states.getCurrentLocalStates());
+                    this.setAnimationDisplay(dataStates,this.states.getCurrentLocalStates());
                     break;
                 case VisualizationUtils.VideoControlStatus.randomStep:
-                    if((vertexInfos=this.states.randomStep(this.currentStep))==null){
-                        vertexInfos=this.states.randomStep(0);
+                    if((dataStates=this.states.randomStep(this.currentStep))==null){
+                        dataStates=this.states.randomStep(0);
                         this.currentStep=0;
                     }
-                    this.setAnimationDisplay(vertexInfos,this.states.getCurrentLocalStates());
+                    this.setAnimationDisplay(dataStates,this.states.getCurrentLocalStates());
                     break;
                 }
                 VisualizationUtils.VideoControl.progressBar.valueAsNumber=this.states.currentStep;
@@ -473,6 +472,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                 const circle=v.circle as SVGCircleElement;
                 circle.setAttribute("opacity","1");
                 circle.setAttribute("visibility","visible");
+                (v.text as SVGTextElement).innerHTML=v.id.toString();
             };
         }
 
@@ -533,17 +533,18 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
         }
 
 
-        private setAnimationDisplay(vertexInfos:VertexStateInfo[]|null,descriptionInfo:VisualizationUtils.DescriptionState[]):void{
-            if(vertexInfos==null){return;}
+        private setAnimationDisplay(vertexStates:VertexState[]|null,descriptionInfo:VisualizationUtils.DescriptionState[]):void{
+            if(vertexStates==null){return;}
             for(let i:number=0;i<this.graph.vertices.length;++i){
                 const vertex:Vertex=this.graph.vertices[i];
-                const info:VertexStateInfo=vertexInfos[i];
+                const info:VertexState=vertexStates[i];
                 vertex.circle?.setAttribute("opacity",info.opacity);
                 if(info.isProcessed()){
                     vertex.circle?.setAttribute("fill",this.shellComponents[info.shell].color.toString());
                 }else{
                     vertex.circle?.setAttribute("fill","var(--reverse-color2)");
                 }
+                (vertex.text as SVGTextElement).innerHTML=info.text;
             }
 
             if(descriptionInfo.length>0){
@@ -582,24 +583,22 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
         }
 
 
-        private displayVerticesInRange(minShell:number,maxShell:number,visibile:boolean):KCore{
-            for(let i:number=minShell;i<maxShell;++i){
-                const sc:ShellComponet=this.shellComponents[i];
-                for(const cc of sc.connectedComponents){
-                    for(const v of cc.vertices){
-                        this.graph.displayVertex(v.id,visibile);
+        private hideVerticesOutsideShells():void{
+            const displayVerticesInRange=(minShell:number,maxShell:number,visibile:boolean):void=>{
+                for(let i:number=minShell;i<maxShell;++i){
+                    const sc:ShellComponet=this.shellComponents[i];
+                    for(const cc of sc.connectedComponents){
+                        for(const v of cc.vertices){
+                            this.graph.displayVertex(v.id,visibile);
+                        }
                     }
                 }
             }
-            return this;
-        }
 
-
-        private hideVerticesOutsideShells():void{
             const min:number=parseInt((this.minOption as HTMLSelectElement).value),max:number=parseInt((this.maxOption as HTMLSelectElement).value);
-            this.displayVerticesInRange(min,max+1,true);//set the edges visible first (some edge may connected to outside shell)
-            this.displayVerticesInRange(0,min,false);//then for the edge connected to outside shell, hide them
-            this.displayVerticesInRange(max+1,this.shellComponents.length,false);
+            displayVerticesInRange(min,max+1,true);//set the edges visible first (some edge may connected to outside shell)
+            displayVerticesInRange(0,min,false);//then for the edge connected to outside shell, hide them
+            displayVerticesInRange(max+1,this.shellComponents.length,false);
         }
 
 
@@ -854,13 +853,6 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                 const parentInfo:ConnectedComponetInfo=this.vertexToInfo.get(this.unionFind.parents[v]) as ConnectedComponetInfo;
                 this.shellComponents[parentInfo.shell].connectedComponents[parentInfo.index].vertices.push((this.graph.adjacencyList.get(v) as VerticeList).main);
                 info.index=parentInfo.index;
-            }
-
-            for(const v of oldShell){//construct the convex hull
-                if(v!=this.unionFind.parents[v])continue;
-                const info:ConnectedComponetInfo=this.vertexToInfo.get(v) as ConnectedComponetInfo;
-                const sc:ShellComponet=this.shellComponents[info.shell];
-                const cc:KCoreCC=sc.connectedComponents[info.index];
             }
 
             //console.log(`new ${newShell}`);

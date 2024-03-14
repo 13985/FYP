@@ -4,8 +4,6 @@ namespace KCliqueAlgorithm{
         public static readonly POOL:VisualizationUtils.ObjectPool<KCliqueCC>=new VisualizationUtils.ObjectPool(KCliqueCC);
 
         public clique:number=-1;
-        public polygonOpacity:number=0.4;
-        public polygon:SVGPolygonElement|null=null;
 
         constructor(clique:number=1){
             super();
@@ -115,7 +113,7 @@ namespace KCliqueAlgorithm{
      * note that any subgraph of a fully connected graph is also fully connected
      */
     export class KClique extends VisualizationUtils.Algorithm{
-        protected static readonly VERTEX_OPACITY:number=0.4;
+        protected static readonly OPACITY:number=0.4;
         protected static readonly CODE_DESCRIPTION:string=
 `iteration manner`;
 
@@ -142,11 +140,13 @@ namespace KCliqueAlgorithm{
         private readonly set:Set<number>=new Set();
 
         /**************************index data structures**********************/
+
+        //1-cliques stored at 0, 2-cliques stored at 1, 3-cliques stored at 2....
         private cliqueComponents:Array<CliqueComponets>=[];
-        private readonly vertexToInfo:Map<number,ConnectedComponetInfo>=new Map();
+        private readonly vertexToInfo:Map<number,ConnectedComponetInfo[]>=new Map();
 
         /**************************animation state***************************/
-        private state?:State;
+        private states?:State;
 
         public setIndexStructure(other: KClique): this {
             this.cliqueComponents=other.cliqueComponents;
@@ -186,17 +186,18 @@ namespace KCliqueAlgorithm{
                         continue;
                     }
                     for(const cc of cc_.connectedComponents){
-                        const colorStr:string=cc_.color.toString();
+                        const edgeColorStr:string=cc_.clique==2?"var(--reverse-color2)":cc_.color.toString();
+                        const vertexColorStr:string=cc_.color.toString();
                         for(const from of cc.vertices){
                             for(const to of cc.vertices){
                                 if(from.id==to.id){continue;}
                                 const e=this.graph.getEdge(from.id,to.id) as Edge;
                                 const line=e.line as SVGLineElement;
-                                line.setAttribute("stroke",colorStr);
+                                line.setAttribute("stroke",edgeColorStr);
                                 line.setAttribute("stroke-opacity","1");
-                                line.setAttribute("stroke-width",`${1+cc.clique*3/(this.cliqueComponents.length)}`);
-                                from.setColorString(colorStr);
-                                (from.circle as SVGCircleElement).setAttribute("fill-opacity",KClique.VERTEX_OPACITY.toString());
+                                line.setAttribute("stroke-width",`${this.getEdgeStorkeWidth(cc.clique)}`);
+                                from.setColorString(vertexColorStr);
+                                (from.circle as SVGCircleElement).setAttribute("fill-opacity",KClique.OPACITY.toString());
                             }
                         }
                     }
@@ -303,39 +304,60 @@ namespace KCliqueAlgorithm{
                 }
             }
 
+            for(const kc of this.cliqueComponents){
+                for(const cc of kc.connectedComponents){
+                    const vertices:Vertex[]=cc.vertices;
+                    for(let idx:number=0;idx<vertices.length;++idx){
+                        const infos:ConnectedComponetInfo[]|undefined=this.vertexToInfo.get(vertices[idx].id);
+                        if(infos==undefined){
+                            this.vertexToInfo.set(vertices[idx].id,[new ConnectedComponetInfo(kc.clique,idx)]);
+                            continue;
+                        }
+                        infos.push(new ConnectedComponetInfo(kc.clique,idx));
+                    }
+                }
+            }
+
             return this;
         }
 
 
         public createState():this{
-            if(this.state==undefined){
-                this.state=new State(this.graph);
+            if(this.states==undefined){
+                this.states=new State(this.graph);
             }else{
-                this.state.init();
+                this.states.init();
             }
             VisualizationUtils.DescriptionDisplay.codeDescription.innerHTML=KClique.CODE_DESCRIPTION;
             VisualizationUtils.DescriptionDisplay.setCodes(KClique.PSEUDO_CODES);
 
             let step:number=1;
 
-            {//for 1 cliques
+            const highlightFirst=(opacity:number):void=>{
                 const color:string=this.cliqueComponents[0].color.toString();
                 for(const v of this.graph.vertices){
                     const ds:DataState=DataState.POOL.get();
                     ds.color=color;
+                    ds.opacity=opacity;
                     ds.step=step;
-                    this.state.dataStatePush(v.id,ds);
+                    (this.states as State).dataStatePush(v.id,ds);
                 }
-                this.state.localStatePush({step:step,codeStep:1,stepDescription:"set all vertices"});
-                ++step;
-            }
+            };
+
+            highlightFirst(1);
+            this.states.localStatePush({step:step,codeStep:1,stepDescription:"set all vertices"});
+            ++step;
+            highlightFirst(KClique.OPACITY);
+            ++step;
+
             
             if(this.graph.edges.length<=0){
-                this.state.localStatePush({step:step,codeStep:1,stepDescription:"highest clique:1"});
+                this.states.localStateTop({step:step,codeStep:1,stepDescription:"highest clique:1"});
                 ++step;
             }else{
                 let previous:KCliqueCC[]=[];
                 let newGenerated:KCliqueCC[]=[];
+                let remainVertices:Vertex[]=[];
                 
                 for(const e of this.graph.edges){
                     const cc:KCliqueCC=KCliqueCC.POOL.get();
@@ -345,25 +367,36 @@ namespace KCliqueAlgorithm{
                     previous.push(cc);
                 }
 
-                const string=this.cliqueComponents[1].color.toString();
-                for(const v of this.graph.vertices){
-                    const ds:DataState=DataState.POOL.get();
-                    ds.step=step;
-                    ds.color
-                    this.state.dataStatePush(v.id,ds);
-                }
-                for(const e of this.graph.edges){
-                    const ds:DataState=DataState.POOL.get();
-                    ds.step=step;
-                    this.state.dataStatePush(this.graph.getEdgeHashCode(e.source.id,e.target.id),ds);
-                }
-                this.state.localStatePush({step:step,codeStep:2,stepDescription:"set all connected vertices to 2-clique"});
+                const highlightSecond=(opacity:number,width:number):void=>{
+                    const colorString="var(--reverse-color1)";
+                    for(const v of this.graph.vertices){
+                        const ds:DataState=DataState.POOL.get();
+                        ds.step=step;
+                        ds.opacity=opacity;
+                        ds.color=colorString;
+                        (this.states as State).dataStatePush(v.id,ds);
+                    }
+                    for(const e of this.graph.edges){
+                        const ds:DataState=DataState.POOL.get();
+                        ds.step=step;
+                        ds.opacity=opacity;
+                        ds.width=width;
+                        ds.color=colorString;
+                        (this.states as State).dataStatePush(this.graph.getEdgeHashCode(e.source.id,e.target.id),ds);
+                    }
+                };
+
+                highlightSecond(1,this.getEdgeStorkeWidth(2));
+                this.states.localStateTop({step:step,codeStep:2,stepDescription:"set all connected vertices to 2-clique"});
                 ++step;
-                
-                for(let currentClique:number=3,noUpdate:boolean=false;noUpdate==false;++currentClique){
+                highlightSecond(KClique.OPACITY,1);
+                ++step;
+
+                let currentClique:number=3;
+                for(let noUpdate:boolean=false;noUpdate==false;++currentClique){
                     noUpdate=true;
                     newGenerated.length=0;
-                    this.state.localStatePush({step:step,codeStep:3,stepDescription:`for ${currentClique}-Clique`});
+                    this.states.localStatePush({step:step,codeStep:3,stepDescription:`for ${currentClique}-Clique`});
                     ++step;
 
                     for(let i:number=0;i<previous.length;++i){
@@ -375,157 +408,374 @@ namespace KCliqueAlgorithm{
                             return ret.substring(0,ret.length-1);
                         }
 
-                        /**
-                         * @todo find a way to do this....
-                         */
-                        const highlightCC=(cc:KCliqueCC):void=>{
+                        const highlightCC=(cc:KCliqueCC,clique:number,opacity:number,edgeWidth:number):void=>{
+                            const edgeColor:string=clique==2?"var(--reverse-color2)":this.cliqueComponents[clique-1].color.toString();
+                            const vertexColor:string=this.cliqueComponents[clique-1].color.toString();
                             for(const v of cc.vertices){
                                 const ds:DataState=DataState.POOL.get();
-                                ds.opacity=1;
+                                ds.opacity=opacity;
                                 ds.step=step;
-                                this.state?.dataStatePush(v.id,ds);
+                                ds.color=vertexColor;
+                                (this.states as State).dataStatePush(v.id,ds);
                             }
                             const verticesCount:number=cc.vertices.length;
                             for(let i:number=0;i<verticesCount;++i){
                                 for(let j:number=i+1;j<verticesCount;++j){
                                     const ds:DataState=DataState.POOL.get();
-                                    ds.opacity=1;
+                                    ds.opacity=opacity;
                                     ds.step=step;
-                                    ds.width=1+(cc.clique*3/this.cliqueComponents.length+2);
-                                    this.state?.dataStatePush(this.graph.getEdgeHashCode(cc.vertices[i].id,cc.vertices[j].id),ds);
+                                    ds.width=edgeWidth;
+                                    ds.color=edgeColor;
+                                    (this.states as State).dataStatePush(this.graph.getEdgeHashCode(cc.vertices[i].id,cc.vertices[j].id),ds);
                                 }
                             }
-                        }
-
-                        const unhighlightCC=(cc:KCliqueCC):void=>{
-                            for(const v of cc.vertices){
-                                const ds:DataState=DataState.POOL.get();
-                                ds.opacity=KClique.VERTEX_OPACITY;
-                                ds.step=step;
-                                this.state?.dataStatePush(v.id,ds);
-                            }
-                            const verticesCount:number=cc.vertices.length;
-                            for(let i:number=0;i<verticesCount;++i){
-                                for(let j:number=i+1;j<verticesCount;++j){
-                                    const ds:DataState=DataState.POOL.get();
-                                    ds.opacity=KClique.VERTEX_OPACITY;
-                                    ds.step=step;
-                                    ds.width=1;
-                                    this.state?.dataStatePush(this.graph.getEdgeHashCode(cc.vertices[i].id,cc.vertices[j].id),ds);
-                                }
-                            }
-                        }
+                        };
 
                         const first:KCliqueCC=previous[i];
-                        highlightCC(first);
-                        this.state.localStatePush({step:step,codeStep:4,stepDescription:`clique: ${ccToString(first)}`});
+                        highlightCC(first,first.clique,1,1+(first.clique*3/(this.cliqueComponents.length+2)));
+                        this.states.localStatePush({step:step,codeStep:4,stepDescription:`clique: ${ccToString(first)}`});
                         ++step;
 
+                        /**
+                         * @summary note that here is slightly different from the createState()
+                         */
                         Label_1:for(let j:number=i+1;j<previous.length;++j){
                             const second:KCliqueCC=previous[j];
-                            highlightCC(second);
                             this.set.clear();
-
-                            this.state.localStatePush({step:step,codeStep:5,stepDescription:`check with clique: ${ccToString(second)}`});
-                            ++step;
+                            remainVertices.length=0;
                             
                             for(const v of first.vertices){
                                 this.set.add(v.id);
                             }
-                            let nonIntersectSize:number=0;
-    
-                            Label_2:{
-                                let left_v:Vertex|undefined;
-                                for(const v of second.vertices){
-                                    if(this.set.has(v.id)){
-                                        this.set.delete(v.id);
-                                    }else if(nonIntersectSize>=1){
-                                        break Label_2;
-                                    }else{
-                                        left_v=v;
-                                        nonIntersectSize=1;
-                                    }
+                            
+                            for(const v of second.vertices){
+                                if(this.set.has(v.id)){
+                                    this.set.delete(v.id);
+                                }else{
+                                    remainVertices.push(v);
                                 }
-    
-                                for(const v_id of this.set){
-                                    if(this.graph.getEdge((left_v as Vertex).id,v_id)==undefined){
-                                        break Label_2;
-                                    }
-                                }
-                                first.vertices.push(left_v as Vertex);
-                                KCliqueCC.POOL.release(second);
-                                newGenerated.push(first);
-                                
-                                previous[j]=previous[previous.length-1];
-                                previous.pop();
-                                if(i<previous.length-1){
-                                    previous[i]=previous[previous.length-1];
-                                    previous.pop();
-                                    --i;//prevent the increment of i
-                                }
-    
-                                noUpdate=false;
-
-                                this.state.localStateTop({step:step,codeStep:6,stepDescription:`merge`});
-                                ++step;
-                                this.state.localStateTop({step:step,codeStep:7,stepDescription:`set no_update=false`});
-                                ++step;
-                                this.state.localStatePop(step);
-                                ++step;
-                                unhighlightCC(second);
-                                ++step;
-                                break Label_1;
                             }
-                            this.state.localStatePop(step);
+
+                            const highlightRemainVertices=(clique:number,opacity:number,width:number):void=>{
+                                for(const v0 of remainVertices){
+                                    const edgeColor:string=clique==2?"var(--reverse-color2)":this.cliqueComponents[clique-1].color.toString();
+                                    const vertexColor:string=this.cliqueComponents[clique-1].color.toString();
+                                    let ds:DataState=DataState.POOL.get();
+                                    ds.step=step;
+                                    ds.color=vertexColor;
+                                    ds.opacity=opacity;
+                                    (this.states as State).dataStatePush(v0.id,ds);
+                                    for(const v1 of first.vertices){
+                                        const e:Edge|undefined=this.graph.getEdge(v0.id,v1.id);
+                                        if(e==undefined){continue;}
+                                        ds=DataState.POOL.get();
+                                        ds.step=step;
+                                        ds.color=edgeColor;
+                                        ds.opacity=opacity;
+                                        ds.width=width;
+                                        (this.states as State).dataStatePush(this.graph.getEdgeHashCode(v0.id,v1.id),ds);
+                                    }
+                                }
+                            }
+                            
+                            highlightRemainVertices(first.clique,1,this.getEdgeStorkeWidth(first.clique));
+                            this.states.localStatePush({step:step,codeStep:5,stepDescription:`check with clique: ${ccToString(second)}`});
                             ++step;
-                            unhighlightCC(second);
+
+                            if(remainVertices.length>1){//i hate early continue, make sure the state has poped
+                                highlightRemainVertices(first.clique,KClique.OPACITY,1);
+                                this.states.localStatePop(step);
+                                ++step;
+                                continue;
+                            }
+                            
+                            const left_v:Vertex=remainVertices[0];
+                            let the_v:Vertex=left_v;//just to prevent use of unassigned local variable error
+                            for(const v of this.set){
+                                the_v=(this.graph.adjacencyList.get(v) as VerticeList).main;
+                            }
+
+                            if(this.graph.getEdge(the_v.id,left_v.id)==undefined){
+                                highlightRemainVertices(first.clique,KClique.OPACITY,1);
+                                this.states.localStatePop(step);
+                                ++step;
+                                continue;
+                            }
+                            
+                            first.vertices.push(left_v);
+                            first.clique=currentClique;
+                            newGenerated.push(first);
+
+                            previous[j]=previous[previous.length-1];
+                            previous.pop();
+                            if(i<previous.length-1){
+                                previous[i]=previous[previous.length-1];
+                                previous.pop();
+                                --i;//prevent the increment of i
+                            }
+                            noUpdate=false;
+
+                            highlightCC(first,first.clique,1,this.getEdgeStorkeWidth(currentClique));
+                            this.states.localStateTop({step:step,codeStep:6,stepDescription:`merge`});
+                            ++step;
+                            this.states.localStateTop({step:step,codeStep:7,stepDescription:`set no_update=false`});
+                            ++step;
+                            this.states.localStatePop(step);
+                            ++step;
+
+                            KCliqueCC.POOL.release(second);
+                            break Label_1;
                         }
-                        unhighlightCC(first);
-                        this.state.localStatePop(step);
+                        highlightCC(first,first.clique,KClique.OPACITY,1);//first cc will finally be unhighlightly
+                        this.states.localStatePop(step);
                         ++step;
                     }
-                    this.state.localStatePop(step);
+
+                    this.states.localStatePop(step);
                     ++step;
+
+                    {//swap two buffer
+                        const temp=previous;
+                        previous=newGenerated;
+                        newGenerated=temp;
+                    }
                 }
+
+                this.states.localStateTop({step:step,codeStep:8,stepDescription:`highest clique:${currentClique}`});
+                ++step;
             }
-            this.state.localStatePop(step);
+            this.states.localStatePop(step);
             return this;
         }
 
 
         protected async animate():Promise<void>{
+            VisualizationUtils.VideoControl.progressBar.setAttribute("max",(this.states as State).maxStep.toString());
+            this.setVisualElementsColor(true);
+            for(const v of this.graph.vertices){
+                (v.circle as SVGCircleElement).setAttribute("fill-opacity",KClique.OPACITY.toString());
+            }
+            for(const e of this.graph.edges){
+                (e.line as SVGElement).setAttribute("stroke-opacity",KClique.OPACITY.toString());
+            }
+
+            if(this.states==undefined){return;}
+            let dataStates:DataState[]|null;
+            this.states.resetStep();
             
+            AnimtaionLoop:while(true){
+                const vsc:VisualizationUtils.VideoControlStatus=await this.waitfor();
+                switch(vsc){
+                case VisualizationUtils.VideoControlStatus.stop:
+                    break AnimtaionLoop;
+                case VisualizationUtils.VideoControlStatus.noAction:
+                case VisualizationUtils.VideoControlStatus.nextStep:
+                    if((dataStates=this.states.nextStep())==null){
+                        break AnimtaionLoop;
+                    }
+                    this.setAnimationDisplay(dataStates,this.states.getCurrentLocalStates());
+                    break;
+                case VisualizationUtils.VideoControlStatus.prevStep:
+                    if((dataStates=this.states.previousStep())==null){
+                        this.currentStep=0;
+                        dataStates=this.states.randomStep(0);
+                    }
+                    this.setAnimationDisplay(dataStates,this.states.getCurrentLocalStates());
+                    break;
+                case VisualizationUtils.VideoControlStatus.randomStep:
+                    if((dataStates=this.states.randomStep(this.currentStep))==null){
+                        dataStates=this.states.randomStep(0);
+                        this.currentStep=0;
+                    }
+                    this.setAnimationDisplay(dataStates,this.states.getCurrentLocalStates());
+                    break;
+                }
+                VisualizationUtils.VideoControl.progressBar.valueAsNumber=this.states.currentStep;
+            }
 
-
+            for(const v of this.graph.vertices){
+                (v.circle as SVGElement).setAttribute("fill-opacity","1");
+            }
+            for(const e of this.graph.edges){
+                (e.line as SVGElement).setAttribute("stroke-opacity","1");
+            }
         }
 
-        protected addVertex(a: number): boolean {
-            if(this.graph.addVertex(a)==null){
+
+        private setAnimationDisplay(dataStates: DataState[]|null, descriptionStates: VisualizationUtils.DescriptionState[]):void{
+            if(dataStates==null){return;}
+            const vertexCount:number=this.graph.vertices.length;
+            for(let i:number=0;i<vertexCount;++i){
+                const circle:SVGCircleElement=this.graph.vertices[i].circle as SVGCircleElement;
+                const state:DataState=dataStates[i];
+                circle.setAttribute("fill",state.color);
+                circle.setAttribute("fill-opacity",state.opacity.toString());
+            }
+            for(let i:number=0;i<this.graph.edges.length;++i){
+                const line=this.graph.edges[i].line as SVGLineElement;
+                const state:DataState=dataStates[i];
+                line.setAttribute("stroke",state.color);
+                line.setAttribute("stroke-opacity",state.opacity.toString());
+                line.setAttribute("stroke-width",state.width.toString());
+            }
+        }
+
+
+        protected addVertex(a:number):boolean{
+            const newV:Vertex|null=this.graph.addVertex(a);
+            if(newV==null){
                 return false;
             }
-            throw new Error("Method not implemented.");
+            const cc:KCliqueCC=KCliqueCC.POOL.get();
+            cc.clique=1;
+            cc.vertices.push(newV);
+            const ccs:KCliqueCC[]=this.cliqueComponents[0].connectedComponents;
+            this.vertexToInfo.set(a,[new ConnectedComponetInfo(1,ccs.length)]);
+            ccs.push(cc);
             return true;
         }
-        protected removeVertex(a: number): boolean {
+
+
+        protected removeVertex(a:number):boolean{
             if(this.graph.removeVertex(a)==null){
                 return false;
             }
-            throw new Error("Method not implemented.");
+            const infos=this.vertexToInfo.get(a) as ConnectedComponetInfo[];
+
+            for(const info of infos){
+                const theIndex:number=info.index;
+                const theClique:number=info.clique;
+                const kc:CliqueComponets=this.cliqueComponents[theClique-1];
+                const theCC:KCliqueCC=kc.connectedComponents[theIndex];
+
+                for(let i:number=0;i<theCC.vertices.length;++i){
+                    if(theCC.vertices[i].id==a){
+                        theCC.vertices.splice(i,1);
+                        break;
+                    }
+                }
+
+                this.removeCC(info);
+                if(theClique==1){
+                    KCliqueCC.POOL.release(theCC);
+                }else{
+                    theCC.clique=theClique-1;
+                    this.moveCC(theCC,info);
+                }
+            }
+
+            this.vertexToInfo.delete(a);
             return true;
         }
-        protected addEdge(from: number, to: number): boolean {
+
+
+        protected addEdge(from:number,to:number):boolean {
             if(this.graph.addEdge(from,to)==false){
                 return false;
             }
             throw new Error("Method not implemented.");
             return true;
         }
+
+
         protected removeEdge(from: number, to: number): boolean {
             if(this.graph.removeEdge(from,to)==false){
                 return false;
             }
-            throw new Error("Method not implemented.");
+            const fromInfos=this.vertexToInfo.get(from) as ConnectedComponetInfo[];
+            const toInfos=this.vertexToInfo.get(to) as ConnectedComponetInfo[];
+
+            for(const fromInfo of fromInfos){
+                for(const toInfo of toInfos){
+                    if(fromInfo.clique!=toInfo.clique||fromInfo.index!=toInfo.index){continue;}
+                    const theCC:KCliqueCC=this.removeCC(fromInfo);
+                    const newCC:KCliqueCC=KCliqueCC.POOL.get();
+                    for(let idx:number=0;idx<theCC.vertices.length;++idx){
+                        const v:Vertex=theCC.vertices[idx];
+                        if(v.id==from){
+                            theCC.vertices.splice(idx,1);//theCC contains to
+                            newCC.vertices.push(v);//newCC contains from
+                            --idx;
+                        }else if(v.id==to){
+                            //newCC not contains to
+                        }else{
+                            newCC.vertices.push(v);
+                        }
+                    }
+                    const newClique:number=fromInfo.clique-1;
+                    newCC.clique=newClique;
+                    theCC.clique=newClique;
+                    this.moveCC(theCC,fromInfo);
+                    this.addCC(newCC);
+                }
+            }
             return true;
+        }
+
+
+        /**
+         * @summary remove the CC pointed by info from this.cliqueComponents[infro.clique-1] and return the CC back
+         */
+        private removeCC(info:ConnectedComponetInfo):KCliqueCC{
+            const theClique:number=info.clique;
+            const theIndex:number=info.index;
+            const kc:CliqueComponets=this.cliqueComponents[theClique-1];
+            const theCC:KCliqueCC=kc.connectedComponents[theIndex];
+
+            const lastIdx:number=kc.connectedComponents.length-1;
+            if(theIndex<lastIdx){
+                const lastCC:KCliqueCC=kc.connectedComponents[lastIdx];
+                for(const v of lastCC.vertices){
+                    const infos=this.vertexToInfo.get(v.id) as ConnectedComponetInfo[];
+                    for(const info of infos){
+                        if(info.clique!=theClique||info.index!=lastIdx){continue;}
+                        info.index=theIndex;
+                        break;
+                    }
+                }
+                kc.connectedComponents[theIndex]=lastCC;
+            }
+            kc.connectedComponents.pop();
+
+            return theCC;
+        }
+
+        /**
+         * @param cc contains the new clique==vertices.length
+         * @param originalInfo index and clique before move
+         */
+        private moveCC(cc:KCliqueCC,originalInfo:ConnectedComponetInfo):void{
+            const kc:CliqueComponets=this.cliqueComponents[cc.clique-1];
+            const lastIdx:number=kc.connectedComponents.length-1;
+
+            for(const v of cc.vertices){
+                const infos=this.vertexToInfo.get(v.id) as ConnectedComponetInfo[];
+                for(const info of infos){
+                    if(info.clique!=originalInfo.clique||info.index!=originalInfo.index){continue;}
+                    info.clique=cc.clique;
+                    info.index=lastIdx;
+                    break;
+                }
+            }
+        }
+
+
+        /**
+         * @param cc contains the new clique==vertices.length
+         */
+        private addCC(cc:KCliqueCC):void{
+            const kc:CliqueComponets=this.cliqueComponents[cc.clique-1];
+            const lastIdx:number=kc.connectedComponents.length-1;
+
+            for(const v of cc.vertices){
+                const infos=this.vertexToInfo.get(v.id) as ConnectedComponetInfo[];
+                infos.push(new ConnectedComponetInfo(cc.clique,lastIdx));
+            }
+        }
+
+
+        private getEdgeStorkeWidth(clique:number):number{
+            return 1+(clique*3)/(this.cliqueComponents.length+2);
         }
     }
 }
