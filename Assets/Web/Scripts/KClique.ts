@@ -54,11 +54,9 @@ namespace KCliqueAlgorithm{
         constructor(){
         }
 
-        public clear(): void {
-            
-        }
+        public clear(): void {}
     }
-
+ 
 
     class State extends VisualizationUtils.StateManager<DataState,VisualizationUtils.DescriptionState>{
         constructor(graph:Graph){
@@ -114,8 +112,7 @@ namespace KCliqueAlgorithm{
      */
     export class KClique extends VisualizationUtils.Algorithm{
         protected static readonly OPACITY:number=0.4;
-        protected static readonly CODE_DESCRIPTION:string=
-`iteration manner`;
+        protected static readonly CODE_DESCRIPTION:string=`iteration manner`;
 
         protected static readonly PSEUDO_CODES:VisualizationUtils.DescriptionDisplay.PseudoCode[]=[
             {code:"all the vertices are belonging to 1-clique",step:1},
@@ -552,12 +549,21 @@ namespace KCliqueAlgorithm{
         protected async animate():Promise<void>{
             VisualizationUtils.VideoControl.progressBar.setAttribute("max",(this.states as State).maxStep.toString());
             this.setVisualElementsColor(true);
-            for(const v of this.graph.vertices){
-                (v.circle as SVGCircleElement).setAttribute("fill-opacity",KClique.OPACITY.toString());
+
+            const helper=(opacity:number)=>{
+                const opacityStr:string=opacity.toString();
+                for(const v of this.graph.vertices){
+                    (v.circle as SVGCircleElement).setAttribute("fill-opacity",opacityStr);
+                }
+                for(const e of this.graph.edges){
+                    (e.line as SVGElement).setAttribute("stroke-opacity",opacityStr);
+                }
             }
+
             for(const e of this.graph.edges){
-                (e.line as SVGElement).setAttribute("stroke-opacity",KClique.OPACITY.toString());
+                (e.line as SVGElement).setAttribute("stroke-width","1");
             }
+            helper(KClique.OPACITY);
 
             if(this.states==undefined){return;}
             let dataStates:DataState[]|null;
@@ -593,12 +599,7 @@ namespace KCliqueAlgorithm{
                 VisualizationUtils.VideoControl.progressBar.valueAsNumber=this.states.currentStep;
             }
 
-            for(const v of this.graph.vertices){
-                (v.circle as SVGElement).setAttribute("fill-opacity","1");
-            }
-            for(const e of this.graph.edges){
-                (e.line as SVGElement).setAttribute("stroke-opacity","1");
-            }
+            helper(1);
         }
 
 
