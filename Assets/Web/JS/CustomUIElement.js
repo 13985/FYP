@@ -6,6 +6,7 @@ class FloatingPanel {
         this.outerOffsetX = 0;
         this.outerOffsetY = 0;
         this.isDragging = false;
+        this.isOpened = false;
         this.onMouseMove = (me) => {
             if (this.isDragging == false) {
                 return;
@@ -58,6 +59,7 @@ class FloatingPanel {
         this.outerDiv.style.left = "";
         document.body.removeChild(this.outerDiv);
         this.originalParent.appendChild(this.outerDiv);
+        this.isOpened = false;
         setTimeout(() => {
             this.outerDiv.classList.toggle("floating-panel-open");
         }, 1); //no idea why it needs to wait some time
@@ -69,7 +71,10 @@ class FloatingPanel {
         this.outerDiv.style.left = `${this.outerOffsetX}px`;
         this.outerDiv.style.top = `${this.outerOffsetY}px`;
         this.originalParent.removeChild(this.outerDiv);
-        document.body.appendChild(this.outerDiv);
+        if (this.isOpened == false) {
+            document.body.appendChild(this.outerDiv);
+        }
+        this.isOpened = true;
         setTimeout(() => {
             this.outerDiv.classList.toggle("floating-panel-open");
         }, 1); //no idea why it needs to wait some time

@@ -162,10 +162,10 @@ class Graph {
     }
     getEdgeHashCode(v0, v1) {
         if (v0 < v1) {
-            return v0 * Graph.MAXIMUM_VERTICES + v1;
+            return (v0 + 1) * Graph.MAXIMUM_VERTICES + v1;
         }
         else {
-            return v1 * Graph.MAXIMUM_VERTICES + v0;
+            return (v1 + 1) * Graph.MAXIMUM_VERTICES + v0;
         }
     }
     copyTo(g) {

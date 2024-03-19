@@ -5,6 +5,7 @@ var AlgorithmSelect;
 (function (AlgorithmSelect) {
     let kCoreInput;
     let KCliqueInput;
+    let previousCheckedInput;
     let callback;
     function main(callback_) {
         callback = callback_;
@@ -18,10 +19,15 @@ var AlgorithmSelect;
     function addInputEventListener(input) {
         if (input.checked) {
             callback(input.value);
+            previousCheckedInput = input;
         }
         input.addEventListener("input", () => {
-            if (input.checked) {
-                callback(input.value);
+            if (input.checked && callback(input.value)) {
+                previousCheckedInput = input;
+            }
+            else {
+                input.checked = false;
+                previousCheckedInput.checked = true;
             }
         });
     }
@@ -86,9 +92,9 @@ window.onload = () => {
     }
     const kClique = new KCliqueAlgorithm.KClique(graph, gw.innerSVG);
     const resultKClique = new KCliqueAlgorithm.KClique(resultGraph, resultGW.innerSVG);
-    function changeAlgo(str) {
+    function tryChangeAlgo(str) {
         if (VisualizationUtils.Algorithm.isVisualizing()) {
-            return;
+            return false;
         }
         resultKCore.displayPolygons(false);
         resultGraph.resetVisualElements();
@@ -124,6 +130,7 @@ window.onload = () => {
                 break;
             }
         }
+        return true;
     }
     gw.setVertexDragStartCallback((v) => {
         vertexExpandInput.value = v.id.toString();
@@ -131,7 +138,7 @@ window.onload = () => {
     });
     //gw.display(false);
     resultKCore.showDefaultColor = false;
-    AlgorithmSelect.main(changeAlgo);
+    AlgorithmSelect.main(tryChangeAlgo);
     setThemeToggle();
     //set the callback when add/remove vertex/edge successfully
     VisualizationUtils.Algorithm.onGraphChange = () => {

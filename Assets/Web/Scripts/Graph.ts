@@ -222,9 +222,9 @@ class Graph{
 
     public getEdgeHashCode(v0:number,v1:number):number{
         if(v0<v1){
-            return v0*Graph.MAXIMUM_VERTICES+v1;
+            return (v0+1)*Graph.MAXIMUM_VERTICES+v1;
         }else{
-            return v1*Graph.MAXIMUM_VERTICES+v0;
+            return (v1+1)*Graph.MAXIMUM_VERTICES+v0;
         }
     }
 

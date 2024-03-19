@@ -60,8 +60,8 @@ namespace KCoreAlgorithm{
     }
 
 
-    class VertexState implements VisualizationUtils.IStep, VisualizationUtils.IClearable{
-        public static readonly POOL=new VisualizationUtils.ObjectPool<VertexState>(VertexState,1024);
+    class DataState implements VisualizationUtils.IStep, VisualizationUtils.IClearable{
+        public static readonly POOL=new VisualizationUtils.ObjectPool<DataState>(DataState,1024);
         public step:number=0;
         public degree:number=-1;
         public shell:number=-1;
@@ -100,7 +100,7 @@ namespace KCoreAlgorithm{
      * @complexity
      * space: O(V+E)
      */
-    class State extends VisualizationUtils.StateManager<VertexState,VisualizationUtils.DescriptionState>{
+    class State extends VisualizationUtils.GraphStateManager<DataState,VisualizationUtils.DescriptionState>{
         constructor(graph:Graph){
             super(graph);
             this.init();
@@ -119,16 +119,16 @@ namespace KCoreAlgorithm{
         public init():void{
             for(const kvp of this.dataStates){
                 for(const state of kvp[1]){
-                    VertexState.POOL.release(state);
+                    DataState.POOL.release(state);
                 }
             }
             super.clear();
             super.init();
             this.graph.adjacencyList.forEach((vl:VerticeList,v_id:number):void=>{
-                const vsi:VertexState=VertexState.POOL.get();
-                vsi.degree=vl.others.length;
-                vsi.step=0;
-                this.dataStates.set(v_id,[vsi]);
+                const dv:DataState=DataState.POOL.get();
+                dv.degree=vl.others.length;
+                dv.step=0;
+                this.dataStates.set(v_id,[dv]);
             });
         }
 
@@ -214,15 +214,19 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
         }
 
 
+        protected onRegisterSelf(): void {
+            VisualizationUtils.DescriptionDisplay.clearPanel();
+            VisualizationUtils.DescriptionDisplay.codeDescription.innerText=KCore.CODE_DESCRIPTION;
+            VisualizationUtils.DescriptionDisplay.setCodes(KCore.PSEUDO_CODES);
+        }
+
+
         public createState():this{
             if(this.states){
                 this.states.init();
             }else{
                 this.states=new State(this.graph);
             }
-            VisualizationUtils.DescriptionDisplay.clearPanel();
-            VisualizationUtils.DescriptionDisplay.codeDescription.innerText=KCore.CODE_DESCRIPTION;
-            VisualizationUtils.DescriptionDisplay.setCodes(KCore.PSEUDO_CODES);
 
             this.clearHelpers();
             let currentShell=0,nextShell=1;
@@ -239,7 +243,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                     this.degrees.set(k,vl.others.length);
                     nextShell=Math.min(nextShell,vl.others.length);
                 }
-                this.states?.dataStatePush(vl.main.id,VertexState.POOL.get().set(step,vl.others.length,undefined,KCore.OPACITY,`${vl.main.id}: (?,${vl.others.length})`));
+                this.states?.dataStatePush(vl.main.id,DataState.POOL.get().set(step,vl.others.length,undefined,KCore.OPACITY,`${vl.main.id}: (?,${vl.others.length})`));
             });
             ++step;
             
@@ -255,7 +259,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                     const v_id:number=<number>this.set0.pop();
                     const vl:VerticeList=<VerticeList>this.graph.adjacencyList.get(v_id);
 
-                    this.states.dataStatePush(v_id,VertexState.POOL.get().set(step,undefined,currentShell,"1",`(${currentShell},/)`));
+                    this.states.dataStatePush(v_id,DataState.POOL.get().set(step,undefined,currentShell,"1",`(${currentShell},/)`));
                     this.states.localStatePush({step:step,codeStep:4,stepDescription:`process vertex ${v_id}`});
                     ++step;
 
@@ -271,7 +275,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                         }else{
                             --degree;
                             
-                            this.states.dataStatePush(neighbor,VertexState.POOL.get().set(step,degree,undefined,"1",`(?,${degree})`));
+                            this.states.dataStatePush(neighbor,DataState.POOL.get().set(step,degree,undefined,"1",`(?,${degree})`));
                             this.states.localStateTop({step:step,codeStep:7,stepDescription:`decrement degree of ${neighbor} from ${degree+1} to ${degree}`});
                             ++step;
                             if(degree<=currentShell){
@@ -282,12 +286,12 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                                 nextShell=Math.min(nextShell,degree);
                                 this.degrees.set(neighbor,degree);
                             }
-                            this.states.dataStatePush(neighbor,VertexState.POOL.get().set(step,degree,undefined,KCore.OPACITY,`(?,${degree})`));
+                            this.states.dataStatePush(neighbor,DataState.POOL.get().set(step,degree,undefined,KCore.OPACITY,`(?,${degree})`));
                             ++step;
                         }
                         this.states.localStatePop(step);
                     }
-                    this.states.dataStatePush(v_id,VertexState.POOL.get().set(step,undefined,currentShell,KCore.OPACITY,`(${currentShell},/)`));
+                    this.states.dataStatePush(v_id,DataState.POOL.get().set(step,undefined,currentShell,KCore.OPACITY,`(${currentShell},/)`));
                     this.states.localStatePop(step);
                     ++step;
                 }
@@ -421,7 +425,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             this.hideVerticesOutsideShells();
 
             if(this.states==undefined){return;}
-            let dataStates:VertexState[]|null;
+            let dataStates:DataState[]|null;
             this.states.resetStep();
 
             const minShell:number=parseInt((this.minOption as HTMLSelectElement).value);
@@ -533,26 +537,26 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
         }
 
 
-        private setAnimationDisplay(vertexStates:VertexState[]|null,descriptionInfo:VisualizationUtils.DescriptionState[]):void{
+        private setAnimationDisplay(vertexStates:DataState[]|null,descriptionStates:VisualizationUtils.DescriptionState[]):void{
             if(vertexStates==null){return;}
             for(let i:number=0;i<this.graph.vertices.length;++i){
                 const vertex:Vertex=this.graph.vertices[i];
-                const info:VertexState=vertexStates[i];
-                vertex.circle?.setAttribute("opacity",info.opacity);
-                if(info.isProcessed()){
-                    vertex.circle?.setAttribute("fill",this.shellComponents[info.shell].color.toString());
+                const ds:DataState=vertexStates[i];
+                vertex.circle?.setAttribute("opacity",ds.opacity);
+                if(ds.isProcessed()){
+                    vertex.circle?.setAttribute("fill",this.shellComponents[ds.shell].color.toString());
                 }else{
                     vertex.circle?.setAttribute("fill","var(--reverse-color2)");
                 }
-                (vertex.text as SVGTextElement).innerHTML=info.text;
+                (vertex.text as SVGTextElement).innerHTML=ds.text;
             }
 
-            if(descriptionInfo.length>0){
-                const lis:HTMLCollection=VisualizationUtils.DescriptionDisplay.setLocalDescriptionNumber(descriptionInfo.length);
-                for(let i:number=0;i<descriptionInfo.length;++i){
-                    lis[i].innerHTML=descriptionInfo[i].stepDescription;
+            if(descriptionStates.length>0){
+                const lis:HTMLCollection=VisualizationUtils.DescriptionDisplay.setLocalDescriptionNumber(descriptionStates.length);
+                for(let i:number=0;i<descriptionStates.length;++i){
+                    lis[i].innerHTML=descriptionStates[i].stepDescription;
                 }
-                VisualizationUtils.DescriptionDisplay.highlightCode(descriptionInfo[descriptionInfo.length-1].codeStep);
+                VisualizationUtils.DescriptionDisplay.highlightCode(descriptionStates[descriptionStates.length-1].codeStep);
             }else{
                 VisualizationUtils.DescriptionDisplay.highlightCode(-1);
             }

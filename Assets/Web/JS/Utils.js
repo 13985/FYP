@@ -164,6 +164,7 @@ var VisualizationUtils;
             VideoControl.nextStepButton.addEventListener("click", algo.onNextStepPressed);
             VideoControl.prevStepButton.addEventListener("click", algo.onPrevStepPressed);
             VideoControl.progressBar.addEventListener("input", algo.onProgressChanged);
+            Algorithm.visualizationTarget.onRegisterSelf();
         }
         static start(onEnd) {
             var _a;
@@ -336,6 +337,10 @@ var VisualizationUtils;
             this.videoControlStatus = 4 /* VideoControlStatus.stop */;
             this.isPause = false;
         }
+        /**
+         * @summary used to set some visualization realted stuff eg description/pseudo code
+         */
+        onRegisterSelf() { }
         waitfor() {
             return __awaiter(this, void 0, void 0, function* () {
                 for (let timePassed = 0; this.videoControlStatus == 0 /* VideoControlStatus.noAction */ && (this.isPause || timePassed < (VideoControl.speedControl.valueAsNumber) * 1000);) {
@@ -503,7 +508,7 @@ var VisualizationUtils;
         getCurrentLocalStates() {
             return this.localStatesCurrent;
         }
-        constructor(graph) {
+        constructor() {
             this.maxStep = 0;
             this.currentStep = 0;
             this.dataKeys = [];
@@ -511,7 +516,6 @@ var VisualizationUtils;
             this.dataStatesIndices = []; //for O(vertices.length) prev step/next step
             this.dataStatesCurrent = [];
             this.localStatesCurrent = [];
-            this.graph = graph;
             this.localStates = this.getTreeNode();
             this.localStatesIndex = this.localStates;
         }
@@ -568,14 +572,14 @@ var VisualizationUtils;
             for (let i = 0; i < this.dataKeys.length; ++i) {
                 const dataKey = this.dataKeys[i];
                 const idx = this.dataStatesIndices[i];
-                const stateInfos = this.dataStates.get(dataKey);
+                const dataStates = this.dataStates.get(dataKey);
                 const nextIdx = idx + 1;
-                if (nextIdx < stateInfos.length && stateInfos[nextIdx].step <= this.currentStep) {
+                if (nextIdx < dataStates.length && dataStates[nextIdx].step <= this.currentStep) {
                     this.dataStatesIndices[i] = nextIdx;
-                    this.dataStatesCurrent[i] = stateInfos[nextIdx];
+                    this.dataStatesCurrent[i] = dataStates[nextIdx];
                 }
                 else {
-                    this.dataStatesCurrent[i] = stateInfos[idx];
+                    this.dataStatesCurrent[i] = dataStates[idx];
                 }
             }
             while (this.localStatesIndex.right <= this.currentStep) {
@@ -605,14 +609,14 @@ var VisualizationUtils;
             for (let i = 0; i < this.dataKeys.length; ++i) {
                 const dataKey = this.dataKeys[i];
                 const idx = this.dataStatesIndices[i];
-                const stateInfos = this.dataStates.get(dataKey);
+                const dataStates = this.dataStates.get(dataKey);
                 const nextIdx = idx - 1;
-                if (stateInfos[idx].step > this.currentStep) {
+                if (dataStates[idx].step > this.currentStep) {
                     this.dataStatesIndices[i] = nextIdx;
-                    this.dataStatesCurrent[i] = stateInfos[nextIdx];
+                    this.dataStatesCurrent[i] = dataStates[nextIdx];
                 }
                 else {
-                    this.dataStatesCurrent[i] = stateInfos[idx];
+                    this.dataStatesCurrent[i] = dataStates[idx];
                 }
             }
             while (this.localStatesIndex.left > this.currentStep) {
@@ -639,7 +643,7 @@ var VisualizationUtils;
                 return null;
             }
             this.currentStep = targetStep;
-            for (let i = 0; i < this.graph.vertices.length; ++i) {
+            for (let i = 0; i < this.dataKeys.length; ++i) {
                 const dataKey = this.dataKeys[i];
                 const stateInfos = this.dataStates.get(dataKey);
                 this.dataStatesCurrent[i] = stateInfos[0];
@@ -694,6 +698,13 @@ var VisualizationUtils;
         }
     }
     VisualizationUtils.StateManager = StateManager;
+    class GraphStateManager extends StateManager {
+        constructor(g) {
+            super();
+            this.graph = g;
+        }
+    }
+    VisualizationUtils.GraphStateManager = GraphStateManager;
 })(VisualizationUtils || (VisualizationUtils = {}));
 class Color {
     constructor(r, g, b, a = 255) {

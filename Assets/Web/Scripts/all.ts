@@ -7,10 +7,11 @@ let graphHasUpdated:boolean=false;
 namespace AlgorithmSelect{
     let kCoreInput:HTMLInputElement;
     let KCliqueInput:HTMLInputElement;
+    let previousCheckedInput:HTMLInputElement;
 
-    let callback:(str:string)=>void;
+    let callback:(str:string)=>boolean;
 
-    export function main(callback_:(str:string)=>void):void{
+    export function main(callback_:(str:string)=>boolean):void{
         callback=callback_;
 
         const nav=document.querySelector("nav.algorithm-select") as HTMLElement;
@@ -24,11 +25,15 @@ namespace AlgorithmSelect{
     function addInputEventListener(input:HTMLInputElement){
         if(input.checked){
             callback(input.value);
+            previousCheckedInput=input;
         }
 
         input.addEventListener("input",():void=>{
-            if(input.checked){
-                callback(input.value);
+            if(input.checked&&callback(input.value)){
+                previousCheckedInput=input;
+            }else{
+                input.checked=false;
+                previousCheckedInput.checked=true;
             }
         });
     }
@@ -108,8 +113,8 @@ window.onload=():void=>{
 
 
 
-    function changeAlgo(str:string):void{
-        if(VisualizationUtils.Algorithm.isVisualizing()){return;}
+    function tryChangeAlgo(str:string):boolean{
+        if(VisualizationUtils.Algorithm.isVisualizing()){return false;}
 
         resultKCore.displayPolygons(false);
         resultGraph.resetVisualElements();
@@ -147,6 +152,7 @@ window.onload=():void=>{
             break;
         }
         }
+        return true;
     }
 
     gw.setVertexDragStartCallback((v:Vertex):void=>{
@@ -156,7 +162,7 @@ window.onload=():void=>{
     //gw.display(false);
     resultKCore.showDefaultColor=false;
 
-    AlgorithmSelect.main(changeAlgo);
+    AlgorithmSelect.main(tryChangeAlgo);
     setThemeToggle();
 
     //set the callback when add/remove vertex/edge successfully

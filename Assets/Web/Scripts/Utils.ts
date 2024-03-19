@@ -202,6 +202,7 @@ namespace VisualizationUtils{
             VideoControl.nextStepButton.addEventListener("click",algo.onNextStepPressed);
             VideoControl.prevStepButton.addEventListener("click",algo.onPrevStepPressed);
             VideoControl.progressBar.addEventListener("input",algo.onProgressChanged);
+            Algorithm.visualizationTarget.onRegisterSelf();
         }
 
 
@@ -413,6 +414,12 @@ namespace VisualizationUtils{
         }
 
 
+        /**
+         * @summary used to set some visualization realted stuff eg description/pseudo code
+         */
+        protected onRegisterSelf():void{}
+
+
         protected async waitfor():Promise<VideoControlStatus>{
             for(let timePassed:number=0;this.videoControlStatus==VideoControlStatus.noAction&&(this.isPause||timePassed<(VideoControl.speedControl.valueAsNumber)*1000);){
                 const before:number=Date.now();
@@ -621,10 +628,8 @@ namespace VisualizationUtils{
             return this.localStatesCurrent;
         }
 
-        protected graph:Graph;
 
-        constructor(graph:Graph){
-            this.graph=graph;
+        constructor(){
             this.localStates=this.getTreeNode();
             this.localStatesIndex=this.localStates;
         }
@@ -700,13 +705,13 @@ namespace VisualizationUtils{
             for(let i:number=0;i<this.dataKeys.length;++i){
                 const dataKey:number=this.dataKeys[i];
                 const idx:number=this.dataStatesIndices[i];
-                const stateInfos:TDataState[]=this.dataStates.get(dataKey) as TDataState[];
+                const dataStates:TDataState[]=this.dataStates.get(dataKey) as TDataState[];
                 const nextIdx:number=idx+1;
-                if(nextIdx<stateInfos.length&&stateInfos[nextIdx].step<=this.currentStep){
+                if(nextIdx<dataStates.length&&dataStates[nextIdx].step<=this.currentStep){
                     this.dataStatesIndices[i]=nextIdx;
-                    this.dataStatesCurrent[i]=stateInfos[nextIdx];
+                    this.dataStatesCurrent[i]=dataStates[nextIdx];
                 }else{
-                    this.dataStatesCurrent[i]=stateInfos[idx];
+                    this.dataStatesCurrent[i]=dataStates[idx];
                 }
             }
 
@@ -738,13 +743,13 @@ namespace VisualizationUtils{
             for(let i:number=0;i<this.dataKeys.length;++i){
                 const dataKey:number=this.dataKeys[i];
                 const idx:number=this.dataStatesIndices[i];
-                const stateInfos:TDataState[]=this.dataStates.get(dataKey) as TDataState[];
+                const dataStates:TDataState[]=this.dataStates.get(dataKey) as TDataState[];
                 const nextIdx:number=idx-1;
-                if(stateInfos[idx].step>this.currentStep){
+                if(dataStates[idx].step>this.currentStep){
                     this.dataStatesIndices[i]=nextIdx;
-                    this.dataStatesCurrent[i]=stateInfos[nextIdx];
+                    this.dataStatesCurrent[i]=dataStates[nextIdx];
                 }else{
-                    this.dataStatesCurrent[i]=stateInfos[idx];
+                    this.dataStatesCurrent[i]=dataStates[idx];
                 }
             }
 
@@ -773,7 +778,7 @@ namespace VisualizationUtils{
             }
             this.currentStep=targetStep;
             
-            for(let i:number=0;i<this.graph.vertices.length;++i){
+            for(let i:number=0;i<this.dataKeys.length;++i){
                 const dataKey:number=this.dataKeys[i];
                 const stateInfos=this.dataStates.get(dataKey) as Array<TDataState>;
                 this.dataStatesCurrent[i]=stateInfos[0];
@@ -835,6 +840,15 @@ namespace VisualizationUtils{
 
         protected abstract getTreeNode():TreeNodeBase<TLocalState>;
         protected abstract releaseTreeNode(node:TreeNodeBase<TLocalState>):void;
+    }
+
+
+    export abstract class GraphStateManager<TDataState extends IStep,TLocalState extends IStep> extends StateManager<TDataState,TLocalState>{
+        protected graph:Graph;
+        constructor(g:Graph){
+            super();
+            this.graph=g;
+        }
     }
 }
 

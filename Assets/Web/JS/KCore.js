@@ -58,7 +58,7 @@ var KCoreAlgorithm;
             return info;
         }
     }
-    class VertexState {
+    class DataState {
         constructor() {
             this.step = 0;
             this.degree = -1;
@@ -83,7 +83,7 @@ var KCoreAlgorithm;
             this.opacity = "0.3";
         }
     }
-    VertexState.POOL = new VisualizationUtils.ObjectPool(VertexState, 1024);
+    DataState.POOL = new VisualizationUtils.ObjectPool(DataState, 1024);
     class TreeNode extends VisualizationUtils.TreeNodeBase {
     }
     TreeNode.POOL = new VisualizationUtils.ObjectPool(TreeNode, 1024);
@@ -91,7 +91,7 @@ var KCoreAlgorithm;
      * @complexity
      * space: O(V+E)
      */
-    class State extends VisualizationUtils.StateManager {
+    class State extends VisualizationUtils.GraphStateManager {
         constructor(graph) {
             super(graph);
             this.init();
@@ -108,16 +108,16 @@ var KCoreAlgorithm;
         init() {
             for (const kvp of this.dataStates) {
                 for (const state of kvp[1]) {
-                    VertexState.POOL.release(state);
+                    DataState.POOL.release(state);
                 }
             }
             super.clear();
             super.init();
             this.graph.adjacencyList.forEach((vl, v_id) => {
-                const vsi = VertexState.POOL.get();
-                vsi.degree = vl.others.length;
-                vsi.step = 0;
-                this.dataStates.set(v_id, [vsi]);
+                const dv = DataState.POOL.get();
+                dv.degree = vl.others.length;
+                dv.step = 0;
+                this.dataStates.set(v_id, [dv]);
             });
         }
         getTreeNode() {
@@ -157,6 +157,11 @@ var KCoreAlgorithm;
             }
             return this;
         }
+        onRegisterSelf() {
+            VisualizationUtils.DescriptionDisplay.clearPanel();
+            VisualizationUtils.DescriptionDisplay.codeDescription.innerText = KCore.CODE_DESCRIPTION;
+            VisualizationUtils.DescriptionDisplay.setCodes(KCore.PSEUDO_CODES);
+        }
         createState() {
             if (this.states) {
                 this.states.init();
@@ -164,9 +169,6 @@ var KCoreAlgorithm;
             else {
                 this.states = new State(this.graph);
             }
-            VisualizationUtils.DescriptionDisplay.clearPanel();
-            VisualizationUtils.DescriptionDisplay.codeDescription.innerText = KCore.CODE_DESCRIPTION;
-            VisualizationUtils.DescriptionDisplay.setCodes(KCore.PSEUDO_CODES);
             this.clearHelpers();
             let currentShell = 0, nextShell = 1;
             let step = 0;
@@ -183,7 +185,7 @@ var KCoreAlgorithm;
                     this.degrees.set(k, vl.others.length);
                     nextShell = Math.min(nextShell, vl.others.length);
                 }
-                (_a = this.states) === null || _a === void 0 ? void 0 : _a.dataStatePush(vl.main.id, VertexState.POOL.get().set(step, vl.others.length, undefined, KCore.OPACITY, `${vl.main.id}: (?,${vl.others.length})`));
+                (_a = this.states) === null || _a === void 0 ? void 0 : _a.dataStatePush(vl.main.id, DataState.POOL.get().set(step, vl.others.length, undefined, KCore.OPACITY, `${vl.main.id}: (?,${vl.others.length})`));
             });
             ++step;
             while (true) {
@@ -196,7 +198,7 @@ var KCoreAlgorithm;
                 while (this.set0.length > 0) {
                     const v_id = this.set0.pop();
                     const vl = this.graph.adjacencyList.get(v_id);
-                    this.states.dataStatePush(v_id, VertexState.POOL.get().set(step, undefined, currentShell, "1", `(${currentShell},/)`));
+                    this.states.dataStatePush(v_id, DataState.POOL.get().set(step, undefined, currentShell, "1", `(${currentShell},/)`));
                     this.states.localStatePush({ step: step, codeStep: 4, stepDescription: `process vertex ${v_id}` });
                     ++step;
                     for (const neighbor of vl.others) {
@@ -209,7 +211,7 @@ var KCoreAlgorithm;
                         }
                         else {
                             --degree;
-                            this.states.dataStatePush(neighbor, VertexState.POOL.get().set(step, degree, undefined, "1", `(?,${degree})`));
+                            this.states.dataStatePush(neighbor, DataState.POOL.get().set(step, degree, undefined, "1", `(?,${degree})`));
                             this.states.localStateTop({ step: step, codeStep: 7, stepDescription: `decrement degree of ${neighbor} from ${degree + 1} to ${degree}` });
                             ++step;
                             if (degree <= currentShell) {
@@ -221,12 +223,12 @@ var KCoreAlgorithm;
                                 nextShell = Math.min(nextShell, degree);
                                 this.degrees.set(neighbor, degree);
                             }
-                            this.states.dataStatePush(neighbor, VertexState.POOL.get().set(step, degree, undefined, KCore.OPACITY, `(?,${degree})`));
+                            this.states.dataStatePush(neighbor, DataState.POOL.get().set(step, degree, undefined, KCore.OPACITY, `(?,${degree})`));
                             ++step;
                         }
                         this.states.localStatePop(step);
                     }
-                    this.states.dataStatePush(v_id, VertexState.POOL.get().set(step, undefined, currentShell, KCore.OPACITY, `(${currentShell},/)`));
+                    this.states.dataStatePush(v_id, DataState.POOL.get().set(step, undefined, currentShell, KCore.OPACITY, `(${currentShell},/)`));
                     this.states.localStatePop(step);
                     ++step;
                 }
@@ -453,29 +455,29 @@ var KCoreAlgorithm;
             }
             select.value = Math.max(start, Math.min(end - 1, val)).toString();
         }
-        setAnimationDisplay(vertexStates, descriptionInfo) {
+        setAnimationDisplay(vertexStates, descriptionStates) {
             var _a, _b, _c;
             if (vertexStates == null) {
                 return;
             }
             for (let i = 0; i < this.graph.vertices.length; ++i) {
                 const vertex = this.graph.vertices[i];
-                const info = vertexStates[i];
-                (_a = vertex.circle) === null || _a === void 0 ? void 0 : _a.setAttribute("opacity", info.opacity);
-                if (info.isProcessed()) {
-                    (_b = vertex.circle) === null || _b === void 0 ? void 0 : _b.setAttribute("fill", this.shellComponents[info.shell].color.toString());
+                const ds = vertexStates[i];
+                (_a = vertex.circle) === null || _a === void 0 ? void 0 : _a.setAttribute("opacity", ds.opacity);
+                if (ds.isProcessed()) {
+                    (_b = vertex.circle) === null || _b === void 0 ? void 0 : _b.setAttribute("fill", this.shellComponents[ds.shell].color.toString());
                 }
                 else {
                     (_c = vertex.circle) === null || _c === void 0 ? void 0 : _c.setAttribute("fill", "var(--reverse-color2)");
                 }
-                vertex.text.innerHTML = info.text;
+                vertex.text.innerHTML = ds.text;
             }
-            if (descriptionInfo.length > 0) {
-                const lis = VisualizationUtils.DescriptionDisplay.setLocalDescriptionNumber(descriptionInfo.length);
-                for (let i = 0; i < descriptionInfo.length; ++i) {
-                    lis[i].innerHTML = descriptionInfo[i].stepDescription;
+            if (descriptionStates.length > 0) {
+                const lis = VisualizationUtils.DescriptionDisplay.setLocalDescriptionNumber(descriptionStates.length);
+                for (let i = 0; i < descriptionStates.length; ++i) {
+                    lis[i].innerHTML = descriptionStates[i].stepDescription;
                 }
-                VisualizationUtils.DescriptionDisplay.highlightCode(descriptionInfo[descriptionInfo.length - 1].codeStep);
+                VisualizationUtils.DescriptionDisplay.highlightCode(descriptionStates[descriptionStates.length - 1].codeStep);
             }
             else {
                 VisualizationUtils.DescriptionDisplay.highlightCode(-1);
