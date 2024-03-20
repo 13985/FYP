@@ -81,8 +81,8 @@ window.onload = () => {
     }
     const graph = new Graph();
     const resultGraph = new Graph();
-    const gw = new GraphWindow(graph).setWH(450, 450);
-    const resultGW = new GraphWindow(resultGraph).setWH(450, 450);
+    const gw = new GraphWindow(graph).setWH(450, 500);
+    const resultGW = new GraphWindow(resultGraph).setWH(450, 500);
     const kCore = new KCoreAlgorithm.KCore(graph, gw.innerSVG, gw.allG);
     const resultKCore = new KCoreAlgorithm.KCore(resultGraph, resultGW.innerSVG, resultGW.allG);
     {

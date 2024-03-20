@@ -135,6 +135,13 @@ class GraphWindow {
         this.containerDragEnded = (_me) => {
             this.isDraggingContainer = false;
         };
+        this.onResizeHorizontally = () => {
+            const dx = this.container.clientWidth - this.width;
+            this.width = this.container.clientWidth;
+            this.offsetX += dx / 2;
+            this.setGTransforms();
+            this.setWH(this.width, this.height);
+        };
         this.moveGraphByKey = (ke) => {
             if (this.isDraggingContainer == false) {
                 return;
@@ -191,6 +198,7 @@ class GraphWindow {
         this.graph = g;
         this.container = GraphWindow.template.querySelector("div.graph-window").cloneNode(true);
         document.getElementById("graphs-container").appendChild(this.container);
+        new ResizeObserver(this.onResizeHorizontally).observe(this.container);
         this.innerSVG = this.container.querySelector("svg.graph-svg");
         this.allG = this.innerSVG.querySelector("g.all");
         const svg = d3.select(this.innerSVG)

@@ -185,7 +185,7 @@ var KCoreAlgorithm;
                     this.degrees.set(k, vl.others.length);
                     nextShell = Math.min(nextShell, vl.others.length);
                 }
-                (_a = this.states) === null || _a === void 0 ? void 0 : _a.dataStatePush(vl.main.id, DataState.POOL.get().set(step, vl.others.length, undefined, KCore.OPACITY, `${vl.main.id}: (?,${vl.others.length})`));
+                (_a = this.states) === null || _a === void 0 ? void 0 : _a.dataStatePush(vl.main.id, DataState.POOL.get().set(step, vl.others.length, undefined, KCore.OPACITY, `${vl.main.id}:deg(${vl.others.length})`));
             });
             ++step;
             while (true) {
@@ -198,7 +198,7 @@ var KCoreAlgorithm;
                 while (this.set0.length > 0) {
                     const v_id = this.set0.pop();
                     const vl = this.graph.adjacencyList.get(v_id);
-                    this.states.dataStatePush(v_id, DataState.POOL.get().set(step, undefined, currentShell, "1", `(${currentShell},/)`));
+                    this.states.dataStatePush(v_id, DataState.POOL.get().set(step, undefined, currentShell, "1", `${v_id}:deg(/)`));
                     this.states.localStatePush({ step: step, codeStep: 4, stepDescription: `process vertex ${v_id}` });
                     ++step;
                     for (const neighbor of vl.others) {
@@ -211,7 +211,7 @@ var KCoreAlgorithm;
                         }
                         else {
                             --degree;
-                            this.states.dataStatePush(neighbor, DataState.POOL.get().set(step, degree, undefined, "1", `(?,${degree})`));
+                            this.states.dataStatePush(neighbor, DataState.POOL.get().set(step, degree, undefined, "1", `${neighbor}:deg(${degree})`));
                             this.states.localStateTop({ step: step, codeStep: 7, stepDescription: `decrement degree of ${neighbor} from ${degree + 1} to ${degree}` });
                             ++step;
                             if (degree <= currentShell) {
@@ -223,12 +223,12 @@ var KCoreAlgorithm;
                                 nextShell = Math.min(nextShell, degree);
                                 this.degrees.set(neighbor, degree);
                             }
-                            this.states.dataStatePush(neighbor, DataState.POOL.get().set(step, degree, undefined, KCore.OPACITY, `(?,${degree})`));
+                            this.states.dataStatePush(neighbor, DataState.POOL.get().set(step, degree, undefined, KCore.OPACITY, `${neighbor}:deg(${degree})`));
                             ++step;
                         }
                         this.states.localStatePop(step);
                     }
-                    this.states.dataStatePush(v_id, DataState.POOL.get().set(step, undefined, currentShell, KCore.OPACITY, `(${currentShell},/)`));
+                    this.states.dataStatePush(v_id, DataState.POOL.get().set(step, undefined, currentShell, KCore.OPACITY, `${v_id}:deg(/)`));
                     this.states.localStatePop(step);
                     ++step;
                 }

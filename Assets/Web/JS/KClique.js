@@ -343,11 +343,11 @@ var KCliqueAlgorithm;
                 ++step;
                 highlightSecond(KClique.OPACITY, 1);
                 ++step;
-                let currentClique = 3;
-                for (let noUpdate = false; noUpdate == false; ++currentClique) {
+                let currentClique = 2;
+                for (let noUpdate; true;) {
                     noUpdate = true;
                     newGenerated.length = 0;
-                    this.states.localStatePush({ step: step, codeStep: 3, stepDescription: `for ${currentClique}-Clique` });
+                    this.states.localStatePush({ step: step, codeStep: 3, stepDescription: `for ${currentClique + 1}-Clique` });
                     ++step;
                     for (let i = 0; i < previous.length; ++i) {
                         function ccToString(cc) {
@@ -468,7 +468,7 @@ var KCliqueAlgorithm;
                                 --i; //prevent the increment of i
                             }
                             noUpdate = false;
-                            first.clique = currentClique;
+                            first.clique = currentClique + 1;
                             highlightCC(first, 1, this.getEdgeStorkeWidth(currentClique), true);
                             this.states.localStateTop({ step: step, codeStep: 6, stepDescription: `merge` });
                             ++step;
@@ -490,6 +490,10 @@ var KCliqueAlgorithm;
                         previous = newGenerated;
                         newGenerated = temp;
                     }
+                    if (noUpdate) {
+                        break;
+                    }
+                    ++currentClique;
                 }
                 this.states.localStateTop({ step: step, codeStep: 8, stepDescription: `highest clique:${currentClique}` });
                 ++step;

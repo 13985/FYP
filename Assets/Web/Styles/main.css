@@ -37,6 +37,21 @@ div#graphs-container>svg{
     width: min-content;
     height: 100%;
     border: 2px solid var(--reverse-color1);
+    border-bottom: none;
+    overflow-x: scroll;
+    resize: horizontal;
+}
+
+
+.graph-window::-webkit-scrollbar{
+    appearance: none;
+    height: 15px;
+    background-color: var(--reverse-color3);
+}
+
+
+.graph-window::-webkit-resizer{
+    background-color: color-mix(in srgb,var(--reverse-color0) 20%, var(--main-color4) 80%);
 }
 
 
@@ -60,8 +75,14 @@ div.control>.expand .menu{
 }
 
 
-.graph-window *{
-    transition: transform 0.2s, background-color var(--g-transition-time), border-color var(--g-transition-time), color var(--g-transition-time);
+.graph-window *:not(.graph-svg){
+    --transition:background-color var(--g-transition-time), border-color var(--g-transition-time), color var(--g-transition-time);
+    transition: transform 0.2s,var(--transition);
+}
+
+
+.graph-window svg.graph-svg *{
+    transition: var(--transition);
 }
 
 

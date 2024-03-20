@@ -151,6 +151,7 @@ class GraphWindow{
         this.graph=g;
         this.container=(GraphWindow.template.querySelector("div.graph-window") as HTMLElement).cloneNode(true) as HTMLElement;
         (document.getElementById("graphs-container") as HTMLElement).appendChild(this.container);
+        new ResizeObserver(this.onResizeHorizontally).observe(this.container);
         
         this.innerSVG=this.container.querySelector("svg.graph-svg") as SVGElement;
         this.allG=this.innerSVG.querySelector("g.all") as SVGGElement;
@@ -463,6 +464,15 @@ class GraphWindow{
     private readonly containerDragEnded:(me:MouseEvent)=>void=(_me)=>{
         this.isDraggingContainer=false;
     }
+    
+
+    private readonly onResizeHorizontally:()=>void=()=>{
+        const dx:number=this.container.clientWidth-this.width;
+        this.width=this.container.clientWidth;
+        this.offsetX+=dx/2;
+        this.setGTransforms();
+        this.setWH(this.width,this.height);
+    };
 
 
     private readonly moveGraphByKey:(ke:KeyboardEvent)=>void=(ke)=>{

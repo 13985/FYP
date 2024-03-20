@@ -97,8 +97,8 @@ window.onload=():void=>{
     const graph:Graph=new Graph();
     const resultGraph:Graph=new Graph();
     
-    const gw:GraphWindow=new GraphWindow(graph).setWH(450,450);
-    const resultGW:GraphWindow=new GraphWindow(resultGraph).setWH(450,450);
+    const gw:GraphWindow=new GraphWindow(graph).setWH(450,500);
+    const resultGW:GraphWindow=new GraphWindow(resultGraph).setWH(450,500);
     
     const kCore:KCoreAlgorithm.KCore=new KCoreAlgorithm.KCore(graph,gw.innerSVG as SVGSVGElement,gw.allG);
     const resultKCore:KCoreAlgorithm.KCore=new KCoreAlgorithm.KCore(resultGraph,resultGW.innerSVG as SVGSVGElement,resultGW.allG);
