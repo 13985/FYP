@@ -229,6 +229,7 @@ namespace VisualizationUtils{
         public static addVertex(v:number):boolean{
             if(Algorithm.resultTarget!=undefined){
                 if(Algorithm.resultTarget.addVertex(v)){
+                    Algorithm.visualizationTarget?.graph.addVertex(v);//change the graph directly
                     Algorithm.visualizationTarget?.createState();
                     Algorithm.graphChangeCallBack();
                     return true;
@@ -247,6 +248,7 @@ namespace VisualizationUtils{
         public static removeVertex(v:number):boolean{
             if(Algorithm.resultTarget!=undefined){
                 if(Algorithm.resultTarget.removeVertex(v)){
+                    Algorithm.visualizationTarget?.graph.removeVertex(v);//change the graph directly
                     Algorithm.visualizationTarget?.createState();
                     Algorithm.graphChangeCallBack();
                     return true;
@@ -264,6 +266,7 @@ namespace VisualizationUtils{
         public static addEdge(from:number,to:number):boolean{
             if(Algorithm.resultTarget!=undefined){
                 if(Algorithm.resultTarget.addEdge(from,to)){
+                    Algorithm.visualizationTarget?.graph.addEdge(from,to);//change the graph directly
                     Algorithm.visualizationTarget?.createState();
                     Algorithm.graphChangeCallBack();
                     return true;
@@ -281,6 +284,7 @@ namespace VisualizationUtils{
         public static removeEdge(from:number,to:number):boolean{
             if(Algorithm.resultTarget!=undefined){
                 if(Algorithm.resultTarget.removeEdge(from,to)){
+                    Algorithm.visualizationTarget?.graph.removeEdge(from,to);//change the graph directly
                     Algorithm.visualizationTarget?.createState();
                     Algorithm.graphChangeCallBack();
                     return true;

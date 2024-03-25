@@ -1119,52 +1119,52 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             return;
         }
     }
-}
 
 
-class UnionFind{
-    public readonly parents:number[]=[];
-    public readonly stack:number[]=[];
-
-    constructor(){}
+    class UnionFind{
+        public readonly parents:number[]=[];
+        public readonly stack:number[]=[];
+    
+        constructor(){}
+        
+        
+        public set(size:number):UnionFind{
+            this.parents.length=size;
+            for(let i=0;i<size;++i){
+                this.parents[i]=i;
+            }
+            return this;
+        }
+    
+        public union(a:number,b:number):boolean{
+            const p_a=this.find(a),p_b=this.find(b);
+    
+            if(p_a==p_b){
+                return true;
+            }else{
+                this.parents[p_a]=p_b;
+                return false;
+            }
+        }
+    
+        public find(a:number):number{
+            let p:number=a;
+            while(this.parents[p]!=p){
+                this.stack.push(p);
+                p=this.parents[p];
+            }
+            while(this.stack.length>0){
+                const node:number=this.stack.pop() as number;
+                this.parents[node]=p;
+            }
+            return p;
+        }
     
     
-    public set(size:number):UnionFind{
-        this.parents.length=size;
-        for(let i=0;i<size;++i){
-            this.parents[i]=i;
-        }
-        return this;
-    }
-
-    public union(a:number,b:number):boolean{
-        const p_a=this.find(a),p_b=this.find(b);
-
-        if(p_a==p_b){
-            return true;
-        }else{
-            this.parents[p_a]=p_b;
-            return false;
-        }
-    }
-
-    public find(a:number):number{
-        let p:number=a;
-        while(this.parents[p]!=p){
-            this.stack.push(p);
-            p=this.parents[p];
-        }
-        while(this.stack.length>0){
-            const node:number=this.stack.pop() as number;
-            this.parents[node]=p;
-        }
-        return p;
-    }
-
-
-    public flatten():void{
-        for(let i:number=0;i<this.parents.length;++i){
-            this.parents[i]=this.find(i);
+        public flatten():void{
+            for(let i:number=0;i<this.parents.length;++i){
+                this.parents[i]=this.find(i);
+            }
         }
     }
 }

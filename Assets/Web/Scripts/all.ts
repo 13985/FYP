@@ -3,7 +3,6 @@
 let graphHasUpdated:boolean=false;
 
 
-
 namespace AlgorithmSelect{
     let kCoreInput:HTMLInputElement;
     let KCliqueInput:HTMLInputElement;
@@ -110,7 +109,6 @@ window.onload=():void=>{
 
     const kClique:KCliqueAlgorithm.KClique=new KCliqueAlgorithm.KClique(graph,gw.innerSVG as SVGSVGElement);
     const resultKClique:KCliqueAlgorithm.KClique=new KCliqueAlgorithm.KClique(resultGraph,resultGW.innerSVG as SVGSVGElement);
-
 
 
     function tryChangeAlgo(str:string):boolean{
@@ -320,71 +318,6 @@ window.onload=():void=>{
         }
         }
     });
-
-    /****************************************************Camera expand****************************************************/
-    /*
-    const zoomSlider:HTMLInputElement=<HTMLInputElement>document.getElementById("zoom-slider");
-    const zoomNumberInput:HTMLInputElement=<HTMLInputElement>document.getElementById("zoom-typing");
-    const zoomMin:number=0,zoomMax:number=5;
-
-    function setZoomBound():void{
-        const min:string=zoomMin.toString();
-        const max:string=zoomMax.toString();
-        zoomSlider.setAttribute("min",min);
-        zoomSlider.setAttribute("max",max);
-        zoomNumberInput.setAttribute("min",min);
-        zoomNumberInput.setAttribute("max",max);
-    }
-    setZoomBound();
-
-    zoomSlider.addEventListener('input',():void=>{
-        zoomNumberInput.value=zoomSlider.value;
-        gw.scaleGraph(zoomNumberInput.valueAsNumber);
-    });
-
-    zoomNumberInput.addEventListener('input',():void=>{
-        zoomSlider.value=zoomNumberInput.value;
-        gw.scaleGraph(zoomNumberInput.valueAsNumber);
-    });
-
-    var previousMagnifier:number=1;
-    zoomNumberInput.valueAsNumber=previousMagnifier;
-    zoomSlider.valueAsNumber=previousMagnifier;
-
-
-    const moveCameraButton:HTMLInputElement=<HTMLInputElement>document.getElementById("camera-move-set");
-    var moveCameraAllowed:boolean=false;
-    moveCameraButton.addEventListener("change",():void=>{
-        moveCameraAllowed=!moveCameraAllowed;
-        gw.allowMoveGraph(moveCameraAllowed);
-    });
-
-    const moveSpeedControl:HTMLInputElement=document.getElementById("move-speed-control") as HTMLInputElement;
-    moveSpeedControl.max=(20).toString();
-    moveSpeedControl.min=(0.1).toString();
-    moveSpeedControl.valueAsNumber=2;
-    gw.moveSpeed=2;
-    moveSpeedControl.addEventListener("input",():void=>{
-        gw.moveSpeed=moveSpeedControl.valueAsNumber;
-    });
-
-    const teleportButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("camera-teleport-button");
-    const teleportVertexInput:HTMLInputElement=<HTMLInputElement>document.getElementById("camera-teleport-input");
-
-    teleportButton.addEventListener("click",()=>{
-        if(teleportVertexInput.value.length==0){
-            return;
-        }
-        const val:number=parseInt(teleportVertexInput.value);
-        const vl:VerticeList|undefined=graph.adjacencyList.get(val);
-        if(vl==undefined){
-            return;
-        }
-        gw.setCenter(vl.main.x as number,vl.main.y as number);
-    });
-    */
-    /****************************************************Algo expand **********************************************/
-
 
     /******************************************************after initialization************************************/
 
