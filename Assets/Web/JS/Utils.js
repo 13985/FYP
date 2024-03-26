@@ -136,6 +136,16 @@ var VisualizationUtils;
             VideoControl.runButton.addEventListener("click", () => {
                 if (Algorithm.visualizationTarget) {
                     Algorithm.visualizationTarget.start();
+                    if (Algorithm.visualizationTarget instanceof KCoreAlgorithm.KCore) {
+                        /**
+                         * @summary
+                         * since start animation will hide all visual element color
+                         * in case if kcore, since visualizationTarget and resultTarget share same index structure (which contains the polygon)
+                         * starting animation will hide the polygon in another graph window of resultTarget, so setVisualElementsColor(false)
+                         * needed to be called again
+                         */
+                        Algorithm.resultTarget.displayPolygons(true);
+                    }
                     VideoControl.videoControl.open();
                     DescriptionDisplay.panel.open();
                 }
@@ -166,12 +176,6 @@ var VisualizationUtils;
             VideoControl.progressBar.addEventListener("input", algo.onProgressChanged);
             Algorithm.visualizationTarget.onRegisterSelf();
         }
-        static start(onEnd) {
-            var _a;
-            return __awaiter(this, void 0, void 0, function* () {
-                (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.start(onEnd);
-            });
-        }
         static loadUpdatedGraph() {
             var _a, _b;
             if (Algorithm.resultTarget != undefined) {
@@ -187,72 +191,80 @@ var VisualizationUtils;
             (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.createState();
         }
         static addVertex(v) {
-            var _a;
+            var _a, _b, _c;
             if (Algorithm.resultTarget != undefined) {
                 if (Algorithm.resultTarget.addVertex(v)) {
-                    (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.createState();
                     Algorithm.graphChangeCallBack();
+                    (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.graph.addVertex(v); //change the graph directly
+                    (_b = Algorithm.visualizationTarget) === null || _b === void 0 ? void 0 : _b.graphWindow.updateSimulation();
+                    (_c = Algorithm.visualizationTarget) === null || _c === void 0 ? void 0 : _c.createState();
                     return true;
                 }
             }
             else if (Algorithm.visualizationTarget != undefined) {
                 if (Algorithm.visualizationTarget.addVertex(v)) {
-                    Algorithm.visualizationTarget.createState();
                     Algorithm.graphChangeCallBack();
+                    Algorithm.visualizationTarget.createState();
                     return true;
                 }
             }
             return false;
         }
         static removeVertex(v) {
-            var _a;
+            var _a, _b, _c;
             if (Algorithm.resultTarget != undefined) {
                 if (Algorithm.resultTarget.removeVertex(v)) {
-                    (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.createState();
                     Algorithm.graphChangeCallBack();
+                    (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.graph.removeVertex(v); //change the graph directly
+                    (_b = Algorithm.visualizationTarget) === null || _b === void 0 ? void 0 : _b.graphWindow.updateSimulation();
+                    (_c = Algorithm.visualizationTarget) === null || _c === void 0 ? void 0 : _c.createState();
                     return true;
                 }
             }
             else if (Algorithm.visualizationTarget != undefined) {
                 if (Algorithm.visualizationTarget.removeVertex(v)) {
-                    Algorithm.visualizationTarget.createState();
                     Algorithm.graphChangeCallBack();
+                    Algorithm.visualizationTarget.createState();
                     return true;
                 }
             }
             return false;
         }
         static addEdge(from, to) {
-            var _a;
+            var _a, _b, _c;
             if (Algorithm.resultTarget != undefined) {
                 if (Algorithm.resultTarget.addEdge(from, to)) {
-                    (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.createState();
                     Algorithm.graphChangeCallBack();
+                    (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.graph.addEdge(from, to); //change the graph directly
+                    (_b = Algorithm.visualizationTarget) === null || _b === void 0 ? void 0 : _b.graphWindow.updateSimulation();
+                    (_c = Algorithm.visualizationTarget) === null || _c === void 0 ? void 0 : _c.createState();
                     return true;
                 }
             }
             else if (Algorithm.visualizationTarget != undefined) {
                 if (Algorithm.visualizationTarget.addEdge(from, to)) {
-                    Algorithm.visualizationTarget.createState();
                     Algorithm.graphChangeCallBack();
+                    Algorithm.visualizationTarget.createState();
                     return true;
                 }
             }
             return false;
         }
         static removeEdge(from, to) {
-            var _a;
+            var _a, _b, _c;
             if (Algorithm.resultTarget != undefined) {
                 if (Algorithm.resultTarget.removeEdge(from, to)) {
-                    (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.createState();
                     Algorithm.graphChangeCallBack();
+                    (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.graph.removeEdge(from, to); //change the graph directly
+                    (_b = Algorithm.visualizationTarget) === null || _b === void 0 ? void 0 : _b.graphWindow.updateSimulation();
+                    (_c = Algorithm.visualizationTarget) === null || _c === void 0 ? void 0 : _c.createState();
                     return true;
                 }
             }
             else if (Algorithm.visualizationTarget != undefined) {
                 if (Algorithm.visualizationTarget.removeEdge(from, to)) {
-                    Algorithm.visualizationTarget.createState();
                     Algorithm.graphChangeCallBack();
+                    Algorithm.visualizationTarget.createState();
                     return true;
                 }
             }
@@ -276,7 +288,7 @@ var VisualizationUtils;
             var _a;
             (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.setVisualElementsColor(defaultColor);
         }
-        constructor(g, svg) {
+        constructor(g, svg, gw) {
             this.showDefaultColor = true;
             this.videoControlStatus = 0 /* VideoControlStatus.noAction */; //if the user is fast enough he can cancel the "stop animation" action by replace it to be another action (pressing other button/input)
             this.isAnimating = false;
@@ -304,6 +316,7 @@ var VisualizationUtils;
             };
             this.graph = g;
             this.svgContainer = svg;
+            this.graphWindow = gw;
         }
         start(onEnd) {
             return __awaiter(this, void 0, void 0, function* () {
@@ -541,6 +554,7 @@ var VisualizationUtils;
                 this.clearTreeChild(node);
                 this.releaseTreeNode(node);
             }
+            root.children.length = 0;
         }
         resetStep() {
             this.currentStep = 0;
@@ -793,4 +807,11 @@ class Color {
         ret.b = start.b * (1 - t) + end.b * t;
         ret.a = start.a * (1 - t) + end.a * t;
     }
+}
+function arrayLast(arr) {
+    return arr[arr.length - 1];
+}
+function removeAsSwapBack(arr, idx) {
+    arr[idx] = arr[arr.length - 1];
+    arr.pop();
 }

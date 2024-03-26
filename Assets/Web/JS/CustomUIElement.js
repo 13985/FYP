@@ -180,10 +180,10 @@ class GraphWindow {
                         return;
                     }
                     if (this.isCreateEdge) {
-                        graphHasUpdated = VisualizationUtils.Algorithm.addEdge(this.firstSelectedVertex, this.secondSelectedVertex);
+                        graphHasUpdated = VisualizationUtils.Algorithm.addEdge(this.firstSelectedVertex, this.secondSelectedVertex) || graphHasUpdated;
                     }
                     else {
-                        graphHasUpdated = VisualizationUtils.Algorithm.removeEdge(this.firstSelectedVertex, this.secondSelectedVertex);
+                        graphHasUpdated = VisualizationUtils.Algorithm.removeEdge(this.firstSelectedVertex, this.secondSelectedVertex) || graphHasUpdated;
                     }
                     this.updateSimulation();
                     this.removeVerticesHighlight(this.firstSelectedVertex);

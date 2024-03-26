@@ -81,17 +81,17 @@ window.onload = () => {
     }
     const graph = new Graph();
     const resultGraph = new Graph();
-    const gw = new GraphWindow(graph).setWH(450, 500);
+    const gw = new GraphWindow(graph).setWH(30, 500);
     const resultGW = new GraphWindow(resultGraph).setWH(450, 500);
-    const kCore = new KCoreAlgorithm.KCore(graph, gw.innerSVG, gw.allG);
-    const resultKCore = new KCoreAlgorithm.KCore(resultGraph, resultGW.innerSVG, resultGW.allG);
+    const kCore = new KCoreAlgorithm.KCore(graph, gw.innerSVG, gw);
+    const resultKCore = new KCoreAlgorithm.KCore(resultGraph, resultGW.innerSVG, resultGW);
     {
         const fromShell = document.getElementById("from-shell-value");
         const toShell = document.getElementById("to-shell-value");
         kCore.setSelects(fromShell, toShell);
     }
-    const kClique = new KCliqueAlgorithm.KClique(graph, gw.innerSVG);
-    const resultKClique = new KCliqueAlgorithm.KClique(resultGraph, resultGW.innerSVG);
+    const kClique = new KCliqueAlgorithm.KClique(graph, gw.innerSVG, gw);
+    const resultKClique = new KCliqueAlgorithm.KClique(resultGraph, resultGW.innerSVG, resultGW);
     function tryChangeAlgo(str) {
         if (VisualizationUtils.Algorithm.isVisualizing()) {
             return false;
@@ -143,8 +143,6 @@ window.onload = () => {
     //set the callback when add/remove vertex/edge successfully
     VisualizationUtils.Algorithm.onGraphChange = () => {
         setVENumber();
-        resultGW.updateSimulation();
-        gw.updateSimulation();
     };
     /****************************************************Graph expand**************************************************/
     graphUploadButton.addEventListener("click", () => {
@@ -275,69 +273,6 @@ window.onload = () => {
             }
         }
     });
-    /****************************************************Camera expand****************************************************/
-    /*
-    const zoomSlider:HTMLInputElement=<HTMLInputElement>document.getElementById("zoom-slider");
-    const zoomNumberInput:HTMLInputElement=<HTMLInputElement>document.getElementById("zoom-typing");
-    const zoomMin:number=0,zoomMax:number=5;
-
-    function setZoomBound():void{
-        const min:string=zoomMin.toString();
-        const max:string=zoomMax.toString();
-        zoomSlider.setAttribute("min",min);
-        zoomSlider.setAttribute("max",max);
-        zoomNumberInput.setAttribute("min",min);
-        zoomNumberInput.setAttribute("max",max);
-    }
-    setZoomBound();
-
-    zoomSlider.addEventListener('input',():void=>{
-        zoomNumberInput.value=zoomSlider.value;
-        gw.scaleGraph(zoomNumberInput.valueAsNumber);
-    });
-
-    zoomNumberInput.addEventListener('input',():void=>{
-        zoomSlider.value=zoomNumberInput.value;
-        gw.scaleGraph(zoomNumberInput.valueAsNumber);
-    });
-
-    var previousMagnifier:number=1;
-    zoomNumberInput.valueAsNumber=previousMagnifier;
-    zoomSlider.valueAsNumber=previousMagnifier;
-
-
-    const moveCameraButton:HTMLInputElement=<HTMLInputElement>document.getElementById("camera-move-set");
-    var moveCameraAllowed:boolean=false;
-    moveCameraButton.addEventListener("change",():void=>{
-        moveCameraAllowed=!moveCameraAllowed;
-        gw.allowMoveGraph(moveCameraAllowed);
-    });
-
-    const moveSpeedControl:HTMLInputElement=document.getElementById("move-speed-control") as HTMLInputElement;
-    moveSpeedControl.max=(20).toString();
-    moveSpeedControl.min=(0.1).toString();
-    moveSpeedControl.valueAsNumber=2;
-    gw.moveSpeed=2;
-    moveSpeedControl.addEventListener("input",():void=>{
-        gw.moveSpeed=moveSpeedControl.valueAsNumber;
-    });
-
-    const teleportButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("camera-teleport-button");
-    const teleportVertexInput:HTMLInputElement=<HTMLInputElement>document.getElementById("camera-teleport-input");
-
-    teleportButton.addEventListener("click",()=>{
-        if(teleportVertexInput.value.length==0){
-            return;
-        }
-        const val:number=parseInt(teleportVertexInput.value);
-        const vl:VerticeList|undefined=graph.adjacencyList.get(val);
-        if(vl==undefined){
-            return;
-        }
-        gw.setCenter(vl.main.x as number,vl.main.y as number);
-    });
-    */
-    /****************************************************Algo expand **********************************************/
     /******************************************************after initialization************************************/
     loadGraph("0 1\r\n\
     1 2\r\n\

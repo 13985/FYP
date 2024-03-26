@@ -368,7 +368,7 @@ class Graph{
         if(idx==undefined){
             return false;
         }
-        const e:Edge=this.edges[this.edges.length-1];
+        const e:Edge=arrayLast(this.edges);
         this.existsEdges.set(this.getEdgeHashCode(e.source.id,e.target.id),idx);
         this.existsEdges.delete(code);
         this.edges[idx].line?.remove();

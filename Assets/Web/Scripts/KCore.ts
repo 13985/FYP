@@ -187,11 +187,11 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
         /**************************animation state***************************/
         private states?:State;
 
-        constructor(g:Graph,svg:SVGSVGElement,polygonsContainer:SVGGElement){
-            super(g,svg);
+        constructor(g:Graph,svg:SVGSVGElement,gw:GraphWindow){
+            super(g,svg,gw);
             this.maxOption=null;
             this.minOption=null;
-            this.polygonsContainer=polygonsContainer;
+            this.polygonsContainer=gw.allG;
         }
 
 
@@ -484,8 +484,8 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
         private removeFromSet1(target:number):void{
             this.set0.push(target);
             this.degrees.set(target,KCore.PROCESSED);
-            const last:number=this.set1[this.set1.length-1];
             const idx:number=this.inSet1.get(target) as number;
+            const last:number=arrayLast(this.set1);
             this.set1[idx]=last;
             this.inSet1.set(last,idx);
             this.inSet1.delete(target);
@@ -556,7 +556,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                 for(let i:number=0;i<descriptionStates.length;++i){
                     lis[i].innerHTML=descriptionStates[i].stepDescription;
                 }
-                VisualizationUtils.DescriptionDisplay.highlightCode(descriptionStates[descriptionStates.length-1].codeStep);
+                VisualizationUtils.DescriptionDisplay.highlightCode(arrayLast(descriptionStates).codeStep);
             }else{
                 VisualizationUtils.DescriptionDisplay.highlightCode(-1);
             }
@@ -617,10 +617,15 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
 
         public calculateBound():void{
             let i:number=this.shellComponents.length-1;
-            ConvesHull.Solve(this.shellComponents[i],this.svgContainer);
+            {
+                const sc:ShellComponet=this.shellComponents[i];
+                sc.bound.length=0;
+                ConvesHull.Solve(sc,this.svgContainer);
+            }
             for(--i;i>=0;--i){
                 const sc:ShellComponet=this.shellComponents[i];
-                ConvesHull.Solve(sc,this.svgContainer,this.shellComponents[i+1].bound);
+                sc.bound.length=0;
+                ConvesHull.Solve(sc,this.svgContainer,this.shellComponents[i+1].bound)
             }
         }
 
@@ -629,6 +634,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             if(this.graph.addEdge(a,b)==false){
                 return false;
             }
+            this.graphWindow.updateSimulation();
             const a_idx:ConnectedComponetInfo=this.vertexToInfo.get(a) as ConnectedComponetInfo;
             const b_idx:ConnectedComponetInfo=this.vertexToInfo.get(b) as ConnectedComponetInfo;
             let theInfo:ConnectedComponetInfo;
@@ -655,6 +661,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             if(this.graph.removeEdge(a,b)==false){
                 return false;
             }
+            this.graphWindow.updateSimulation();
             const a_idx:ConnectedComponetInfo=this.vertexToInfo.get(a) as ConnectedComponetInfo;
             const b_idx:ConnectedComponetInfo=this.vertexToInfo.get(b) as ConnectedComponetInfo;
             let theInfo:ConnectedComponetInfo;
@@ -677,6 +684,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
         protected addVertex(a:number):boolean{
             const v:Vertex|null=this.graph.addVertex(a);
             if(v==null){return false;}
+            this.graphWindow.updateSimulation();
 
             const sc:ShellComponet=this.shellComponents[0];
             const info:ConnectedComponetInfo=new ConnectedComponetInfo(0,sc.connectedComponents.length);
@@ -695,6 +703,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             if(this.graph.removeVertex(a)==null){
                 return false;
             }
+            this.graphWindow.updateSimulation();
             const info:ConnectedComponetInfo=this.vertexToInfo.get(a) as ConnectedComponetInfo;
             const cc:KCoreCC=this.shellComponents[info.shell].connectedComponents[info.index];
             cc.removeVertex(a);
@@ -742,7 +751,8 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             const theCC:KCoreCC=this.shellComponents[theInfo.shell].connectedComponents[theInfo.index];
             this.unionFind.set(this.graph.vertices.length);
             this.clearHelpers();
-            let minDegree:number=Number.MAX_SAFE_INTEGER;
+            const MAX_DEGREE:number=1000000;
+            let minDegree:number=MAX_DEGREE;
             const orginalShell:number=theInfo.shell;//copy the shell, since info will be change while iteration
 
             for(const v of theCC.vertices){//find the minimum degree of vertex
@@ -819,7 +829,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             oldShell.length=0;
             newShell.length=0;
 
-            if(currentShell>=this.shellComponents.length){
+            if(currentShell>=this.shellComponents.length&&currentShell<MAX_DEGREE){//if vertex in 0 kcore got deleted, then the currentShell wont change.... (i.e. it will still == MAX_DEGREE since no kcore is ran)
                 const sc=new ShellComponet();
                 sc.shell=currentShell;
                 this.shellComponents.push(sc);
@@ -1037,30 +1047,31 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
         }
 
 
-        public static Solve(sc:ShellComponet,svg:SVGSVGElement,otherBound?:Vertex[]):void{
+        /**
+         * @returns number of vertices in bound
+         */
+        public static Solve(sc:ShellComponet,svg:SVGSVGElement,otherBound?:Vertex[]):number{
             const verticesBuffer:Vertex[]=ConvesHull.verticesBuffer;
-            if(otherBound==undefined){
-                verticesBuffer.length=0;
-            }else{
+            verticesBuffer.length=0;
+            if(otherBound!=undefined){
                 Array.prototype.push.apply(verticesBuffer,otherBound);
             }
             for(const cc of sc.connectedComponents){
                 Array.prototype.push.apply(verticesBuffer,cc.vertices);
             }
+            const polygon:SVGPolygonElement=sc.polygon as SVGPolygonElement;
+            polygon.points.clear();
 
             if(verticesBuffer.length<3){
-                return;
+                return verticesBuffer.length;
             }else if(verticesBuffer.length<4){
-                const polygon:SVGPolygonElement=sc.polygon as SVGPolygonElement;
-                polygon.points.clear();
                 for(const vertex of verticesBuffer){
                     const p:SVGPoint=svg.createSVGPoint();
                     p.x=vertex.x as number;
                     p.y=vertex.y as number;
                     polygon.points.appendItem(p);
                 }
-                sc.polygon=polygon;
-                return;
+                return verticesBuffer.length;
             }
     
             function approximately(a:number,b:number):boolean{
@@ -1102,13 +1113,11 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                 sc.bound.push(vertex);
             }
 
-            if(sc.bound[sc.bound.length-1].id==sc.bound[0].id){
+            if(arrayLast(sc.bound).id==sc.bound[0].id){
                 ConvesHull.points.pop();
                 sc.bound.pop();
             }
 
-            const polygon:SVGPolygonElement=sc.polygon as SVGPolygonElement;
-            polygon.points.clear();
             for(const p of ConvesHull.points){
                 const realPoint:SVGPoint=svg.createSVGPoint();
                 realPoint.x=p.x;
@@ -1116,7 +1125,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                 polygon.points.appendItem(realPoint);
             }
             sc.polygon=polygon;
-            return;
+            return polygon.points.length;
         }
     }
 

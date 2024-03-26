@@ -563,9 +563,10 @@ class GraphWindow{
             }
 
             if(this.isCreateEdge){
-                graphHasUpdated=VisualizationUtils.Algorithm.addEdge(this.firstSelectedVertex,this.secondSelectedVertex);
+                //dont change the order to prevent short circuit evaluation
+                graphHasUpdated=VisualizationUtils.Algorithm.addEdge(this.firstSelectedVertex,this.secondSelectedVertex)||graphHasUpdated;
             }else{
-                graphHasUpdated=VisualizationUtils.Algorithm.removeEdge(this.firstSelectedVertex,this.secondSelectedVertex);
+                graphHasUpdated=VisualizationUtils.Algorithm.removeEdge(this.firstSelectedVertex,this.secondSelectedVertex)||graphHasUpdated;
             }
             this.updateSimulation();
             this.removeVerticesHighlight(this.firstSelectedVertex);

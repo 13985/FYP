@@ -295,7 +295,7 @@ class Graph {
         if (idx == undefined) {
             return false;
         }
-        const e = this.edges[this.edges.length - 1];
+        const e = arrayLast(this.edges);
         this.existsEdges.set(this.getEdgeHashCode(e.source.id, e.target.id), idx);
         this.existsEdges.delete(code);
         (_a = this.edges[idx].line) === null || _a === void 0 ? void 0 : _a.remove();

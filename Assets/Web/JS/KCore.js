@@ -128,8 +128,8 @@ var KCoreAlgorithm;
         }
     }
     class KCore extends VisualizationUtils.Algorithm {
-        constructor(g, svg, polygonsContainer) {
-            super(g, svg);
+        constructor(g, svg, gw) {
+            super(g, svg, gw);
             /**************************helper data structures**********************/
             this.degrees = new Map();
             this.inSet1 = new Map();
@@ -141,7 +141,7 @@ var KCoreAlgorithm;
             this.vertexToInfo = new Map();
             this.maxOption = null;
             this.minOption = null;
-            this.polygonsContainer = polygonsContainer;
+            this.polygonsContainer = gw.allG;
         }
         setIndexStructure(other) {
             this.shellComponents = other.shellComponents;
@@ -411,8 +411,8 @@ var KCoreAlgorithm;
         removeFromSet1(target) {
             this.set0.push(target);
             this.degrees.set(target, KCore.PROCESSED);
-            const last = this.set1[this.set1.length - 1];
             const idx = this.inSet1.get(target);
+            const last = arrayLast(this.set1);
             this.set1[idx] = last;
             this.inSet1.set(last, idx);
             this.inSet1.delete(target);
@@ -477,7 +477,7 @@ var KCoreAlgorithm;
                 for (let i = 0; i < descriptionStates.length; ++i) {
                     lis[i].innerHTML = descriptionStates[i].stepDescription;
                 }
-                VisualizationUtils.DescriptionDisplay.highlightCode(descriptionStates[descriptionStates.length - 1].codeStep);
+                VisualizationUtils.DescriptionDisplay.highlightCode(arrayLast(descriptionStates).codeStep);
             }
             else {
                 VisualizationUtils.DescriptionDisplay.highlightCode(-1);
@@ -532,9 +532,14 @@ var KCoreAlgorithm;
         }
         calculateBound() {
             let i = this.shellComponents.length - 1;
-            ConvesHull.Solve(this.shellComponents[i], this.svgContainer);
+            {
+                const sc = this.shellComponents[i];
+                sc.bound.length = 0;
+                ConvesHull.Solve(sc, this.svgContainer);
+            }
             for (--i; i >= 0; --i) {
                 const sc = this.shellComponents[i];
+                sc.bound.length = 0;
                 ConvesHull.Solve(sc, this.svgContainer, this.shellComponents[i + 1].bound);
             }
         }
@@ -542,6 +547,7 @@ var KCoreAlgorithm;
             if (this.graph.addEdge(a, b) == false) {
                 return false;
             }
+            this.graphWindow.updateSimulation();
             const a_idx = this.vertexToInfo.get(a);
             const b_idx = this.vertexToInfo.get(b);
             let theInfo;
@@ -566,6 +572,7 @@ var KCoreAlgorithm;
             if (this.graph.removeEdge(a, b) == false) {
                 return false;
             }
+            this.graphWindow.updateSimulation();
             const a_idx = this.vertexToInfo.get(a);
             const b_idx = this.vertexToInfo.get(b);
             let theInfo;
@@ -588,6 +595,7 @@ var KCoreAlgorithm;
             if (v == null) {
                 return false;
             }
+            this.graphWindow.updateSimulation();
             const sc = this.shellComponents[0];
             const info = new ConnectedComponetInfo(0, sc.connectedComponents.length);
             const cc = KCoreCC.POOL.get();
@@ -603,6 +611,7 @@ var KCoreAlgorithm;
             if (this.graph.removeVertex(a) == null) {
                 return false;
             }
+            this.graphWindow.updateSimulation();
             const info = this.vertexToInfo.get(a);
             const cc = this.shellComponents[info.shell].connectedComponents[info.index];
             cc.removeVertex(a);
@@ -644,7 +653,8 @@ var KCoreAlgorithm;
             const theCC = this.shellComponents[theInfo.shell].connectedComponents[theInfo.index];
             this.unionFind.set(this.graph.vertices.length);
             this.clearHelpers();
-            let minDegree = Number.MAX_SAFE_INTEGER;
+            const MAX_DEGREE = 1000000;
+            let minDegree = MAX_DEGREE;
             const orginalShell = theInfo.shell; //copy the shell, since info will be change while iteration
             for (const v of theCC.vertices) { //find the minimum degree of vertex
                 let d = 0;
@@ -718,7 +728,7 @@ var KCoreAlgorithm;
             const newShell = this.set1;
             oldShell.length = 0;
             newShell.length = 0;
-            if (currentShell >= this.shellComponents.length) {
+            if (currentShell >= this.shellComponents.length && currentShell < MAX_DEGREE) { //if vertex in 0 kcore got deleted, then the currentShell wont change.... (i.e. it will still == MAX_DEGREE since no kcore is ran)
                 const sc = new ShellComponet();
                 sc.shell = currentShell;
                 this.shellComponents.push(sc);
@@ -913,31 +923,31 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
         static cross(o, a, b) {
             return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
         }
+        /**
+         * @returns number of vertices in bound
+         */
         static Solve(sc, svg, otherBound) {
             const verticesBuffer = ConvesHull.verticesBuffer;
-            if (otherBound == undefined) {
-                verticesBuffer.length = 0;
-            }
-            else {
+            verticesBuffer.length = 0;
+            if (otherBound != undefined) {
                 Array.prototype.push.apply(verticesBuffer, otherBound);
             }
             for (const cc of sc.connectedComponents) {
                 Array.prototype.push.apply(verticesBuffer, cc.vertices);
             }
+            const polygon = sc.polygon;
+            polygon.points.clear();
             if (verticesBuffer.length < 3) {
-                return;
+                return verticesBuffer.length;
             }
             else if (verticesBuffer.length < 4) {
-                const polygon = sc.polygon;
-                polygon.points.clear();
                 for (const vertex of verticesBuffer) {
                     const p = svg.createSVGPoint();
                     p.x = vertex.x;
                     p.y = vertex.y;
                     polygon.points.appendItem(p);
                 }
-                sc.polygon = polygon;
-                return;
+                return verticesBuffer.length;
             }
             function approximately(a, b) {
                 return Math.abs(a - b) < 0.0001;
@@ -977,12 +987,10 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                 ConvesHull.points.push(p);
                 sc.bound.push(vertex);
             }
-            if (sc.bound[sc.bound.length - 1].id == sc.bound[0].id) {
+            if (arrayLast(sc.bound).id == sc.bound[0].id) {
                 ConvesHull.points.pop();
                 sc.bound.pop();
             }
-            const polygon = sc.polygon;
-            polygon.points.clear();
             for (const p of ConvesHull.points) {
                 const realPoint = svg.createSVGPoint();
                 realPoint.x = p.x;
@@ -990,49 +998,49 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                 polygon.points.appendItem(realPoint);
             }
             sc.polygon = polygon;
-            return;
+            return polygon.points.length;
         }
     }
     ConvesHull.points = [];
     ConvesHull.verticesBuffer = [];
+    class UnionFind {
+        constructor() {
+            this.parents = [];
+            this.stack = [];
+        }
+        set(size) {
+            this.parents.length = size;
+            for (let i = 0; i < size; ++i) {
+                this.parents[i] = i;
+            }
+            return this;
+        }
+        union(a, b) {
+            const p_a = this.find(a), p_b = this.find(b);
+            if (p_a == p_b) {
+                return true;
+            }
+            else {
+                this.parents[p_a] = p_b;
+                return false;
+            }
+        }
+        find(a) {
+            let p = a;
+            while (this.parents[p] != p) {
+                this.stack.push(p);
+                p = this.parents[p];
+            }
+            while (this.stack.length > 0) {
+                const node = this.stack.pop();
+                this.parents[node] = p;
+            }
+            return p;
+        }
+        flatten() {
+            for (let i = 0; i < this.parents.length; ++i) {
+                this.parents[i] = this.find(i);
+            }
+        }
+    }
 })(KCoreAlgorithm || (KCoreAlgorithm = {}));
-class UnionFind {
-    constructor() {
-        this.parents = [];
-        this.stack = [];
-    }
-    set(size) {
-        this.parents.length = size;
-        for (let i = 0; i < size; ++i) {
-            this.parents[i] = i;
-        }
-        return this;
-    }
-    union(a, b) {
-        const p_a = this.find(a), p_b = this.find(b);
-        if (p_a == p_b) {
-            return true;
-        }
-        else {
-            this.parents[p_a] = p_b;
-            return false;
-        }
-    }
-    find(a) {
-        let p = a;
-        while (this.parents[p] != p) {
-            this.stack.push(p);
-            p = this.parents[p];
-        }
-        while (this.stack.length > 0) {
-            const node = this.stack.pop();
-            this.parents[node] = p;
-        }
-        return p;
-    }
-    flatten() {
-        for (let i = 0; i < this.parents.length; ++i) {
-            this.parents[i] = this.find(i);
-        }
-    }
-}

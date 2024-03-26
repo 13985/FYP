@@ -96,19 +96,19 @@ window.onload=():void=>{
     const graph:Graph=new Graph();
     const resultGraph:Graph=new Graph();
     
-    const gw:GraphWindow=new GraphWindow(graph).setWH(450,500);
+    const gw:GraphWindow=new GraphWindow(graph).setWH(30,500);
     const resultGW:GraphWindow=new GraphWindow(resultGraph).setWH(450,500);
     
-    const kCore:KCoreAlgorithm.KCore=new KCoreAlgorithm.KCore(graph,gw.innerSVG as SVGSVGElement,gw.allG);
-    const resultKCore:KCoreAlgorithm.KCore=new KCoreAlgorithm.KCore(resultGraph,resultGW.innerSVG as SVGSVGElement,resultGW.allG);
+    const kCore:KCoreAlgorithm.KCore=new KCoreAlgorithm.KCore(graph,gw.innerSVG as SVGSVGElement,gw);
+    const resultKCore:KCoreAlgorithm.KCore=new KCoreAlgorithm.KCore(resultGraph,resultGW.innerSVG as SVGSVGElement,resultGW);
     {
         const fromShell:HTMLSelectElement=<HTMLSelectElement>document.getElementById("from-shell-value");
         const toShell:HTMLSelectElement=<HTMLSelectElement>document.getElementById("to-shell-value");
         kCore.setSelects(fromShell,toShell);
     }
 
-    const kClique:KCliqueAlgorithm.KClique=new KCliqueAlgorithm.KClique(graph,gw.innerSVG as SVGSVGElement);
-    const resultKClique:KCliqueAlgorithm.KClique=new KCliqueAlgorithm.KClique(resultGraph,resultGW.innerSVG as SVGSVGElement);
+    const kClique:KCliqueAlgorithm.KClique=new KCliqueAlgorithm.KClique(graph,gw.innerSVG as SVGSVGElement,gw);
+    const resultKClique:KCliqueAlgorithm.KClique=new KCliqueAlgorithm.KClique(resultGraph,resultGW.innerSVG as SVGSVGElement,resultGW);
 
 
     function tryChangeAlgo(str:string):boolean{
@@ -140,7 +140,6 @@ window.onload=():void=>{
             break;
         }
         case "kclique":{
-            
             helper(kClique,resultKClique);
             resultGW.setVertexDragStartCallback(undefined);
             break;
@@ -166,8 +165,6 @@ window.onload=():void=>{
     //set the callback when add/remove vertex/edge successfully
     VisualizationUtils.Algorithm.onGraphChange=():void=>{
         setVENumber();
-        resultGW.updateSimulation();
-        gw.updateSimulation();
     }
 
     /****************************************************Graph expand**************************************************/

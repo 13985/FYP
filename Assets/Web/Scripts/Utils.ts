@@ -169,6 +169,16 @@ namespace VisualizationUtils{
             VideoControl.runButton.addEventListener("click",():void=>{
                 if(Algorithm.visualizationTarget){
                     Algorithm.visualizationTarget.start();
+                    if(Algorithm.visualizationTarget instanceof KCoreAlgorithm.KCore){
+                        /**
+                         * @summary
+                         * since start animation will hide all visual element color
+                         * in case if kcore, since visualizationTarget and resultTarget share same index structure (which contains the polygon)
+                         * starting animation will hide the polygon in another graph window of resultTarget, so setVisualElementsColor(false)
+                         * needed to be called again
+                         */
+                        (Algorithm.resultTarget as KCoreAlgorithm.KCore).displayPolygons(true);
+                    }
                     VideoControl.videoControl.open();
                     DescriptionDisplay.panel.open();
                 }
@@ -206,11 +216,6 @@ namespace VisualizationUtils{
         }
 
 
-        public static async start(onEnd?:()=>void):Promise<void>{
-            Algorithm.visualizationTarget?.start(onEnd);
-        }
-
-
         public static loadUpdatedGraph():void{
             if(Algorithm.resultTarget!=undefined){
                 Algorithm.resultTarget.createIndexStructure().setColorGradient(VertexGradient.start,VertexGradient.end).setVisualElementsColor(false);
@@ -229,15 +234,16 @@ namespace VisualizationUtils{
         public static addVertex(v:number):boolean{
             if(Algorithm.resultTarget!=undefined){
                 if(Algorithm.resultTarget.addVertex(v)){
-                    Algorithm.visualizationTarget?.graph.addVertex(v);//change the graph directly
-                    Algorithm.visualizationTarget?.createState();
                     Algorithm.graphChangeCallBack();
+                    Algorithm.visualizationTarget?.graph.addVertex(v);//change the graph directly
+                    Algorithm.visualizationTarget?.graphWindow.updateSimulation();
+                    Algorithm.visualizationTarget?.createState();
                     return true;
                 }
             }else if(Algorithm.visualizationTarget!=undefined){
                 if(Algorithm.visualizationTarget.addVertex(v)){
-                    Algorithm.visualizationTarget.createState();
                     Algorithm.graphChangeCallBack();
+                    Algorithm.visualizationTarget.createState();
                     return true;
                 }
             }
@@ -248,15 +254,16 @@ namespace VisualizationUtils{
         public static removeVertex(v:number):boolean{
             if(Algorithm.resultTarget!=undefined){
                 if(Algorithm.resultTarget.removeVertex(v)){
-                    Algorithm.visualizationTarget?.graph.removeVertex(v);//change the graph directly
-                    Algorithm.visualizationTarget?.createState();
                     Algorithm.graphChangeCallBack();
+                    Algorithm.visualizationTarget?.graph.removeVertex(v);//change the graph directly
+                    Algorithm.visualizationTarget?.graphWindow.updateSimulation();
+                    Algorithm.visualizationTarget?.createState();
                     return true;
                 }
             }else if(Algorithm.visualizationTarget!=undefined){
                 if(Algorithm.visualizationTarget.removeVertex(v)){
-                    Algorithm.visualizationTarget.createState();
                     Algorithm.graphChangeCallBack();
+                    Algorithm.visualizationTarget.createState();
                     return true;
                 }
             }
@@ -266,15 +273,16 @@ namespace VisualizationUtils{
         public static addEdge(from:number,to:number):boolean{
             if(Algorithm.resultTarget!=undefined){
                 if(Algorithm.resultTarget.addEdge(from,to)){
-                    Algorithm.visualizationTarget?.graph.addEdge(from,to);//change the graph directly
-                    Algorithm.visualizationTarget?.createState();
                     Algorithm.graphChangeCallBack();
+                    Algorithm.visualizationTarget?.graph.addEdge(from,to);//change the graph directly
+                    Algorithm.visualizationTarget?.graphWindow.updateSimulation();
+                    Algorithm.visualizationTarget?.createState();
                     return true;
                 }
             }else if(Algorithm.visualizationTarget!=undefined){
                 if(Algorithm.visualizationTarget.addEdge(from,to)){
-                    Algorithm.visualizationTarget.createState();
                     Algorithm.graphChangeCallBack();
+                    Algorithm.visualizationTarget.createState();
                     return true;
                 }
             }
@@ -284,15 +292,16 @@ namespace VisualizationUtils{
         public static removeEdge(from:number,to:number):boolean{
             if(Algorithm.resultTarget!=undefined){
                 if(Algorithm.resultTarget.removeEdge(from,to)){
-                    Algorithm.visualizationTarget?.graph.removeEdge(from,to);//change the graph directly
-                    Algorithm.visualizationTarget?.createState();
                     Algorithm.graphChangeCallBack();
+                    Algorithm.visualizationTarget?.graph.removeEdge(from,to);//change the graph directly
+                    Algorithm.visualizationTarget?.graphWindow.updateSimulation();
+                    Algorithm.visualizationTarget?.createState();
                     return true;
                 }
             }else if(Algorithm.visualizationTarget!=undefined){
                 if(Algorithm.visualizationTarget.removeEdge(from,to)){
-                    Algorithm.visualizationTarget.createState();
                     Algorithm.graphChangeCallBack();
+                    Algorithm.visualizationTarget.createState();
                     return true;
                 }
             }
@@ -326,11 +335,13 @@ namespace VisualizationUtils{
         protected isAnimating:boolean=false;
         protected isPause:boolean=false;
         protected currentStep:number=0;
+        protected graphWindow:GraphWindow;
 
 
-        constructor(g:Graph,svg:SVGSVGElement){
+        constructor(g:Graph,svg:SVGSVGElement,gw:GraphWindow){
             this.graph=g;
             this.svgContainer=svg;
+            this.graphWindow=gw;
         }
 
 
@@ -673,6 +684,7 @@ namespace VisualizationUtils{
                 this.clearTreeChild(node);
                 this.releaseTreeNode(node);
             }
+            root.children.length=0;
         }
 
 
@@ -961,4 +973,14 @@ class Color implements IClone<Color>{
         ret.b=start.b*(1-t)+end.b*t;
         ret.a=start.a*(1-t)+end.a*t;
     }
+}
+
+
+function arrayLast<T>(arr:T[]):T{
+    return arr[arr.length-1];
+}
+
+function removeAsSwapBack<T>(arr:T[],idx:number):void{
+    arr[idx]=arr[arr.length-1];
+    arr.pop();
 }
