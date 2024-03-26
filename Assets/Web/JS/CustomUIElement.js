@@ -138,9 +138,9 @@ class GraphWindow {
         this.onResizeHorizontally = () => {
             const dx = this.container.clientWidth - this.width;
             this.width = this.container.clientWidth;
-            this.offsetX += dx / 2;
-            this.setGTransforms();
+            //this.offsetX+=dx/2;
             this.setWH(this.width, this.height);
+            this.simulation.restart();
         };
         this.moveGraphByKey = (ke) => {
             if (this.isDraggingContainer == false) {
@@ -180,6 +180,7 @@ class GraphWindow {
                         return;
                     }
                     if (this.isCreateEdge) {
+                        //dont change the order to prevent short circuit evaluation
                         graphHasUpdated = VisualizationUtils.Algorithm.addEdge(this.firstSelectedVertex, this.secondSelectedVertex) || graphHasUpdated;
                     }
                     else {

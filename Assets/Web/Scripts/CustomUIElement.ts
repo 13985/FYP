@@ -469,9 +469,9 @@ class GraphWindow{
     private readonly onResizeHorizontally:()=>void=()=>{
         const dx:number=this.container.clientWidth-this.width;
         this.width=this.container.clientWidth;
-        this.offsetX+=dx/2;
-        this.setGTransforms();
+        //this.offsetX+=dx/2;
         this.setWH(this.width,this.height);
+        this.simulation.restart();
     };
 
 
