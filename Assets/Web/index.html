@@ -79,14 +79,14 @@
                         </div>
                     </li>
                     <li class="expand"><!------------------------------------Edge pop up------------------------------------------->
-                        <input type="checkbox" id="edge-expand-set" class="switch"/>
+                        <input type="checkbox" id="edge-expand-set" class="switch" checked/>
                         <h3 class="switch text slightly">
                             <label for="edge-expand-set" class="switch">Edge</label>
                         </h3>
                         <div class="menu indent">
                             <select class="graph-update" id="edge-update">
-                                <option value="create">Create</option>
                                 <option value="remove">Remove</option>
+                                <option value="create">Create</option>
                             </select>
                             <input class="vertices-input" id="edge-expand-input" type="text" pattern="(?:\d+\s?,\s?\d+\s?)+" max-length="500"/>
                             <input type="checkbox" id="edge-edit-mode" class="switch"/>
