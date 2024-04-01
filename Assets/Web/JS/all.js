@@ -118,11 +118,13 @@ window.onload = () => {
                 helper(kCore, resultKCore);
                 resultKCore.displayPolygons(true); //note they may have the same index structure
                 resultGW.setVertexDragStartCallback(resultKCore.calculateBound.bind(resultKCore));
+                gw.setVertexDragStartCallback(kCore.calculateBound.bind(kCore));
                 break;
             }
             case "kclique": {
                 helper(kClique, resultKClique);
                 resultGW.setVertexDragStartCallback(undefined);
+                gw.setVertexDragStartCallback(undefined);
                 break;
             }
             default: {
