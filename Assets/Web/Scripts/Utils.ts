@@ -129,8 +129,6 @@ namespace VisualizationUtils{
         public static ResultTarget():Algorithm|undefined{
             return Algorithm.resultTarget
         }
-        public static onGraphChange?:()=>void;
-
         protected static readonly codeDescripton:string;
 
         public static isVisualizing():boolean{
@@ -234,7 +232,7 @@ namespace VisualizationUtils{
         public static addVertex(v:number):boolean{
             if(Algorithm.resultTarget!=undefined){
                 if(Algorithm.resultTarget.addVertex(v)){
-                    Algorithm.graphChangeCallBack();
+                    Algorithm.onGraphChanged();
                     Algorithm.visualizationTarget?.graph.addVertex(v);//change the graph directly
                     Algorithm.visualizationTarget?.graphWindow.updateSimulation();
                     Algorithm.visualizationTarget?.createState();
@@ -242,7 +240,7 @@ namespace VisualizationUtils{
                 }
             }else if(Algorithm.visualizationTarget!=undefined){
                 if(Algorithm.visualizationTarget.addVertex(v)){
-                    Algorithm.graphChangeCallBack();
+                    Algorithm.onGraphChanged();
                     Algorithm.visualizationTarget.createState();
                     return true;
                 }
@@ -254,7 +252,7 @@ namespace VisualizationUtils{
         public static removeVertex(v:number):boolean{
             if(Algorithm.resultTarget!=undefined){
                 if(Algorithm.resultTarget.removeVertex(v)){
-                    Algorithm.graphChangeCallBack();
+                    Algorithm.onGraphChanged();
                     Algorithm.visualizationTarget?.graph.removeVertex(v);//change the graph directly
                     Algorithm.visualizationTarget?.graphWindow.updateSimulation();
                     Algorithm.visualizationTarget?.createState();
@@ -262,7 +260,7 @@ namespace VisualizationUtils{
                 }
             }else if(Algorithm.visualizationTarget!=undefined){
                 if(Algorithm.visualizationTarget.removeVertex(v)){
-                    Algorithm.graphChangeCallBack();
+                    Algorithm.onGraphChanged();
                     Algorithm.visualizationTarget.createState();
                     return true;
                 }
@@ -273,7 +271,7 @@ namespace VisualizationUtils{
         public static addEdge(from:number,to:number):boolean{
             if(Algorithm.resultTarget!=undefined){
                 if(Algorithm.resultTarget.addEdge(from,to)){
-                    Algorithm.graphChangeCallBack();
+                    Algorithm.onGraphChanged();
                     Algorithm.visualizationTarget?.graph.addEdge(from,to);//change the graph directly
                     Algorithm.visualizationTarget?.graphWindow.updateSimulation();
                     Algorithm.visualizationTarget?.createState();
@@ -281,7 +279,7 @@ namespace VisualizationUtils{
                 }
             }else if(Algorithm.visualizationTarget!=undefined){
                 if(Algorithm.visualizationTarget.addEdge(from,to)){
-                    Algorithm.graphChangeCallBack();
+                    Algorithm.onGraphChanged();
                     Algorithm.visualizationTarget.createState();
                     return true;
                 }
@@ -292,7 +290,7 @@ namespace VisualizationUtils{
         public static removeEdge(from:number,to:number):boolean{
             if(Algorithm.resultTarget!=undefined){
                 if(Algorithm.resultTarget.removeEdge(from,to)){
-                    Algorithm.graphChangeCallBack();
+                    Algorithm.onGraphChanged();
                     Algorithm.visualizationTarget?.graph.removeEdge(from,to);//change the graph directly
                     Algorithm.visualizationTarget?.graphWindow.updateSimulation();
                     Algorithm.visualizationTarget?.createState();
@@ -300,7 +298,7 @@ namespace VisualizationUtils{
                 }
             }else if(Algorithm.visualizationTarget!=undefined){
                 if(Algorithm.visualizationTarget.removeEdge(from,to)){
-                    Algorithm.graphChangeCallBack();
+                    Algorithm.onGraphChanged();
                     Algorithm.visualizationTarget.createState();
                     return true;
                 }
@@ -308,10 +306,8 @@ namespace VisualizationUtils{
             return false;
         }
 
-        private static graphChangeCallBack():void{
-            if(Algorithm.onGraphChange!=undefined){
-                Algorithm.onGraphChange();
-            }
+        private static onGraphChanged():void{
+            MainApp.instance().setVENumber();
         }
 
         public static setColorGradient(start:Color,end:Color):void{

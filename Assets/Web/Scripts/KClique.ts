@@ -185,8 +185,9 @@ namespace KCliqueAlgorithm{
                     if(cc_.clique<=1){
                         for(const cc of cc_.connectedComponents){
                             for(const v of cc.vertices){
-                                v.setColor(cc_.color);
-                                (v.circle as SVGCircleElement).setAttribute("fill-opacity","0.5");
+                                const true_v:Vertex=(this.graph.adjacencyList.get(v.id) as VerticeList).main;
+                                true_v.setColor(cc_.color);
+                                (true_v.circle as SVGCircleElement).setAttribute("fill-opacity","0.5");
                             }
                         }
                         continue;

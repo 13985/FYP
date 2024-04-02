@@ -194,7 +194,7 @@ var VisualizationUtils;
             var _a, _b, _c;
             if (Algorithm.resultTarget != undefined) {
                 if (Algorithm.resultTarget.addVertex(v)) {
-                    Algorithm.graphChangeCallBack();
+                    Algorithm.onGraphChanged();
                     (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.graph.addVertex(v); //change the graph directly
                     (_b = Algorithm.visualizationTarget) === null || _b === void 0 ? void 0 : _b.graphWindow.updateSimulation();
                     (_c = Algorithm.visualizationTarget) === null || _c === void 0 ? void 0 : _c.createState();
@@ -203,7 +203,7 @@ var VisualizationUtils;
             }
             else if (Algorithm.visualizationTarget != undefined) {
                 if (Algorithm.visualizationTarget.addVertex(v)) {
-                    Algorithm.graphChangeCallBack();
+                    Algorithm.onGraphChanged();
                     Algorithm.visualizationTarget.createState();
                     return true;
                 }
@@ -214,7 +214,7 @@ var VisualizationUtils;
             var _a, _b, _c;
             if (Algorithm.resultTarget != undefined) {
                 if (Algorithm.resultTarget.removeVertex(v)) {
-                    Algorithm.graphChangeCallBack();
+                    Algorithm.onGraphChanged();
                     (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.graph.removeVertex(v); //change the graph directly
                     (_b = Algorithm.visualizationTarget) === null || _b === void 0 ? void 0 : _b.graphWindow.updateSimulation();
                     (_c = Algorithm.visualizationTarget) === null || _c === void 0 ? void 0 : _c.createState();
@@ -223,7 +223,7 @@ var VisualizationUtils;
             }
             else if (Algorithm.visualizationTarget != undefined) {
                 if (Algorithm.visualizationTarget.removeVertex(v)) {
-                    Algorithm.graphChangeCallBack();
+                    Algorithm.onGraphChanged();
                     Algorithm.visualizationTarget.createState();
                     return true;
                 }
@@ -234,7 +234,7 @@ var VisualizationUtils;
             var _a, _b, _c;
             if (Algorithm.resultTarget != undefined) {
                 if (Algorithm.resultTarget.addEdge(from, to)) {
-                    Algorithm.graphChangeCallBack();
+                    Algorithm.onGraphChanged();
                     (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.graph.addEdge(from, to); //change the graph directly
                     (_b = Algorithm.visualizationTarget) === null || _b === void 0 ? void 0 : _b.graphWindow.updateSimulation();
                     (_c = Algorithm.visualizationTarget) === null || _c === void 0 ? void 0 : _c.createState();
@@ -243,7 +243,7 @@ var VisualizationUtils;
             }
             else if (Algorithm.visualizationTarget != undefined) {
                 if (Algorithm.visualizationTarget.addEdge(from, to)) {
-                    Algorithm.graphChangeCallBack();
+                    Algorithm.onGraphChanged();
                     Algorithm.visualizationTarget.createState();
                     return true;
                 }
@@ -254,7 +254,7 @@ var VisualizationUtils;
             var _a, _b, _c;
             if (Algorithm.resultTarget != undefined) {
                 if (Algorithm.resultTarget.removeEdge(from, to)) {
-                    Algorithm.graphChangeCallBack();
+                    Algorithm.onGraphChanged();
                     (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.graph.removeEdge(from, to); //change the graph directly
                     (_b = Algorithm.visualizationTarget) === null || _b === void 0 ? void 0 : _b.graphWindow.updateSimulation();
                     (_c = Algorithm.visualizationTarget) === null || _c === void 0 ? void 0 : _c.createState();
@@ -263,17 +263,15 @@ var VisualizationUtils;
             }
             else if (Algorithm.visualizationTarget != undefined) {
                 if (Algorithm.visualizationTarget.removeEdge(from, to)) {
-                    Algorithm.graphChangeCallBack();
+                    Algorithm.onGraphChanged();
                     Algorithm.visualizationTarget.createState();
                     return true;
                 }
             }
             return false;
         }
-        static graphChangeCallBack() {
-            if (Algorithm.onGraphChange != undefined) {
-                Algorithm.onGraphChange();
-            }
+        static onGraphChanged() {
+            MainApp.instance().setVENumber();
         }
         static setColorGradient(start, end) {
             var _a;

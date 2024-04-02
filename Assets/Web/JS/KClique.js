@@ -136,8 +136,9 @@ var KCliqueAlgorithm;
                     if (cc_.clique <= 1) {
                         for (const cc of cc_.connectedComponents) {
                             for (const v of cc.vertices) {
-                                v.setColor(cc_.color);
-                                v.circle.setAttribute("fill-opacity", "0.5");
+                                const true_v = this.graph.adjacencyList.get(v.id).main;
+                                true_v.setColor(cc_.color);
+                                true_v.circle.setAttribute("fill-opacity", "0.5");
                             }
                         }
                         continue;

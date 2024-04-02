@@ -25,13 +25,17 @@
             <p class="comment">
                 add checked to input to set the default algorithm
             </p>
-            <input type="radio" name="current-algorithm" class="switch" id="kcore-select" value="kcore" checked>
-            <label class="switch text-black" for="kcore-select">
+            <input type="radio" name="current-algorithm" class="switch" id="select-kcore" value="kcore" checked>
+            <label class="switch text-black" for="select-kcore">
                 <span>KCore</span>
             </label>
-            <input type="radio" name="current-algorithm" class="switch" id="kclique-select" value="kclique">
-            <label class="switch text-black" for="kclique-select">
+            <input type="radio" name="current-algorithm" class="switch" id="select-kclique" value="kclique">
+            <label class="switch text-black" for="select-kclique">
                 <span>KClique</span>
+            </label>
+            <input type="radio" name="current-algorithm" class="switch" id="select-kclique-and-kcore" value="kclique-and-kcore">
+            <label class="switch text-black" for="select-kclique-and-kcore">
+                <span>Both</span>
             </label>
         </nav>
         <div class="theme-button">
@@ -96,7 +100,7 @@
                     </li>
                 </ul>
                 <ul id="control-nav">
-                    <li class="expand"><!------------------------------------Algo pop up------------------------------------------->
+                    <li class="expand animation"><!------------------------------------Algo pop up------------------------------------------->
                         <input type="checkbox" id="anime-expand-set" class="switch" checked/>
                         <h3 class="switch text slightly">
                             <label for="anime-expand-set" class="switch">Animation</label>

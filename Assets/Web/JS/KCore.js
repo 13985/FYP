@@ -216,11 +216,12 @@ var KCoreAlgorithm;
                 this.corePolygons[i].dataKey = Graph.MAXIMUM_VERTICES + i;
             }
             if (this.states) {
-                this.states.init().addPolygonKeys(this.corePolygons, this.shellComponents.length);
+                this.states.init();
             }
             else {
-                this.states = new State(this.graph).addPolygonKeys(this.corePolygons, this.shellComponents.length);
+                this.states = new State(this.graph);
             }
+            this.states.addPolygonKeys(this.corePolygons, this.shellComponents.length);
             let currentShell = 0, nextShell = 1;
             let step = 0;
             this.states.localStatePush({ step: step, codeStep: 1, stepDescription: "initization" });
@@ -548,10 +549,11 @@ var KCoreAlgorithm;
                 for (let i = 0; i < this.shellComponents.length; ++i) {
                     this.corePolygons[i].display(true).polygon.setAttribute("fill", `color-mix(in srgb, ${this.shellComponents[i].color.toString()} 30%, var(--main-color1) 70%)`);
                 }
+                //the vertices in cc in this.shell component may belong to other graph
                 for (const sc of this.shellComponents) {
                     for (const cc of sc.connectedComponents) {
                         for (const v of cc.vertices) {
-                            v.setColor(sc.color);
+                            this.graph.adjacencyList.get(v.id).main.setColor(sc.color);
                         }
                     }
                 }
@@ -583,6 +585,7 @@ var KCoreAlgorithm;
         }
         calculateBound() {
             let i = this.corePolygons.length - 1;
+            //the vertices in shell component may point to the other graph not this.graph
             {
                 const cp = this.corePolygons[i];
                 cp.bound.length = 0;

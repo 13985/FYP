@@ -8,27 +8,25 @@ namespace AlgorithmSelect{
     let KCliqueInput:HTMLInputElement;
     let previousCheckedInput:HTMLInputElement;
 
-    let callback:(str:string)=>boolean;
-
-    export function main(callback_:(str:string)=>boolean):void{
-        callback=callback_;
-
+    export function main():void{
         const nav=document.querySelector("nav.algorithm-select") as HTMLElement;
-        kCoreInput=nav.querySelector("input#kcore-select") as HTMLInputElement;
-        KCliqueInput=nav.querySelector("input#kclique-select") as HTMLInputElement;
+        kCoreInput=nav.querySelector("input#select-kcore") as HTMLInputElement;
+        KCliqueInput=nav.querySelector("input#select-kclique") as HTMLInputElement;
+        const KKInput=nav.querySelector("input#select-kclique-and-kcore") as HTMLInputElement;
 
         addInputEventListener(kCoreInput);
         addInputEventListener(KCliqueInput);
+        addInputEventListener(KKInput);
     }
 
     function addInputEventListener(input:HTMLInputElement){
         if(input.checked){
-            callback(input.value);
+            MainApp.instance().tryChangeAlgo(input.value);
             previousCheckedInput=input;
         }
 
         input.addEventListener("input",():void=>{
-            if(input.checked&&callback(input.value)){
+            if(input.checked&&MainApp.instance().tryChangeAlgo(input.value)){
                 previousCheckedInput=input;
             }else{
                 input.checked=false;
@@ -63,71 +61,231 @@ namespace VertexGradient{
     export const end:Color=new Color(255,0,0);
 }
 
+//class supports readonly so it is class
+class MainApp{
+    private static _instance:MainApp;
 
-namespace Main{
-    
-}
+    public static create():MainApp{
+        GraphWindow.main();//must call before new MainApp(), since MainApp use GraphWindow
+        MainApp._instance=new MainApp();
+        AlgorithmSelect.main();
+        return MainApp._instance;
+    }
 
+    public static instance():MainApp{
+        return MainApp._instance;
+    }
 
-window.onload=():void=>{
-    GraphWindow.main();
-    
     /**************************************************Vertex expand****************************************************/
-    const vertexExpandInput:HTMLInputElement=<HTMLInputElement>document.getElementById("vertex-expand-input");
-    const vertexSetColor:HTMLInputElement=<HTMLInputElement>document.getElementById("vertex-set-color");
-    const vertexUpdateSelect:HTMLSelectElement=<HTMLSelectElement>document.getElementById("vertex-update");
-    const vertexUpdateButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("vertex-update-button");
+    private readonly vertexExpandInput:HTMLInputElement;
+    private readonly vertexSetColor:HTMLInputElement;
+    private readonly vertexUpdateSelect:HTMLSelectElement;
+    private readonly vertexUpdateButton:HTMLButtonElement;
     
     /****************************************************Graph expand**************************************************/
-    const fileInput:HTMLInputElement=<HTMLInputElement>document.getElementById("graphupload");
-    const graphUploadButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("graph-upload-button");
-    const graphStatusP:HTMLParagraphElement=<HTMLParagraphElement>document.getElementById("graph-VE-status");
+    private readonly fileInput:HTMLInputElement;
+    private readonly graphUploadButton:HTMLButtonElement;
+    private readonly graphStatusP:HTMLParagraphElement;
     
     /****************************************************edge expand *****************************************************/
-    const edgeUpdateSelect:HTMLSelectElement=<HTMLSelectElement>document.getElementById("edge-update");
-    const edgeexpandInput:HTMLInputElement=<HTMLInputElement>document.getElementById("edge-expand-input");
-    const edgeUpdateButton:HTMLButtonElement=<HTMLButtonElement>document.getElementById("edge-update-button");
-    const edgeEditMode:HTMLInputElement=<HTMLInputElement>document.getElementById("edge-edit-mode");
+    private readonly edgeUpdateSelect:HTMLSelectElement;
+    private readonly edgeexpandInput:HTMLInputElement;
+    private readonly edgeUpdateButton:HTMLButtonElement;
+    private readonly edgeEditMode:HTMLInputElement;
 
-    /****************************************************Algo expand **********************************************/
-    {
+    /**************************************************Animation expand****************************************************/
+    private readonly animationExpand:HTMLLIElement;
+
+
+    private readonly graph:Graph;
+    private readonly resultGraph:Graph;
+    
+    private readonly gw:GraphWindow;
+    private readonly resultGW:GraphWindow;
+    
+    private readonly kCore:KCoreAlgorithm.KCore;
+    private readonly resultKCore:KCoreAlgorithm.KCore;
+
+    private readonly kClique:KCliqueAlgorithm.KClique;
+    private readonly resultKClique:KCliqueAlgorithm.KClique;
+
+
+    private constructor(){
+        /**************************************************Vertex expand****************************************************/
+        this.vertexExpandInput=<HTMLInputElement>document.getElementById("vertex-expand-input");
+        this.vertexSetColor=<HTMLInputElement>document.getElementById("vertex-set-color");
+        this.vertexUpdateSelect=<HTMLSelectElement>document.getElementById("vertex-update");
+        this.vertexUpdateButton=<HTMLButtonElement>document.getElementById("vertex-update-button");
+        
+        /****************************************************Graph expand**************************************************/
+        this.fileInput=<HTMLInputElement>document.getElementById("graphupload");
+        this.graphUploadButton=<HTMLButtonElement>document.getElementById("graph-upload-button");
+        this.graphStatusP=<HTMLParagraphElement>document.getElementById("graph-VE-status");
+        
+        /****************************************************edge expand *****************************************************/
+        this.edgeUpdateSelect=<HTMLSelectElement>document.getElementById("edge-update");
+        this.edgeexpandInput=<HTMLInputElement>document.getElementById("edge-expand-input");
+        this.edgeUpdateButton=<HTMLButtonElement>document.getElementById("edge-update-button");
+        this.edgeEditMode=<HTMLInputElement>document.getElementById("edge-edit-mode");
+
+        /****************************************************Algo expand **********************************************/
         const visualizationControl:FloatingPanel=new FloatingPanel("#video-control",<HTMLInputElement>document.getElementById("show-video-control"));
         const statePanel:FloatingPanel=new FloatingPanel("#state-panel",<HTMLInputElement>document.getElementById("show-algo-state"));
         VisualizationUtils.Algorithm.setVisualizationVideoControl(visualizationControl);
         VisualizationUtils.Algorithm.setVisualizationControl(<HTMLButtonElement>document.getElementById("run-algo"),<HTMLButtonElement>document.getElementById("stop-algo"));
         VisualizationUtils.Algorithm.setStateDisplayPanel(statePanel);
+
+        this.animationExpand=document.querySelector("li.expand.animation") as HTMLLIElement;
+
+        this.graph=new Graph();
+        this.resultGraph=new Graph();
+        
+        this.gw=new GraphWindow(this.graph).setWH(30,500);
+        this.resultGW=new GraphWindow(this.resultGraph).setWH(450,500);
+        
+        this.kCore=new KCoreAlgorithm.KCore(this.graph,this.gw.innerSVG as SVGSVGElement,this.gw);
+        this.resultKCore=new KCoreAlgorithm.KCore(this.resultGraph,this.resultGW.innerSVG as SVGSVGElement,this.resultGW);
+        {
+            const fromShell:HTMLSelectElement=<HTMLSelectElement>document.getElementById("from-shell-value");
+            const toShell:HTMLSelectElement=<HTMLSelectElement>document.getElementById("to-shell-value");
+            this.kCore.setSelects(fromShell,toShell);
+        }
+
+        this.gw.setVertexDragStartCallback((v:Vertex):void=>{
+            this.vertexExpandInput.value=v.id.toString();
+            this.vertexSetColor.value=v.getColorHexa();
+        });
+        //gw.display(false);
+        this.resultKCore.setVisualElementsColor(false);
+
+        this.kClique=new KCliqueAlgorithm.KClique(this.graph,this.gw.innerSVG as SVGSVGElement,this.gw);
+        this.resultKClique=new KCliqueAlgorithm.KClique(this.resultGraph,this.resultGW.innerSVG as SVGSVGElement,this.resultGW);
+
+        /****************************************************Graph expand***************************************************/
+
+        this.graphUploadButton.addEventListener("click",():void=>{
+            if(this.fileInput.files==null||this.fileInput.files.length<=0){
+                return;
+            }
+            else if(VisualizationUtils.Algorithm.isVisualizing()){return;}
+            const f:File=this.fileInput.files[0];
+            (f as Blob).text().then((value:string):void=>{
+                this.loadGraph(value);
+                this.fileInput.value="";
+            },null).catch((reason:any):void=>{
+                console.log(reason);
+            });
+        });
+
+        /****************************************************Vertex expand**************************************************/
+
+        this.vertexUpdateSelect.addEventListener("input",()=>{
+            this.vertexSetColor.style.display=this.vertexUpdateSelect.value=="color"?"block":"none";
+        });
+
+
+        this.vertexExpandInput.addEventListener("change",()=>{
+            if(this.vertexExpandInput.value.length==0){
+                return;
+            }
+            const theVertex:number=parseInt(this.vertexExpandInput.value);
+            switch(this.vertexUpdateSelect.value){
+                case "color":{
+                const vl:VerticeList|undefined=this.graph.adjacencyList.get(theVertex);
+                if(vl==undefined){
+                    break;
+                }
+                this.vertexSetColor.value=vl.main.getColorHexa();
+                break;
+            }
+            case "create":
+            case "remove":
+                break;
+            }
+        });
+
+
+        this.vertexUpdateButton.addEventListener("click",()=>{
+            if(this.vertexExpandInput.value.length==0){
+                return;
+            }
+            const theVertex:number=parseInt(this.vertexExpandInput.value);
+            switch(this.vertexUpdateSelect.value){
+            case "create":{
+                graphHasUpdated=VisualizationUtils.Algorithm.addVertex(theVertex);
+                break;
+            }
+            case "remove":{
+                graphHasUpdated=VisualizationUtils.Algorithm.removeVertex(theVertex);
+                break;
+            }
+            case "color":
+                const vl:VerticeList|undefined=this.graph.adjacencyList.get(theVertex);
+                if(vl==undefined){
+                    break;
+                }
+                vl.main.setColorString(this.vertexSetColor.value);
+                break;
+            }
+        });
+
+        /****************************************************edge expand *****************************************************/
+ 
+        this.edgeEditMode.addEventListener("input",():void=>{
+            this.resultGW.pressToAddEdge(this.edgeEditMode.checked);
+            this.setEditAction();
+        });
+
+
+        this.edgeUpdateButton.addEventListener("click",()=>{
+            if(this.edgeexpandInput.value.length==0){
+                return;
+            }
+            const edgeFormat:RegExp=/(\d+\s?,\s?\d+\s?)/g;
+            const edgesString:string[]=this.edgeexpandInput.value.split(edgeFormat);
+
+            switch(this.edgeUpdateSelect.value){
+            case "create":{
+                for(const str of edgesString){
+                    const numbers:string[]=str.split(/(\d+)/g);
+                    const from:number=parseInt(numbers[0]);
+                    const to:number=parseInt(numbers[0]);
+                    graphHasUpdated=graphHasUpdated||VisualizationUtils.Algorithm.addEdge(from,to);
+                }
+                break;
+            }
+            case "remove":{
+                for(const str of edgesString){
+                    const numbers:string[]=str.split(/(\d+)/g);
+                    const from:number=parseInt(numbers[0]);
+                    const to:number=parseInt(numbers[0]);
+                    graphHasUpdated=graphHasUpdated||VisualizationUtils.Algorithm.removeEdge(from,to);
+                }
+                break;
+            }
+            }
+        });
+
+        this.edgeUpdateSelect.addEventListener("input",()=>{
+            this.vertexSetColor.style.display=this.vertexUpdateSelect.value=="color"?"block":"none";
+            this.setEditAction();
+        });
+
     }
-    
-    const graph:Graph=new Graph();
-    const resultGraph:Graph=new Graph();
-    
-    const gw:GraphWindow=new GraphWindow(graph).setWH(30,500);
-    const resultGW:GraphWindow=new GraphWindow(resultGraph).setWH(450,500);
-    
-    const kCore:KCoreAlgorithm.KCore=new KCoreAlgorithm.KCore(graph,gw.innerSVG as SVGSVGElement,gw);
-    const resultKCore:KCoreAlgorithm.KCore=new KCoreAlgorithm.KCore(resultGraph,resultGW.innerSVG as SVGSVGElement,resultGW);
-    {
-        const fromShell:HTMLSelectElement=<HTMLSelectElement>document.getElementById("from-shell-value");
-        const toShell:HTMLSelectElement=<HTMLSelectElement>document.getElementById("to-shell-value");
-        kCore.setSelects(fromShell,toShell);
-    }
-
-    const kClique:KCliqueAlgorithm.KClique=new KCliqueAlgorithm.KClique(graph,gw.innerSVG as SVGSVGElement,gw);
-    const resultKClique:KCliqueAlgorithm.KClique=new KCliqueAlgorithm.KClique(resultGraph,resultGW.innerSVG as SVGSVGElement,resultGW);
 
 
-    function tryChangeAlgo(str:string):boolean{
+    public tryChangeAlgo(str:string):boolean{
         if(VisualizationUtils.Algorithm.isVisualizing()){return false;}
 
-        resultKCore.displayPolygons(false);
-        resultGraph.resetVisualElements();
-        graph.resetVisualElements();
+        this.resultKCore.displayPolygons(false);
+        this.resultGraph.resetVisualElements();
+        this.graph.resetVisualElements();
 
-        function helper(vt:VisualizationUtils.Algorithm,rt:VisualizationUtils.Algorithm):void{
+        const helper=(vt:VisualizationUtils.Algorithm,rt:VisualizationUtils.Algorithm):void=>{
             VisualizationUtils.Algorithm.changeAlgorithm(vt,rt);
             if(graphHasUpdated){
-                gw.resetContainerTransform().updateSimulation();
-                resultGW.resetContainerTransform().updateSimulation();
+                this.gw.resetContainerTransform().updateSimulation();
+                this.resultGW.resetContainerTransform().updateSimulation();
                 rt.createIndexStructure().setColorGradient(VertexGradient.start,VertexGradient.end).setVisualElementsColor(false);
                 vt.setIndexStructure(rt).createState().setVisualElementsColor(true);
                 graphHasUpdated=false;
@@ -137,18 +295,41 @@ window.onload=():void=>{
             }
         }
 
+        this.animationExpand.removeAttribute("style");
         switch(str){
         case "kcore":{
-            helper(kCore,resultKCore);
-            resultKCore.displayPolygons(true);//note they may have the same index structure
-            resultGW.setVertexDragStartCallback(resultKCore.calculateBound.bind(resultKCore));
-            gw.setVertexDragStartCallback(kCore.calculateBound.bind(kCore));
+            helper(this.kCore,this.resultKCore);
+            this.resultKCore.displayPolygons(true);//note they may have the same index structure
+            this.resultGW.setVertexDragStartCallback(this.resultKCore.calculateBound.bind(this.resultKCore));
+            this.gw.setVertexDragStartCallback(this.kCore.calculateBound.bind(this.kCore));
             break;
         }
         case "kclique":{
-            helper(kClique,resultKClique);
-            resultGW.setVertexDragStartCallback(undefined);
-            gw.setVertexDragStartCallback(undefined);
+            helper(this.kClique,this.resultKClique);
+            this.kCore.displayPolygons(false);
+            this.resultGW.setVertexDragStartCallback(undefined);
+            this.gw.setVertexDragStartCallback(undefined);
+            break;
+        }
+        case "kclique-and-kcore":{
+            this.animationExpand.setAttribute("style","display:none;");
+            if(graphHasUpdated){
+                if(VisualizationUtils.Algorithm.VisualizationTarget()==this.kCore){
+                    this.resultKClique.createIndexStructure().setColorGradient(VertexGradient.start,VertexGradient.end);
+                    this.kClique.setIndexStructure(this.resultKClique).createState();
+                }else{
+                    this.resultKCore.createIndexStructure().setColorGradient(VertexGradient.start,VertexGradient.end);
+                    this.kCore.setIndexStructure(this.resultKCore).createState();
+                }
+                graphHasUpdated=false;
+            }
+            //the left graph window is associated with this.kCore/this.kClique
+            //the right graph window is associated with this.resultkCore/this.resultKClique
+            VisualizationUtils.Algorithm.changeAlgorithm(this.kCore,this.resultKClique);
+            this.gw.setVertexDragStartCallback(this.kCore.calculateBound.bind(this.kCore));
+            this.resultGW.setVertexDragStartCallback(undefined);
+            this.kCore.setVisualElementsColor(false);
+            this.resultKClique.setVisualElementsColor(false);
             break;
         }
         default:{
@@ -159,51 +340,21 @@ window.onload=():void=>{
         return true;
     }
 
-    gw.setVertexDragStartCallback((v:Vertex):void=>{
-        vertexExpandInput.value=v.id.toString();
-        vertexSetColor.value=v.getColorHexa();
-    });
-    //gw.display(false);
-    resultKCore.showDefaultColor=false;
-
-    AlgorithmSelect.main(tryChangeAlgo);
-    setThemeToggle();
-
-    //set the callback when add/remove vertex/edge successfully
-    VisualizationUtils.Algorithm.onGraphChange=():void=>{
-        setVENumber();
-    }
-
     /****************************************************Graph expand**************************************************/
 
-    graphUploadButton.addEventListener("click",():void=>{
-        if(fileInput.files==null||fileInput.files.length<=0){
-            return;
-        }
-        else if(VisualizationUtils.Algorithm.isVisualizing()){return;}
-        const f:File=fileInput.files[0];
-        (f as Blob).text().then((value:string):void=>{
-            loadGraph(value);
-            fileInput.value="";
-        },null).catch((reason:any):void=>{
-            console.log(reason);
-        });
-    });
-    
-    
-    function setVENumber():void{
-        graphStatusP.innerHTML=`|V|: ${graph.vertices.length}<br>|E|: ${graph.edges.length}`;
+    public setVENumber():void{
+        this.graphStatusP.innerHTML=`|V|: ${this.graph.vertices.length}<br>|E|: ${this.graph.edges.length}`;
     }
 
 
-    function loadGraph(edgeList:string):void{
-        graph.clear(true);
-        graph.from(edgeList);
-        gw.resetContainerTransform().updateSimulation();
-        setVENumber();
+    public loadGraph(edgeList:string):void{
+        this.graph.clear(true);
+        this.graph.from(edgeList);
+        this.gw.resetContainerTransform().updateSimulation();
+        this.setVENumber();
         
-        graph.copyTo(resultGraph.clear(true));
-        resultGW.resetContainerTransform().updateSimulation();
+        this.graph.copyTo(this.resultGraph.clear(true));
+        this.resultGW.resetContainerTransform().updateSimulation();
 
         VisualizationUtils.Algorithm.loadUpdatedGraph();
         const rt:VisualizationUtils.Algorithm|undefined=VisualizationUtils.Algorithm.ResultTarget();
@@ -217,115 +368,23 @@ window.onload=():void=>{
         graphHasUpdated=true;
     }
 
-    /****************************************************Vertex expand**************************************************/
 
-    vertexUpdateSelect.addEventListener("input",()=>{
-        vertexSetColor.style.display=vertexUpdateSelect.value=="color"?"block":"none";
-    });
-
-
-    vertexExpandInput.addEventListener("change",()=>{
-        if(vertexExpandInput.value.length==0){
-            return;
-        }
-        const theVertex:number=parseInt(vertexExpandInput.value);
-        switch(vertexUpdateSelect.value){
-            case "color":{
-            const vl:VerticeList|undefined=graph.adjacencyList.get(theVertex);
-            if(vl==undefined){
-                break;
-            }
-            vertexSetColor.value=vl.main.getColorHexa();
-            break;
-        }
+    private setEditAction():void{
+        switch(this.edgeUpdateSelect.value){
         case "create":
-        case "remove":
-            break;
-        }
-    });
-
-
-    vertexUpdateButton.addEventListener("click",()=>{
-        if(vertexExpandInput.value.length==0){
-            return;
-        }
-        const theVertex:number=parseInt(vertexExpandInput.value);
-        switch(vertexUpdateSelect.value){
-        case "create":{
-            graphHasUpdated=VisualizationUtils.Algorithm.addVertex(theVertex);
-            break;
-        }
-        case "remove":{
-            graphHasUpdated=VisualizationUtils.Algorithm.removeVertex(theVertex);
-            break;
-        }
-        case "color":
-            const vl:VerticeList|undefined=graph.adjacencyList.get(theVertex);
-            if(vl==undefined){
-                break;
-            }
-            vl.main.setColorString(vertexSetColor.value);
-            break;
-        }
-    });
-
-    /****************************************************edge expand *****************************************************/
-
-    function setEditAction():void{
-        switch(edgeUpdateSelect.value){
-        case "create":
-            resultGW.isCreateEdge=true;
+            this.resultGW.isCreateEdge=true;
             break;
         case "remove":
-            resultGW.isCreateEdge=false;
+            this.resultGW.isCreateEdge=false;
             break;
         }
     }
-
-    edgeUpdateSelect.addEventListener("input",()=>{
-        vertexSetColor.style.display=vertexUpdateSelect.value=="color"?"block":"none";
-        setEditAction();
-    });
-    
-
-    edgeEditMode.addEventListener("input",():void=>{
-        resultGW.pressToAddEdge(edgeEditMode.checked);
-        setEditAction();
-    });
+}
 
 
-    edgeUpdateButton.addEventListener("click",()=>{
-        if(edgeexpandInput.value.length==0){
-            return;
-        }
-        const edgeFormat:RegExp=/(\d+\s?,\s?\d+\s?)/g;
-        const edgesString:string[]=edgeexpandInput.value.split(edgeFormat);
-
-        switch(edgeUpdateSelect.value){
-        case "create":{
-            for(const str of edgesString){
-                const numbers:string[]=str.split(/(\d+)/g);
-                const from:number=parseInt(numbers[0]);
-                const to:number=parseInt(numbers[0]);
-                graphHasUpdated=graphHasUpdated||VisualizationUtils.Algorithm.addEdge(from,to);
-            }
-            break;
-        }
-        case "remove":{
-            for(const str of edgesString){
-                const numbers:string[]=str.split(/(\d+)/g);
-                const from:number=parseInt(numbers[0]);
-                const to:number=parseInt(numbers[0]);
-                graphHasUpdated=graphHasUpdated||VisualizationUtils.Algorithm.removeEdge(from,to);
-            }
-            break;
-        }
-        }
-    });
-
-    /******************************************************after initialization************************************/
-
-    loadGraph("0 1\r\n\
+window.onload=():void=>{
+    setThemeToggle();
+    MainApp.create().loadGraph("0 1\r\n\
     1 2\r\n\
     1 14\r\n\
     1 15\r\n\
