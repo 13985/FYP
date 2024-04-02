@@ -124,7 +124,7 @@ namespace KCoreAlgorithm{
             return this;
         }
         public setPolygonShow():this{
-            this.shell=-1;
+            this.shell=1;
             return this;
         }
     }
@@ -155,10 +155,10 @@ namespace KCoreAlgorithm{
         }
 
 
-        public addPolygonKeys(corePolygons:CorePolygon[]):this{
+        public addPolygonKeys(corePolygons:CorePolygon[],trueLength:number):this{
             const base:number=this.dataKeys.length;
-            this.dataKeys.length=base+corePolygons.length;
-            for(let i:number=0;i<corePolygons.length;++i){
+            this.addAdditionalDataKets(trueLength);
+            for(let i:number=0;i<trueLength;++i){
                 const theKey:number=corePolygons[i].dataKey;
                 if(this.dataStates.has(theKey)){
                     throw new Error("polygon key same as vertice id");
@@ -286,9 +286,9 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             }
 
             if(this.states){
-                this.states.init().addPolygonKeys(this.corePolygons);
+                this.states.init().addPolygonKeys(this.corePolygons,this.shellComponents.length);
             }else{
-                this.states=new State(this.graph).addPolygonKeys(this.corePolygons);
+                this.states=new State(this.graph).addPolygonKeys(this.corePolygons,this.shellComponents.length);
             }
             let currentShell=0,nextShell=1;
             let step:number=0;
@@ -611,7 +611,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                 (vertex.text as SVGTextElement).innerHTML=ds.text;
             }
 
-            for(let i:number=0;i<this.corePolygons.length;++i){
+            for(let i:number=0;i<this.shellComponents.length;++i){
                 this.corePolygons[i].display(vertexStates[i+this.graph.vertices.length].canPolygonShow());
             }
 
@@ -633,12 +633,12 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                 for(const v of this.graph.vertices){
                     (v.circle as SVGCircleElement).setAttribute("fill","var(--reverse-color2)");
                 }
-                for(const cp of this.corePolygons){
-                    cp.display(false);
+                for(let i:number=0;i<this.shellComponents.length;++i){
+                    this.corePolygons[i].display(false);
                 }
             }else{
-                for(const cp of this.corePolygons){
-                    cp.display(true);
+                for(let i:number=0;i<this.shellComponents.length;++i){
+                    this.corePolygons[i].display(true).polygon.setAttribute("fill",`color-mix(in srgb, ${this.shellComponents[i].color.toString()} 30%, var(--main-color1) 70%)`);
                 }
                 for(const sc of this.shellComponents){
                     for(const cc of sc.connectedComponents){
@@ -682,19 +682,16 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
 
         public calculateBound():this{
             let i:number=this.corePolygons.length-1;
+            //the vertices in shell component may point to the other graph not this.graph
             {
                 const cp:CorePolygon=this.corePolygons[i];
                 cp.bound.length=0;
-                if(cp.isShowing()){
-                    ConvesHull.Solve(cp,this.shellComponents[i],this.svgContainer);
-                }
+                ConvesHull.Solve(cp,this.shellComponents[i],this.graph,this.svgContainer);
             }
             for(--i;i>=0;--i){
                 const cp:CorePolygon=this.corePolygons[i];
                 cp.bound.length=0;
-                if(cp.isShowing()){
-                    ConvesHull.Solve(cp,this.shellComponents[i],this.svgContainer,this.corePolygons[i+1].bound)
-                }
+                ConvesHull.Solve(cp,this.shellComponents[i],this.graph,this.svgContainer,this.corePolygons[i+1].bound)
             }
             return this;
         }
@@ -1026,7 +1023,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                      * GraphWindow will append two g to its allG and its allG is the polygonsContainer of this,
                      * so query the first g and insert before it
                      */
-                    this.polygonsContainer.insertBefore(this.polygonsContainer.querySelector("g") as SVGGElement,p);
+                    this.polygonsContainer.insertBefore(p,this.polygonsContainer.querySelector("g") as SVGGElement);
                     const coreP:CorePolygon=new CorePolygon(p).display(this.showDefaultColor);
                     this.corePolygons.push(coreP);
                 }
@@ -1130,14 +1127,16 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
         /**
          * @returns number of vertices in bound
          */
-        public static Solve(cp:CorePolygon,sc:ShellComponet,svg:SVGSVGElement,otherBound?:Vertex[]):number{
+        public static Solve(cp:CorePolygon,sc:ShellComponet,graph:Graph,svg:SVGSVGElement,otherBound?:Vertex[]):number{
             const verticesBuffer:Vertex[]=ConvesHull.verticesBuffer;
             verticesBuffer.length=0;
             if(otherBound!=undefined){
                 Array.prototype.push.apply(verticesBuffer,otherBound);
             }
             for(const cc of sc.connectedComponents){
-                Array.prototype.push.apply(verticesBuffer,cc.vertices);
+                for(const v of cc.vertices){
+                    verticesBuffer.push((graph.adjacencyList.get(v.id) as VerticeList).main);
+                }
             }
             const polygon:SVGPolygonElement=cp.polygon;
             polygon.points.clear();

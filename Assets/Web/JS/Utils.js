@@ -532,6 +532,12 @@ var VisualizationUtils;
             this.localStates = this.getTreeNode();
             this.localStatesIndex = this.localStates;
         }
+        addAdditionalDataKets(len) {
+            const base = this.dataKeys.length;
+            this.dataKeys.length = base + len;
+            this.dataStatesCurrent.length = base + len;
+            this.dataStatesIndices.length = base + len;
+        }
         init() {
             this.setDataKeys();
             this.dataStatesCurrent.length = this.dataKeys.length;

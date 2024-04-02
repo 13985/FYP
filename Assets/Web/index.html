@@ -25,11 +25,11 @@
             <p class="comment">
                 add checked to input to set the default algorithm
             </p>
-            <input type="radio" name="current-algorithm" class="switch" id="kcore-select" value="kcore">
+            <input type="radio" name="current-algorithm" class="switch" id="kcore-select" value="kcore" checked>
             <label class="switch text-black" for="kcore-select">
                 <span>KCore</span>
             </label>
-            <input type="radio" name="current-algorithm" class="switch" id="kclique-select" value="kclique" checked>
+            <input type="radio" name="current-algorithm" class="switch" id="kclique-select" value="kclique">
             <label class="switch text-black" for="kclique-select">
                 <span>KClique</span>
             </label>
@@ -96,28 +96,8 @@
                     </li>
                 </ul>
                 <ul id="control-nav">
-                    <!--
-                    <li class="expand"><!------------------------------------Camera pop up--------------------------------------------
-                        <input type="checkbox" id="camera-expand-set" class="switch"/>
-                        <div class="switch text slightly">
-                            <label for="camera-expand-set" class="switch">Camera</label>
-                        </div>
-                        <div class="menu indent">
-                            <input type="range" class="nav-li-range" id="zoom-slider" step="0.05">
-                            <input type="number" class="vertices-input nav-li-number" id="zoom-typing" step="0.05">
-                            <hr>
-                            <input type="checkbox" id="camera-move-set">
-                            <label for="camera-move-set">Move</label>
-                            <label for="move-speed-control">Sensitivity</label>
-                            <input type="range" class="nav-li-range" id="move-speed-control" step="0.01">
-                            <hr>
-                            <input type="text" class="vertices-input" id="camera-teleport-input"/>
-                            <button type="button" id="camera-teleport-button" class="nav-li-button">Teleport</button>
-                        </div>
-                    </li>
-                    -->
                     <li class="expand"><!------------------------------------Algo pop up------------------------------------------->
-                        <input type="checkbox" id="anime-expand-set" class="switch"/>
+                        <input type="checkbox" id="anime-expand-set" class="switch" checked/>
                         <h3 class="switch text slightly">
                             <label for="anime-expand-set" class="switch">Animation</label>
                         </h3>
