@@ -95,6 +95,8 @@ class MainApp{
 
     /**************************************************Animation expand****************************************************/
     private readonly animationExpand:HTMLLIElement;
+    private readonly minShellFilter:HTMLSelectElement;
+    private readonly maxShellFilter:HTMLSelectElement;
 
 
     private readonly graph:Graph;
@@ -145,12 +147,11 @@ class MainApp{
         
         this.kCore=new KCoreAlgorithm.KCore(this.graph,this.gw.innerSVG as SVGSVGElement,this.gw);
         this.resultKCore=new KCoreAlgorithm.KCore(this.resultGraph,this.resultGW.innerSVG as SVGSVGElement,this.resultGW);
-        {
-            const fromShell:HTMLSelectElement=<HTMLSelectElement>document.getElementById("from-shell-value");
-            const toShell:HTMLSelectElement=<HTMLSelectElement>document.getElementById("to-shell-value");
-            this.kCore.setSelects(fromShell,toShell);
-        }
 
+        this.minShellFilter=<HTMLSelectElement>document.getElementById("from-shell-value");
+        this.maxShellFilter=<HTMLSelectElement>document.getElementById("to-shell-value");
+        this.kCore.setSelects(this.minShellFilter,this.maxShellFilter);
+        
         this.gw.setVertexDragStartCallback((v:Vertex):void=>{
             this.vertexExpandInput.value=v.id.toString();
             this.vertexSetColor.value=v.getColorHexa();

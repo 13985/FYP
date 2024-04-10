@@ -165,8 +165,9 @@ h3.switch{
 }
 
 
-.panel-content.video-control input.speed-control{
-    margin-right: 2vw;
+.panel-content.video-control div.row-display.aaa.bbb{
+    width: 100%;
+    justify-content: space-between;
 }
 
 
@@ -178,11 +179,11 @@ h3.switch{
 
 .video-control.panel-content .button{
     background-color:transparent;
-    margin: 0 0.2rem;
     width:2.4rem;
 }
 
 
+.video-control.panel-content div.step-display,
 .video-control.panel-content span.speed-text{
     font-size: 1.6rem;
     transition: color 0s;

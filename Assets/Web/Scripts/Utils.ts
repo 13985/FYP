@@ -18,6 +18,9 @@ namespace VisualizationUtils{
 
         export let runButton:HTMLButtonElement;
         export let stopButton:HTMLButtonElement;
+
+        export let currentStepSpan:HTMLSpanElement;
+        export let maxStepSpan:HTMLSpanElement;
     }
 
 
@@ -150,6 +153,9 @@ namespace VisualizationUtils{
             VideoControl.speedControl.min="0.05";
             VideoControl.speedControl.max="5";
             VideoControl.speedControl.step="0.001";
+
+            VideoControl.currentStepSpan=videoControl.contentDiv.querySelector("span.current-step") as HTMLSpanElement;
+            VideoControl.maxStepSpan=videoControl.contentDiv.querySelector("span.max-step") as HTMLSpanElement;
         }
 
 
@@ -413,6 +419,10 @@ namespace VisualizationUtils{
             this.videoControlStatus=VideoControlStatus.randomStep;
         }
 
+
+        protected static setCurrentStep(step:number):void{
+            VideoControl.currentStepSpan.innerText=`${step}`;
+        }
 
         /**
          * @brief clean up

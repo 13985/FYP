@@ -25,11 +25,11 @@
             <p class="comment">
                 add checked to input to set the default algorithm
             </p>
-            <input type="radio" name="current-algorithm" class="switch" id="select-kcore" value="kcore" checked>
+            <input type="radio" name="current-algorithm" class="switch" id="select-kcore" value="kcore">
             <label class="switch text-black" for="select-kcore">
                 <span>KCore</span>
             </label>
-            <input type="radio" name="current-algorithm" class="switch" id="select-kclique" value="kclique">
+            <input type="radio" name="current-algorithm" class="switch" id="select-kclique" value="kclique" checked>
             <label class="switch text-black" for="select-kclique">
                 <span>KClique</span>
             </label>
@@ -92,7 +92,9 @@
                                 <option value="remove">Remove</option>
                                 <option value="create">Create</option>
                             </select>
-                            <input class="vertices-input" id="edge-expand-input" type="text" pattern="(?:\d+\s?,\s?\d+\s?)+" max-length="500"/>
+                            <!--
+                                <input class="vertices-input" id="edge-expand-input" type="text" pattern="(?:\d+\s?,\s?\d+\s?)+" max-length="500"/>
+                            -->
                             <input type="checkbox" id="edge-edit-mode" class="switch"/>
                             <label for="edge-edit-mode" class="switch text">Edit Mode</label>
                             <button type="button" id="edge-update-button" class="button-reverse button">Update</button>
@@ -123,13 +125,18 @@
                                     </div>
                                     <div class="panel-content video-control">
                                         <input type="range" class="progress-bar slider-0" min="0"/>
-                                        <div class="row-display">
+                                        <div class="row-display aaa bbb">
+                                            <div class="step-display">
+                                                <span class="current-step">1000</span>:<span class="max-step">2000</span>
+                                            </div>
                                             <div class="row-display">
                                                 <span class="speed-text">Speed:</span><input type="range" class="speed-control slider-0" min="0" value="1"/>
                                             </div>
-                                            <button type="button" class="button button-reverse previousStep" title="previous step">&lt;&lt;</button>
-                                            <button type="button" class="button button-reverse pause" title="pause/play">&gt;</button>
-                                            <button type="button" class="button button-reverse nextStep" title="next step">&gt;&gt;</button>
+                                            <div>
+                                                <button type="button" class="button button-reverse previousStep" title="previous step">&lt;&lt;</button>
+                                                <button type="button" class="button button-reverse pause" title="pause/play">&gt;</button>
+                                                <button type="button" class="button button-reverse nextStep" title="next step">&gt;&gt;</button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

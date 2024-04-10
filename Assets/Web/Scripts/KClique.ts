@@ -290,8 +290,8 @@ namespace KCliqueAlgorithm{
                 const previous:KCliqueCC[]=this.cliqueComponents[i].connectedComponents;
                 const next:KCliqueCC[]=this.cliqueComponents[j].connectedComponents;
                 
-                for(let a:number=0;a<previous.length;){
-                    for(let b:number=0;b<next.length;++b){
+                for(let b:number=0;b<next.length;++b){
+                    for(let a:number=0;a<previous.length;){
                         this.set.clear();
                         for(const v of previous[a].vertices){
                             this.set.add(v.id);
@@ -332,6 +332,8 @@ namespace KCliqueAlgorithm{
             VisualizationUtils.DescriptionDisplay.clearPanel();
             VisualizationUtils.DescriptionDisplay.codeDescription.innerText=KClique.CODE_DESCRIPTION;
             VisualizationUtils.DescriptionDisplay.setCodes(KClique.PSEUDO_CODES);
+            VisualizationUtils.VideoControl.maxStepSpan.innerText=`${this.states?.maxStep}`;
+            VisualizationUtils.Algorithm.setCurrentStep(0);
         }
 
 
@@ -582,6 +584,7 @@ namespace KCliqueAlgorithm{
             }
             this.states.localStatePop(step);
             this.states.onInitEnd(step);
+            VisualizationUtils.VideoControl.maxStepSpan.innerText=`${this.states.maxStep}`;
             return this;
         }
 
@@ -608,6 +611,7 @@ namespace KCliqueAlgorithm{
             if(this.states==undefined){return;}
             let dataStates:DataState[]|null;
             this.states.resetStep();
+            VisualizationUtils.Algorithm.setCurrentStep(0);
             
             AnimtaionLoop:while(true){
                 const vsc:VisualizationUtils.VideoControlStatus=await this.waitfor();
@@ -636,6 +640,7 @@ namespace KCliqueAlgorithm{
                     this.setAnimationDisplay(dataStates,this.states.getCurrentLocalStates());
                     break;
                 }
+                VisualizationUtils.Algorithm.setCurrentStep(this.states.currentStep);
                 VisualizationUtils.VideoControl.progressBar.valueAsNumber=this.states.currentStep;
             }
 

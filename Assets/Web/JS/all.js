@@ -94,11 +94,9 @@ class MainApp {
         this.resultGW = new GraphWindow(this.resultGraph).setWH(450, 500);
         this.kCore = new KCoreAlgorithm.KCore(this.graph, this.gw.innerSVG, this.gw);
         this.resultKCore = new KCoreAlgorithm.KCore(this.resultGraph, this.resultGW.innerSVG, this.resultGW);
-        {
-            const fromShell = document.getElementById("from-shell-value");
-            const toShell = document.getElementById("to-shell-value");
-            this.kCore.setSelects(fromShell, toShell);
-        }
+        this.minShellFilter = document.getElementById("from-shell-value");
+        this.maxShellFilter = document.getElementById("to-shell-value");
+        this.kCore.setSelects(this.minShellFilter, this.maxShellFilter);
         this.gw.setVertexDragStartCallback((v) => {
             this.vertexExpandInput.value = v.id.toString();
             this.vertexSetColor.value = v.getColorHexa();

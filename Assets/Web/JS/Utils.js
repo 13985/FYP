@@ -124,6 +124,8 @@ var VisualizationUtils;
             VideoControl.speedControl.min = "0.05";
             VideoControl.speedControl.max = "5";
             VideoControl.speedControl.step = "0.001";
+            VideoControl.currentStepSpan = videoControl.contentDiv.querySelector("span.current-step");
+            VideoControl.maxStepSpan = videoControl.contentDiv.querySelector("span.max-step");
         }
         static setStateDisplayPanel(panel) {
             DescriptionDisplay.main(panel);
@@ -338,6 +340,9 @@ var VisualizationUtils;
                     onEnd();
                 }
             });
+        }
+        static setCurrentStep(step) {
+            VideoControl.currentStepSpan.innerText = `${step}`;
         }
         /**
          * @brief clean up

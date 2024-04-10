@@ -206,9 +206,20 @@ var KCoreAlgorithm;
             return this;
         }
         onRegisterSelf() {
+            var _a, _b, _c;
             VisualizationUtils.DescriptionDisplay.clearPanel();
             VisualizationUtils.DescriptionDisplay.codeDescription.innerText = KCore.CODE_DESCRIPTION;
             VisualizationUtils.DescriptionDisplay.setCodes(KCore.PSEUDO_CODES);
+            (_a = this.minOption) === null || _a === void 0 ? void 0 : _a.classList.toggle("hide", false);
+            (_b = this.maxOption) === null || _b === void 0 ? void 0 : _b.classList.toggle("hide", false);
+            VisualizationUtils.VideoControl.maxStepSpan.innerText = `${(_c = this.states) === null || _c === void 0 ? void 0 : _c.maxStep}`;
+            VisualizationUtils.Algorithm.setCurrentStep(0);
+        }
+        onUnregisterSelf() {
+            var _a, _b;
+            super.onRegisterSelf();
+            (_a = this.minOption) === null || _a === void 0 ? void 0 : _a.classList.toggle("hide", true);
+            (_b = this.maxOption) === null || _b === void 0 ? void 0 : _b.classList.toggle("hide", true);
         }
         createState() {
             this.ensurePolygons().clearHelpers();
@@ -305,6 +316,7 @@ var KCoreAlgorithm;
             this.states.localStatePop(step);
             this.states.onInitEnd(step);
             this.refreshSelect();
+            VisualizationUtils.VideoControl.maxStepSpan.innerText = `${this.states.maxStep}`;
             return this;
         }
         createIndexStructure() {
@@ -325,10 +337,18 @@ var KCoreAlgorithm;
                 this.vertexToInfo.set(vl.main.id, new ConnectedComponetInfo(0, 0));
             });
             while (true) {
+                if (this.set1.length <= 0 && this.set0.length <= 0) {
+                    break;
+                }
+                const sc = new ShellComponet();
+                sc.connectedComponents.push(KCoreCC.POOL.get());
+                sc.shell = currentShell;
+                this.shellComponents.push(sc);
                 while (this.set0.length > 0) {
                     const v_id = this.set0.pop();
                     const vl = this.graph.adjacencyList.get(v_id);
                     this.vertexToInfo.get(v_id).shell = currentShell;
+                    sc.connectedComponents[0].vertices.push(vl.main);
                     for (const neighbor of vl.others) {
                         let degree = this.degrees.get(neighbor);
                         if (degree < 0) {
@@ -362,31 +382,20 @@ var KCoreAlgorithm;
                     }
                 }
             }
-            this.shellComponents.length = currentShell + 1;
-            for (let i = currentShell; i >= 0; --i) {
-                const sc = new ShellComponet();
-                this.shellComponents[i] = sc;
-                sc.shell = i;
-            }
             this.degrees.clear();
-            this.unionFind.flatten();
-            for (let node = 0; node < this.unionFind.parents.length; ++node) {
-                if (node != this.unionFind.parents[node])
-                    continue;
-                const info = this.vertexToInfo.get(node);
-                const sc = this.shellComponents[info.shell].connectedComponents;
-                const cc = KCoreCC.POOL.get();
-                cc.shell = info.shell;
-                info.index = sc.length;
-                cc.vertices.push(this.graph.adjacencyList.get(node).main);
-                sc.push(cc);
-            }
-            for (let node = 0; node < this.unionFind.parents.length; ++node) {
-                if (node == this.unionFind.parents[node])
-                    continue;
-                const parentInfo = this.vertexToInfo.get(this.unionFind.parents[node]);
-                this.shellComponents[parentInfo.shell].connectedComponents[parentInfo.index].vertices.push(this.graph.adjacencyList.get(node).main);
-                this.vertexToInfo.get(node).index = parentInfo.index;
+            for (const sc of this.shellComponents) {
+                const theCC = sc.connectedComponents[0];
+                sc.connectedComponents.length = 0;
+                for (const v of theCC.vertices) {
+                    if (this.degrees.has(v.id)) {
+                        continue;
+                    }
+                    const newCC = KCoreCC.POOL.get();
+                    newCC.shell = sc.shell;
+                    this.findConnected(v, newCC, sc.connectedComponents.length);
+                    sc.connectedComponents.push(newCC);
+                }
+                KCoreCC.POOL.release(theCC);
             }
             this.ensurePolygons().calculateBound();
             return this;
@@ -412,8 +421,12 @@ var KCoreAlgorithm;
                     dataStates = this.states.randomStep(minStep);
                     VisualizationUtils.VideoControl.progressBar.valueAsNumber = minStep;
                     this.setAnimationDisplay(dataStates, this.states.getCurrentLocalStates());
+                    VisualizationUtils.VideoControl.currentStepSpan.innerText = `${minStep}`;
                 }
-                AnimtaionLoop: while (true) {
+                else {
+                    VisualizationUtils.VideoControl.currentStepSpan.innerText = `0`;
+                }
+                AnimtaionLoop: while (this.states.currentStep <= maxStep) {
                     const vsc = yield this.waitfor();
                     switch (vsc) {
                         case 4 /* VisualizationUtils.VideoControlStatus.stop */:
@@ -440,10 +453,8 @@ var KCoreAlgorithm;
                             this.setAnimationDisplay(dataStates, this.states.getCurrentLocalStates());
                             break;
                     }
+                    VisualizationUtils.Algorithm.setCurrentStep(this.states.currentStep);
                     VisualizationUtils.VideoControl.progressBar.valueAsNumber = this.states.currentStep;
-                    if (this.states.currentStep > maxStep) {
-                        break AnimtaionLoop;
-                    }
                 }
                 for (const v of this.graph.vertices) {
                     const circle = v.circle;
@@ -577,14 +588,13 @@ var KCoreAlgorithm;
             displayVerticesInRange(max + 1, this.shellComponents.length, false);
         }
         displayPolygons(show) {
-            const value = show ? "visible" : "hidden";
-            for (const cp of this.corePolygons) {
-                cp.polygon.setAttribute("visibility", value);
+            for (let i = 0; i < this.shellComponents.length; i++) {
+                this.corePolygons[i].display(show);
             }
             return this;
         }
         calculateBound() {
-            let i = this.corePolygons.length - 1;
+            let i = this.shellComponents.length - 1;
             //the vertices in shell component may point to the other graph not this.graph
             {
                 const cp = this.corePolygons[i];
@@ -710,7 +720,7 @@ var KCoreAlgorithm;
             this.clearHelpers();
             const MAX_DEGREE = 1000000;
             let minDegree = MAX_DEGREE;
-            const orginalShell = theInfo.shell; //copy the shell, since info will be change while iteration
+            const orginalShell = theCC.shell; //copy the shell, since info will be change while iteration
             for (const v of theCC.vertices) { //find the minimum degree of vertex
                 let d = 0;
                 for (const other of v.list.others) {
@@ -733,21 +743,26 @@ var KCoreAlgorithm;
             }
             let currentShell = minDegree;
             let nextShell = minDegree + 1;
+            const buffers = [];
             //atmost 2 iteration after added an edge (degree+1) or remove an egde (degree-1)
             while (true) { //run kcore
+                if (this.set0.length <= 0 && this.set1.length <= 0) {
+                    break;
+                }
+                const bufferCC = KCoreCC.POOL.get();
+                bufferCC.shell = currentShell;
+                buffers.push(bufferCC);
                 while (this.set0.length > 0) {
                     const v_id = this.set0.pop();
                     const vl = this.graph.adjacencyList.get(v_id);
                     this.vertexToInfo.get(v_id).shell = currentShell;
+                    bufferCC.vertices.push(vl.main);
                     for (const neighbor of vl.others) {
                         let degree = this.degrees.get(neighbor);
                         if (degree == undefined) {
                             continue;
                         }
                         else if (degree < 0) {
-                            if (this.vertexToInfo.get(neighbor).shell == currentShell) {
-                                this.unionFind.union(neighbor, v_id);
-                            }
                             continue;
                         }
                         --degree;
@@ -776,9 +791,11 @@ var KCoreAlgorithm;
                 }
             }
             this.degrees.clear();
-            this.unionFind.flatten();
             this.removeComponent(this.shellComponents[orginalShell], theInfo.index, true); //the index of info did got changed, actually remove theCC
             //for storing the vertices
+            const oldBuffer = buffers.find((cc) => cc.shell == orginalShell);
+            const newBuffer = buffers.find((cc) => cc.shell != orginalShell);
+            this.degrees.clear();
             const oldShell = this.set0;
             const newShell = this.set1;
             oldShell.length = 0;
@@ -789,10 +806,53 @@ var KCoreAlgorithm;
                 this.shellComponents.push(sc);
                 this.setColorGradient(this.shellComponents[0].color, this.shellComponents[this.shellComponents.length - 2].color).refreshSelect().ensurePolygons();
             }
+            if (oldBuffer != undefined) {
+                for (const v of oldBuffer.vertices) {
+                    if (this.degrees.has(v.id)) {
+                        continue;
+                    }
+                    const newCC = KCoreCC.POOL.get();
+                    this.findConnected(v, newCC, this.shellComponents[oldBuffer.shell].connectedComponents.length);
+                    this.shellComponents[oldBuffer.shell].connectedComponents.push(newCC);
+                }
+                KCoreCC.POOL.release(oldBuffer);
+            }
+            if (newBuffer != undefined) {
+                const otherCCIndices = this.set0;
+                const inNewShell = this.degrees;
+                inNewShell.clear();
+                otherCCIndices.length = 0;
+                for (const v of newBuffer.vertices) {
+                    const vl = v.list;
+                    for (const other of vl.others) { //find all connected component on same shell that can merge
+                        const otherInfo = this.vertexToInfo.get(other);
+                        if (otherInfo.shell == newBuffer.shell) {
+                            otherCCIndices.push(otherInfo.index);
+                        }
+                    }
+                }
+                if (otherCCIndices.length > 0) { //can merge to other existing connected component
+                    otherCCIndices.sort((a, b) => { return a - b; });
+                    let len = 0;
+                    for (let i = 0, j; i < otherCCIndices.length; i = j) {
+                        for (j = i + 1; j < otherCCIndices.length && otherCCIndices[i] == otherCCIndices[j]; ++j) { }
+                        otherCCIndices[len++] = otherCCIndices[j - 1];
+                    }
+                    otherCCIndices.length = len;
+                    KCoreCC.POOL.release(newBuffer);
+                }
+                else { //an isolated cc formed
+                    const sc = this.shellComponents[newBuffer.shell];
+                    for (const v of newBuffer.vertices) {
+                        this.vertexToInfo.get(v.id).index = sc.connectedComponents.length;
+                    }
+                    sc.connectedComponents.push(newBuffer);
+                }
+            }
             //parents create the connected component
             for (const v of theCC.vertices) { //separate the vertex into two group depend on if their shell change
                 const info = this.vertexToInfo.get(v.id);
-                if (info.shell != theCC.shell) {
+                if (info.shell != orginalShell) {
                     newShell.push(v.id);
                     if (v.id != this.unionFind.parents[v.id])
                         continue;
@@ -887,6 +947,19 @@ var KCoreAlgorithm;
             KCoreCC.POOL.release(theCC);
             this.checkCCs();
         }
+        findConnected(v, CC, index) {
+            CC.vertices.push(v);
+            this.degrees.set(v.id, 0);
+            this.vertexToInfo.get(v.id).index = index;
+            const vl = v.list;
+            for (const neighbor of vl.others) {
+                const neighborInfo = this.vertexToInfo.get(neighbor);
+                if (neighborInfo.shell != CC.shell || this.degrees.has(v.id)) {
+                    continue;
+                }
+                this.findConnected(this.graph.adjacencyList.get(neighbor).main, CC, index);
+            }
+        }
         ensurePolygons() {
             //const visible:string=this.showDefaultColor?"visible":"hidden";
             const min = Math.min(this.shellComponents.length, this.corePolygons.length);
@@ -895,7 +968,8 @@ var KCoreAlgorithm;
             }
             if (min == this.shellComponents.length) {
                 for (let i = this.shellComponents.length; i < this.corePolygons.length; ++i) {
-                    this.corePolygons[i].display(false);
+                    this.corePolygons[i].display(false).bound.length = 0;
+                    this.corePolygons[i].polygon.points.clear();
                 }
             }
             else {

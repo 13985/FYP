@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        *{
+            box-sizing: border-box;
+        }
+
+
+        ul{
+            list-style: none;
+        }
+
+
+        ul.hashtable{
+            width:100%;
+            list-style: none;
+        }
+
+
+        li.key-value-pair{
+            --border:1.3px solid black;
+            display: flex;
+            align-items: center;
+            width:100%;
+        }
+
+
+        li.key-value-pair:not(:last-child){
+            border-bottom: 0.9px solid black;
+        }
+
+
+        .key-value-pair>.key{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: rgb(234, 234, 234);
+            margin: 4px;
+            border: var(--border);
+            width:10%;
+            padding: 16px 0px;
+        }
+
+
+        .key-value-pair>.value{
+            padding:0;
+            display: flex;
+            flex-direction: row;
+            justify-content: flex-start;
+        }
+
+
+        li.array-element{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: var(--border);
+            border-right: none;
+        }
+
+
+        li.array-element:nth-of-type(2n){
+            background-color: rgb(255, 227, 227);
+        }
+
+
+        li.array-element:nth-of-type(2n+1){
+            background-color: rgb(277, 255, 227);
+        }
+
+
+        li.array-element:last-child{
+            border-right: var(--border);
+        }
+
+
+        span.step{
+            width: 100%;
+            border-bottom: var(--border);
+            text-align: center;
+        }
+
+
+        span{
+            padding: 1px 3px;
+        }
+
+
+        li.red,
+        span.red{
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <span>("styles" mean the styles of the html/svg element binding to the data)</span>
+    <h3>hashtable with key:vertex, value:increasing array ordered by step in (step, styles) pair</h3>
+    <ul class="hashtable">
+        <h3>current step:11</h3>
+        <li class="key-value-pair">
+            <div class="key">
+                Key
+            </div>
+            <span style="margin-right: 2px;">Value:</span>
+            <ul class="value">
+                <li class="array-element">
+                    <span class="step">step</span>
+                    <span>style X</span>
+                </li>
+                <li class="array-element">
+                    <span class="step">step</span>
+                    <span>style X</span>
+                </li>
+            </ul>
+        </li>
+        <li class="key-value-pair">
+            <div class="key">
+                Vertex A
+            </div>
+            <span style="margin-right: 2px;">Value:</span>
+            <ul class="value">
+                <li class="array-element">
+                    <span class="step">0</span>
+                    <span>style 00</span>
+                </li>
+                <li class="array-element">
+                    <span class="step">1</span>
+                    <span>style 01</span>
+                </li>
+                <li class="array-element">
+                    <span class="step">2</span>
+                    <span>style 02</span>
+                </li>
+                <li class="array-element">
+                    <span class="step">4</span>
+                    <span>style 03</span>
+                </li>
+                <li class="array-element red">
+                    <span class="step">6</span>
+                    <span>style 04</span>
+                </li>
+                <li class="array-element">
+                    <span class="step">12</span>
+                    <span>style 05</span>
+                </li>
+                <li class="array-element">
+                    <span class="step">16</span>
+                    <span>style 06</span>
+                </li>
+                <li class="array-element">
+                    <span class="step">19</span>
+                    <span>style 07</span>
+                </li>
+            </ul>
+        </li>
+        <li class="key-value-pair">
+            <div class="key">
+                Vertex B
+            </div>
+            <span style="margin-right: 2px;">Value:</span>
+            <ul class="value">
+                <li class="array-element">
+                    <span class="step">0</span>
+                    <span>style 08</span>
+                </li>
+                <li class="array-element">
+                    <span class="step">4</span>
+                    <span>style 09</span>
+                </li>
+                <li class="array-element">
+                    <span class="step">5</span>
+                    <span>style 10</span>
+                </li>
+                <li class="array-element red">
+                    <span class="step">6</span>
+                    <span>style 11</span>
+                </li>
+                <li class="array-element">
+                    <span class="step">13</span>
+                    <span>style 12</span>
+                </li>
+                <li class="array-element">
+                    <span class="step">15</span>
+                    <span>style 13</span>
+                </li>
+            </ul>
+        </li>
+        <li class="key-value-pair">
+            <div class="key">
+                Vertex C
+            </div>
+            <span style="margin-right: 2px;">Value:</span>
+            <ul class="value">
+                <li class="array-element red">
+                    <span class="step">0</span>
+                    <span>style 14</span>
+                </li>
+                <li class="array-element">
+                    <span class="step">16</span>
+                    <span>style 15</span>
+                </li>
+                <li class="array-element">
+                    <span class="step">17</span>
+                    <span>style 16</span>
+                </li>
+                <li class="array-element">
+                    <span class="step">18</span>
+                    <span>style 17</span>
+                </li>
+                <li class="array-element">
+                    <span class="step">22</span>
+                    <span>style 18</span>
+                </li>
+            </ul>
+        </li>
+        <li class="key-value-pair">
+            <div class="key">
+                Vertex D
+            </div>
+            <span style="margin-right: 2px;">Value:</span>
+            <ul class="value">
+                <li class="array-element">
+                    <span class="step">0</span>
+                    <span>style 19</span>
+                </li>
+                <li class="array-element">
+                    <span class="step">4</span>
+                    <span>style 20</span>
+                </li>
+                <li class="array-element">
+                    <span class="step">5</span>
+                    <span>style 21</span>
+                </li>
+                <li class="array-element red">
+                    <span class="step">8</span>
+                    <span>style 22</span>
+                </li>
+                <li class="array-element">
+                    <span class="step">18</span>
+                    <span>style 23</span>
+                </li>
+                <li class="array-element">
+                    <span class="step">22</span>
+                    <span>style 24</span>
+                </li>
+            </ul>
+        </li>
+    </ul>  
+</body>
+</html>

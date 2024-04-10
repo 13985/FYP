@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        *{
+            box-sizing: border-box;
+        }
+
+
+        div.stack-step,
+        div.stack-level{
+            height:5vh;
+            display:grid;
+            grid-template-rows: 100%;
+            grid-template-columns: repeat(50,1fr);
+        }
+
+
+        .depth-1.stack-element, .depth-1>.stack-element{background-color: rgb(232, 244, 255);}
+        .depth-2.stack-element, .depth-2>.stack-element{background-color: rgb(205, 231, 255);}
+        .depth-3.stack-element, .depth-3>.stack-element{background-color: rgb(188, 224, 255);}
+        .depth-4.stack-element, .depth-4>.stack-element{background-color: rgb(170, 215, 255);}
+        .depth-5.stack-element, .depth-5>.stack-element{background-color: rgb(148, 205, 255);}
+
+
+        div.stack-element{
+            border: 2px dotted black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+
+        .row-display{
+            display: flex;
+            flex-direction: row;
+        }
+
+        div.query{
+            align-items: flex-start;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <div style="height: 5vh;">
+            Step:
+        </div>
+        <div class="stack-step">
+            <script>
+                const container=document.querySelector("div.stack-step");
+                for(let i=1;i<=50;++i){
+                    container.insertAdjacentHTML('beforeend',`<div style="text-align:center;">${i}<div>`);
+                }
+            </script>
+        </div>
+        <div class="stack-level depth-1">
+            <div style="grid-column: 1 / 10;" class="stack-element">10</div>
+            <div style="grid-column: 10 / 23;" class="stack-element">20</div>
+            <div style="grid-column: 23 / 40;" class="stack-element">30</div>
+            <div style="grid-column: 40 / 51;" class="stack-element">40</div>
+        </div>
+        <div class="stack-level depth-2">
+            <div style="grid-column: 2 / 4;" class="stack-element">45</div>
+            <div style="grid-column: 4 / 7;" class="stack-element">23</div>
+            <div style="grid-column: 7 / 10;" class="stack-element">3</div>
+
+            <div style="grid-column: 11 / 17;" class="stack-element">17</div>
+            <div style="grid-column: 17 / 20;" class="stack-element">89</div>
+            <div style="grid-column: 21 / 23;" class="stack-element">47</div>
+
+            <div style="grid-column: 23 / 30;" class="stack-element">73</div>
+            <div style="grid-column: 30 / 34;" class="stack-element">34</div>
+            <div style="grid-column: 34 / 38;" class="stack-element">26</div>
+            <div style="grid-column: 39 / 40;" class="stack-element">76</div>
+
+            <div style="grid-column: 41 / 48;" class="stack-element">87</div>
+            <div style="grid-column: 48 / 51;" class="stack-element">54</div>
+        </div>
+        <div class="stack-level depth-3">
+            <div style="grid-column: 2 / 3;" class="stack-element">1</div>
+            <div style="grid-column: 3 / 4;" class="stack-element">19</div>
+            <div style="grid-column: 4 / 6;" class="stack-element">9</div>
+            <div style="grid-column: 7 / 10;" class="stack-element">6</div>
+
+            <div style="grid-column: 11 / 14;" class="stack-element">59</div>
+            <div style="grid-column: 14 / 17;" class="stack-element">20</div>
+            <div style="grid-column: 18 / 20;" class="stack-element">67</div>
+            <div style="grid-column: 21 / 23;" class="stack-element">83</div>
+            
+            <div style="grid-column: 24 / 27;" class="stack-element">82</div>
+            <div style="grid-column: 27 / 30;" class="stack-element">90</div>
+            <div style="grid-column: 30 / 33;" class="stack-element">75</div>
+            <div style="grid-column: 34 / 35;" class="stack-element">89</div>
+            <div style="grid-column: 35 / 38;" class="stack-element">35</div>
+            <div style="grid-column: 39 / 40;" class="stack-element">29</div>
+
+            <div style="grid-column: 41 / 45;" class="stack-element">98</div>
+            <div style="grid-column: 45 / 46;" class="stack-element">53</div>
+            <div style="grid-column: 46 / 47;" class="stack-element">10</div>
+            <div style="grid-column: 49 / 51;" class="stack-element">55</div>
+        </div>
+        <div class="stack-level depth-4">
+            <div style="grid-column: 2 / 3;" class="stack-element">19</div>
+            <div style="grid-column: 3 / 4;" class="stack-element">29</div>
+            <div style="grid-column: 4 / 5;" class="stack-element">40</div>
+            <div style="grid-column: 5 / 6;" class="stack-element">41</div>
+            <div style="grid-column: 7 / 9;" class="stack-element">4</div>
+
+            <div style="grid-column: 11 / 12;" class="stack-element">92</div>
+            <div style="grid-column: 12 / 13;" class="stack-element">90</div>
+            <div style="grid-column: 13 / 14;" class="stack-element">4</div>
+            <div style="grid-column: 14 / 15;" class="stack-element">21</div>
+            <div style="grid-column: 15 / 17;" class="stack-element">78</div>
+            <div style="grid-column: 19 / 20;" class="stack-element">63</div>
+            <div style="grid-column: 21 / 23;" class="stack-element">83</div>
+            
+            <div style="grid-column: 24 / 26;" class="stack-element">82</div>
+            <div style="grid-column: 26 / 27;" class="stack-element">78</div>
+            <div style="grid-column: 27 / 28;" class="stack-element">49</div>
+            <div style="grid-column: 28 / 29;" class="stack-element">52</div>
+            <div style="grid-column: 29 / 30;" class="stack-element">33</div>
+            <div style="grid-column: 31 / 33;" class="stack-element">67</div>
+            <div style="grid-column: 35 / 37;" class="stack-element">65</div>
+            <div style="grid-column: 37 / 38;" class="stack-element">87</div>
+
+            <div style="grid-column: 41 / 43;" class="stack-element">95</div>
+            <div style="grid-column: 43 / 45;" class="stack-element">34</div>
+            <div style="grid-column: 46 / 47;" class="stack-element">13</div>
+            <div style="grid-column: 49 / 51;" class="stack-element">60</div>
+        </div>
+        <div class="stack-level depth-5">
+            <div style="grid-column: 2 / 3;" class="stack-element">45</div>
+            <div style="grid-column: 4 / 5;" class="stack-element">74</div>
+            <div style="grid-column: 8 / 9;" class="stack-element">6</div>
+
+            <div style="grid-column: 11 / 12;" class="stack-element">5</div>
+            <div style="grid-column: 13 / 14;" class="stack-element">4</div>
+            <div style="grid-column: 15 / 17;" class="stack-element">66</div>
+            <div style="grid-column: 21 / 22;" class="stack-element">45</div>
+            <div style="grid-column: 22 / 23;" class="stack-element">47</div>
+
+            <div style="grid-column: 24 / 26;" class="stack-element">32</div>
+            <div style="grid-column: 28 / 29;" class="stack-element">99</div>
+            <div style="grid-column: 29 / 30;" class="stack-element">45</div>
+            <div style="grid-column: 31 / 32;" class="stack-element">69</div>
+            <div style="grid-column: 32 / 33;" class="stack-element">40</div>
+            <div style="grid-column: 35 / 37;" class="stack-element">66</div>
+
+            <div style="grid-column: 41 / 42;" class="stack-element">74</div>
+            <div style="grid-column: 42 / 43;" class="stack-element">83</div>
+            <div style="grid-column: 43 / 45;" class="stack-element">7</div>
+            <div style="grid-column: 49 / 50;" class="stack-element">61</div>
+        </div>
+    </div>
+    <hr>
+    <div style="justify-content: flex-start;gap: 1vw;" class="row-display">
+        <div class="query">
+            <div>query at step 5:</div>
+            <br>
+            <div>
+                <div class="depth-1 stack-element">10</div>
+                <div class="depth-2 stack-element">23</div>
+                <div class="depth-3 stack-element">49</div>
+                <div class="depth-4 stack-element">1</div>
+            </div>
+        </div>
+        <div class="query">
+            <div>query at step 13:</div>
+            <br>
+            <div>
+                <div class="depth-1 stack-element">29</div>
+                <div class="depth-2 stack-element">17</div>
+                <div class="depth-3 stack-element">59</div>
+                <div class="depth-4 stack-element">4</div>
+                <div class="depth-5 stack-element">4</div>
+            </div>
+        </div>
+        <div class="query">
+            <div>query at step 33:</div>
+            <br>
+            <div>
+                <div class="depth-1 stack-element">30</div>
+                <div class="depth-2 stack-element">34</div>
+            </div>
+        </div>
+        <div class="query">
+            <div>query at step 45:</div>
+            <br>
+            <div>
+                <div class="depth-1 stack-element">40</div>
+                <div class="depth-2 stack-element">87</div>
+                <div class="depth-3 stack-element">53</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
