@@ -112,6 +112,10 @@ namespace KCliqueAlgorithm{
     }
 
 
+    interface NumberReference{
+        value:number;
+    }
+
     /**
      * @brief
      * note that any subgraph of a fully connected graph is also fully connected
@@ -149,6 +153,7 @@ namespace KCliqueAlgorithm{
 
         //1-cliques stored at 0, 2-cliques stored at 1, 3-cliques stored at 2....
         private cliqueComponents:Array<CliqueComponets>=[];
+        private readonly edgeToIndex:Map<number,number>=new Map();
         private readonly vertexToInfo:Map<number,ConnectedComponetInfo[]>=new Map();
 
         /**************************animation state***************************/
@@ -241,14 +246,19 @@ namespace KCliqueAlgorithm{
             }else{
                 const kc:CliqueComponets=new CliqueComponets(2);
                 this.cliqueComponents.push(kc);
+                this.edgeToIndex.clear();
 
-                for(const e of this.graph.edges){
+                for(let i:number=0;i<this.graph.edges.length;++i){
+                    const e:Edge=this.graph.edges[i];
                     const cc:KCliqueCC=KCliqueCC.POOL.get();
                     cc.clique=2;
                     cc.vertices.push(e.source);
                     cc.vertices.push(e.target);
+                    this.edgeToIndex.set(this.graph.getEdgeHashCode(e.source.id,e.target.id),i);
                     kc.connectedComponents.push(cc);
                 }
+
+                const returnEdgeCode:NumberReference={value:0};
 
                 for(let currentClique:number=3;true;++currentClique){
                     const next:CliqueComponets=new CliqueComponets(currentClique);
@@ -259,7 +269,7 @@ namespace KCliqueAlgorithm{
                         Label_0:{
                             for(let j:number=i+1;j<previous.length;++j){
                                 const second:KCliqueCC=previous[j];
-                                const left_v:Vertex|null=this.testCombine(first,second);
+                                const left_v:Vertex|null=this.testCombine(first,second,returnEdgeCode);
                                 if(left_v==null){
                                     continue;
                                 }
@@ -271,6 +281,15 @@ namespace KCliqueAlgorithm{
                                 
                                 removeAsSwapBack(previous,j);
                                 removeAsSwapBack(previous,i);
+
+                                /*
+                                const idx:number=this.edgeToIndex.get(returnEdgeCode.value) as number;
+                                removeAsSwapBack(this.cliqueComponents[1].connectedComponents,idx);
+                                this.edgeToIndex.delete(returnEdgeCode.value);
+                                if(idx<this.cliqueComponents[1].connectedComponents.length){
+                                    const cc:KCliqueCC=this.cliqueComponents[1].connectedComponents[idx];
+                                    this.edgeToIndex.set(this.graph.getEdgeHashCode(cc.vertices[0].id,cc.vertices[1].id),idx);
+                                }*/
                                 break Label_0;
                             }
                             ++i;
@@ -1037,7 +1056,7 @@ namespace KCliqueAlgorithm{
          * @param b x-clique
          * @returns the vertex in b if they can be combined
          */
-        private testCombine(a:KCliqueCC,b:KCliqueCC):Vertex|null{
+        private testCombine(a:KCliqueCC,b:KCliqueCC,outEdgeCode?:NumberReference):Vertex|null{
             this.set.clear();
             let left_v:Vertex|null=null;
             for(const v of a.vertices){
@@ -1058,6 +1077,8 @@ namespace KCliqueAlgorithm{
                 for(const v_id of this.set){//only one v_id
                     if(this.graph.getEdge(v_id,(left_v as Vertex).id)==undefined){
                         left_v=null;
+                    }else if(outEdgeCode!=undefined){
+                        outEdgeCode.value=this.graph.getEdgeHashCode(v_id,(left_v as Vertex).id);
                     }
                     break;
                 }
@@ -1067,7 +1088,7 @@ namespace KCliqueAlgorithm{
 
 
         private changeColor(cc:KCliqueCC):void{
-            if(this.showDefaultColor){
+            if(this.notColorful){
                 return;
             }
             const verticesCount:number=cc.vertices.length;

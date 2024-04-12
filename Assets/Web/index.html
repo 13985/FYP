@@ -25,11 +25,11 @@
             <p class="comment">
                 add checked to input to set the default algorithm
             </p>
-            <input type="radio" name="current-algorithm" class="switch" id="select-kcore" value="kcore">
+            <input type="radio" name="current-algorithm" class="switch" id="select-kcore" value="kcore" checked>
             <label class="switch text-black" for="select-kcore">
                 <span>KCore</span>
             </label>
-            <input type="radio" name="current-algorithm" class="switch" id="select-kclique" value="kclique" checked>
+            <input type="radio" name="current-algorithm" class="switch" id="select-kclique" value="kclique">
             <label class="switch text-black" for="select-kclique">
                 <span>KClique</span>
             </label>
@@ -89,8 +89,8 @@
                         </h3>
                         <div class="menu indent">
                             <select class="graph-update" id="edge-update">
-                                <option value="remove">Remove</option>
                                 <option value="create">Create</option>
+                                <option value="remove">Remove</option>
                             </select>
                             <!--
                                 <input class="vertices-input" id="edge-expand-input" type="text" pattern="(?:\d+\s?,\s?\d+\s?)+" max-length="500"/>

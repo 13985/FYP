@@ -184,7 +184,7 @@ class MainApp{
             this.vertexSetColor.style.display=this.vertexUpdateSelect.value=="color"?"block":"none";
         });
 
-
+        
         this.vertexExpandInput.addEventListener("change",()=>{
             if(this.vertexExpandInput.value.length==0){
                 return;
@@ -237,7 +237,7 @@ class MainApp{
             this.setEditAction();
         });
 
-
+        /*
         this.edgeUpdateButton.addEventListener("click",()=>{
             if(this.edgeexpandInput.value.length==0){
                 return;
@@ -266,6 +266,7 @@ class MainApp{
             }
             }
         });
+        */
 
         this.edgeUpdateSelect.addEventListener("input",()=>{
             this.vertexSetColor.style.display=this.vertexUpdateSelect.value=="color"?"block":"none";

@@ -172,33 +172,36 @@ class MainApp {
             this.resultGW.pressToAddEdge(this.edgeEditMode.checked);
             this.setEditAction();
         });
-        this.edgeUpdateButton.addEventListener("click", () => {
-            if (this.edgeexpandInput.value.length == 0) {
+        /*
+        this.edgeUpdateButton.addEventListener("click",()=>{
+            if(this.edgeexpandInput.value.length==0){
                 return;
             }
-            const edgeFormat = /(\d+\s?,\s?\d+\s?)/g;
-            const edgesString = this.edgeexpandInput.value.split(edgeFormat);
-            switch (this.edgeUpdateSelect.value) {
-                case "create": {
-                    for (const str of edgesString) {
-                        const numbers = str.split(/(\d+)/g);
-                        const from = parseInt(numbers[0]);
-                        const to = parseInt(numbers[0]);
-                        graphHasUpdated = graphHasUpdated || VisualizationUtils.Algorithm.addEdge(from, to);
-                    }
-                    break;
+            const edgeFormat:RegExp=/(\d+\s?,\s?\d+\s?)/g;
+            const edgesString:string[]=this.edgeexpandInput.value.split(edgeFormat);
+
+            switch(this.edgeUpdateSelect.value){
+            case "create":{
+                for(const str of edgesString){
+                    const numbers:string[]=str.split(/(\d+)/g);
+                    const from:number=parseInt(numbers[0]);
+                    const to:number=parseInt(numbers[0]);
+                    graphHasUpdated=graphHasUpdated||VisualizationUtils.Algorithm.addEdge(from,to);
                 }
-                case "remove": {
-                    for (const str of edgesString) {
-                        const numbers = str.split(/(\d+)/g);
-                        const from = parseInt(numbers[0]);
-                        const to = parseInt(numbers[0]);
-                        graphHasUpdated = graphHasUpdated || VisualizationUtils.Algorithm.removeEdge(from, to);
-                    }
-                    break;
+                break;
+            }
+            case "remove":{
+                for(const str of edgesString){
+                    const numbers:string[]=str.split(/(\d+)/g);
+                    const from:number=parseInt(numbers[0]);
+                    const to:number=parseInt(numbers[0]);
+                    graphHasUpdated=graphHasUpdated||VisualizationUtils.Algorithm.removeEdge(from,to);
                 }
+                break;
+            }
             }
         });
+        */
         this.edgeUpdateSelect.addEventListener("input", () => {
             this.vertexSetColor.style.display = this.vertexUpdateSelect.value == "color" ? "block" : "none";
             this.setEditAction();

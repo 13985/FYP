@@ -115,6 +115,7 @@ var KCliqueAlgorithm;
             /**************************index data structures**********************/
             //1-cliques stored at 0, 2-cliques stored at 1, 3-cliques stored at 2....
             this.cliqueComponents = [];
+            this.edgeToIndex = new Map();
             this.vertexToInfo = new Map();
         }
         setColorGradient(start_, end_) {
@@ -190,13 +191,17 @@ var KCliqueAlgorithm;
             else {
                 const kc = new CliqueComponets(2);
                 this.cliqueComponents.push(kc);
-                for (const e of this.graph.edges) {
+                this.edgeToIndex.clear();
+                for (let i = 0; i < this.graph.edges.length; ++i) {
+                    const e = this.graph.edges[i];
                     const cc = KCliqueCC.POOL.get();
                     cc.clique = 2;
                     cc.vertices.push(e.source);
                     cc.vertices.push(e.target);
+                    this.edgeToIndex.set(this.graph.getEdgeHashCode(e.source.id, e.target.id), i);
                     kc.connectedComponents.push(cc);
                 }
+                const returnEdgeCode = { value: 0 };
                 for (let currentClique = 3; true; ++currentClique) {
                     const next = new CliqueComponets(currentClique);
                     const previous = this.cliqueComponents[currentClique - 2].connectedComponents; //currentClique == .length+2
@@ -205,7 +210,7 @@ var KCliqueAlgorithm;
                         Label_0: {
                             for (let j = i + 1; j < previous.length; ++j) {
                                 const second = previous[j];
-                                const left_v = this.testCombine(first, second);
+                                const left_v = this.testCombine(first, second, returnEdgeCode);
                                 if (left_v == null) {
                                     continue;
                                 }
@@ -215,6 +220,14 @@ var KCliqueAlgorithm;
                                 next.connectedComponents.push(first);
                                 removeAsSwapBack(previous, j);
                                 removeAsSwapBack(previous, i);
+                                /*
+                                const idx:number=this.edgeToIndex.get(returnEdgeCode.value) as number;
+                                removeAsSwapBack(this.cliqueComponents[1].connectedComponents,idx);
+                                this.edgeToIndex.delete(returnEdgeCode.value);
+                                if(idx<this.cliqueComponents[1].connectedComponents.length){
+                                    const cc:KCliqueCC=this.cliqueComponents[1].connectedComponents[idx];
+                                    this.edgeToIndex.set(this.graph.getEdgeHashCode(cc.vertices[0].id,cc.vertices[1].id),idx);
+                                }*/
                                 break Label_0;
                             }
                             ++i;
@@ -928,7 +941,7 @@ var KCliqueAlgorithm;
          * @param b x-clique
          * @returns the vertex in b if they can be combined
          */
-        testCombine(a, b) {
+        testCombine(a, b, outEdgeCode) {
             this.set.clear();
             let left_v = null;
             for (const v of a.vertices) {
@@ -950,6 +963,9 @@ var KCliqueAlgorithm;
                 for (const v_id of this.set) { //only one v_id
                     if (this.graph.getEdge(v_id, left_v.id) == undefined) {
                         left_v = null;
+                    }
+                    else if (outEdgeCode != undefined) {
+                        outEdgeCode.value = this.graph.getEdgeHashCode(v_id, left_v.id);
                     }
                     break;
                 }

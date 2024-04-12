@@ -330,7 +330,7 @@ namespace VisualizationUtils{
 
         public graph:Graph;
         public svgContainer:SVGSVGElement;
-        public showDefaultColor:boolean=true;
+        public notColorful:boolean=true;
 
         private videoControlStatus:VideoControlStatus=VideoControlStatus.noAction;//if the user is fast enough he can cancel the "stop animation" action by replace it to be another action (pressing other button/input)
 
