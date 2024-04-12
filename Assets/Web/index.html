@@ -51,7 +51,7 @@
         <nav class="column-display side-nav">
             <div class="inner">
                 <ul id="graph-nav">
-                    <li class="expand"><!------------------------------------Graph pop up-------------------------------------------->
+                    <li class="expand"><!------------------------------------Graph expand-------------------------------------------->
                         <input type="checkbox" id="graph-popup-set" class="switch"/>
                         <h3 class="switch text slightly">
                             <label for="graph-popup-set" class="switch">Graph</label>
@@ -66,10 +66,10 @@
                             </p>
                         </div>
                     </li>
-                    <li class="expand"><!------------------------------------Vertex pop up------------------------------------------->
+                    <li class="expand" id="vertex-expand-li"><!------------------------------------Vertex expand------------------------------------------->
                         <input type="checkbox" id="vertex-expand-set" class="switch"/>
                         <h3 class="switch text slightly">
-                            <label for="vertex-expand-set" class="switch">Vertex</label>
+                            <label for="vertex-expand-set" class="switch" checked>Vertex</label>
                         </h3>
                         <div class="menu indent">
                             <select class="graph-update" id="vertex-update" value="create">
@@ -82,7 +82,7 @@
                             <button type="button" id="vertex-update-button" class="button-reverse button">Update</button>
                         </div>
                     </li>
-                    <li class="expand"><!------------------------------------Edge pop up------------------------------------------->
+                    <li class="expand" id="edge-expand-li"><!------------------------------------Edge expand------------------------------------------->
                         <input type="checkbox" id="edge-expand-set" class="switch" checked/>
                         <h3 class="switch text slightly">
                             <label for="edge-expand-set" class="switch">Edge</label>

@@ -76,18 +76,20 @@ class MainApp{
         return MainApp._instance;
     }
 
+    /****************************************************Graph expand**************************************************/
+    private readonly fileInput:HTMLInputElement;
+    private readonly graphUploadButton:HTMLButtonElement;
+    private readonly graphStatusP:HTMLParagraphElement;
+
     /**************************************************Vertex expand****************************************************/
+    private readonly vertexExpandContainer:HTMLElement;
     private readonly vertexExpandInput:HTMLInputElement;
     private readonly vertexSetColor:HTMLInputElement;
     private readonly vertexUpdateSelect:HTMLSelectElement;
     private readonly vertexUpdateButton:HTMLButtonElement;
     
-    /****************************************************Graph expand**************************************************/
-    private readonly fileInput:HTMLInputElement;
-    private readonly graphUploadButton:HTMLButtonElement;
-    private readonly graphStatusP:HTMLParagraphElement;
-    
     /****************************************************edge expand *****************************************************/
+    private readonly edgeExpandContainer:HTMLElement;
     private readonly edgeUpdateSelect:HTMLSelectElement;
     private readonly edgeexpandInput:HTMLInputElement;
     private readonly edgeUpdateButton:HTMLButtonElement;
@@ -114,6 +116,7 @@ class MainApp{
 
     private constructor(){
         /**************************************************Vertex expand****************************************************/
+        this.vertexExpandContainer=<HTMLElement>document.getElementById("vertex-expand-li");
         this.vertexExpandInput=<HTMLInputElement>document.getElementById("vertex-expand-input");
         this.vertexSetColor=<HTMLInputElement>document.getElementById("vertex-set-color");
         this.vertexUpdateSelect=<HTMLSelectElement>document.getElementById("vertex-update");
@@ -125,6 +128,7 @@ class MainApp{
         this.graphStatusP=<HTMLParagraphElement>document.getElementById("graph-VE-status");
         
         /****************************************************edge expand *****************************************************/
+        this.edgeExpandContainer=<HTMLElement>document.getElementById("edge-expand-li");
         this.edgeUpdateSelect=<HTMLSelectElement>document.getElementById("edge-update");
         this.edgeexpandInput=<HTMLInputElement>document.getElementById("edge-expand-input");
         this.edgeUpdateButton=<HTMLButtonElement>document.getElementById("edge-update-button");
@@ -151,11 +155,6 @@ class MainApp{
         this.minShellFilter=<HTMLSelectElement>document.getElementById("from-shell-value");
         this.maxShellFilter=<HTMLSelectElement>document.getElementById("to-shell-value");
         this.kCore.setSelects(this.minShellFilter,this.maxShellFilter);
-        
-        this.gw.setVertexDragStartCallback((v:Vertex):void=>{
-            this.vertexExpandInput.value=v.id.toString();
-            this.vertexSetColor.value=v.getColorHexa();
-        });
         //gw.display(false);
         this.resultKCore.setVisualElementsColor(false);
 
@@ -183,6 +182,11 @@ class MainApp{
         this.vertexUpdateSelect.addEventListener("input",()=>{
             this.vertexSetColor.style.display=this.vertexUpdateSelect.value=="color"?"block":"none";
         });
+
+
+        if(this.vertexUpdateSelect.value!="color"){
+            this.vertexSetColor.style.display="none";
+        }
 
         
         this.vertexExpandInput.addEventListener("change",()=>{
@@ -213,11 +217,11 @@ class MainApp{
             const theVertex:number=parseInt(this.vertexExpandInput.value);
             switch(this.vertexUpdateSelect.value){
             case "create":{
-                graphHasUpdated=VisualizationUtils.Algorithm.addVertex(theVertex);
+                graphHasUpdated=VisualizationUtils.Algorithm.addVertex(theVertex)||graphHasUpdated;
                 break;
             }
             case "remove":{
-                graphHasUpdated=VisualizationUtils.Algorithm.removeVertex(theVertex);
+                graphHasUpdated=VisualizationUtils.Algorithm.removeVertex(theVertex)||graphHasUpdated;
                 break;
             }
             case "color":
@@ -226,6 +230,7 @@ class MainApp{
                     break;
                 }
                 vl.main.setColorString(this.vertexSetColor.value);
+                (this.resultGraph.adjacencyList.get(theVertex) as VerticeList).main.setColorString(this.vertexSetColor.value);
                 break;
             }
         });
@@ -237,8 +242,9 @@ class MainApp{
             this.setEditAction();
         });
 
-        /*
         this.edgeUpdateButton.addEventListener("click",()=>{
+            this.resultGW.doEdgeAction();
+            /*
             if(this.edgeexpandInput.value.length==0){
                 return;
             }
@@ -265,8 +271,8 @@ class MainApp{
                 break;
             }
             }
+            */
         });
-        */
 
         this.edgeUpdateSelect.addEventListener("input",()=>{
             this.vertexSetColor.style.display=this.vertexUpdateSelect.value=="color"?"block":"none";
@@ -300,21 +306,29 @@ class MainApp{
         this.animationExpand.removeAttribute("style");
         switch(str){
         case "kcore":{
+            this.showModificationExpands(true);
+            this.animationExpand.removeAttribute("style");
+
             helper(this.kCore,this.resultKCore);
             this.resultKCore.displayPolygons(true);//note they may have the same index structure
-            this.resultGW.setVertexDragStartCallback(this.resultKCore.calculateBound.bind(this.resultKCore));
-            this.gw.setVertexDragStartCallback(this.kCore.calculateBound.bind(this.kCore));
+            this.resultGW.setVertexMovingCallback(this.resultKCore.calculateBound.bind(this.resultKCore));
+            this.gw.setVertexMovingCallback(this.kCore.calculateBound.bind(this.kCore));
             break;
         }
         case "kclique":{
+            this.showModificationExpands(true);
+            this.animationExpand.removeAttribute("style");
+
             helper(this.kClique,this.resultKClique);
             this.kCore.displayPolygons(false);
-            this.resultGW.setVertexDragStartCallback(undefined);
-            this.gw.setVertexDragStartCallback(undefined);
+            this.resultGW.setVertexMovingCallback(undefined);
+            this.gw.setVertexMovingCallback(undefined);
             break;
         }
         case "kclique-and-kcore":{
+            this.showModificationExpands(false);
             this.animationExpand.setAttribute("style","display:none;");
+            
             if(graphHasUpdated){
                 if(VisualizationUtils.Algorithm.VisualizationTarget()==this.kCore){
                     this.resultKClique.createIndexStructure().setColorGradient(VertexGradient.start,VertexGradient.end);
@@ -328,8 +342,8 @@ class MainApp{
             //the left graph window is associated with this.kCore/this.kClique
             //the right graph window is associated with this.resultkCore/this.resultKClique
             VisualizationUtils.Algorithm.changeAlgorithm(this.kCore,this.resultKClique);
-            this.gw.setVertexDragStartCallback(this.kCore.calculateBound.bind(this.kCore));
-            this.resultGW.setVertexDragStartCallback(undefined);
+            this.gw.setVertexMovingCallback(this.kCore.calculateBound.bind(this.kCore));
+            this.resultGW.setVertexMovingCallback(undefined);
             this.kCore.setVisualElementsColor(false);
             this.resultKClique.setVisualElementsColor(false);
             break;
@@ -379,6 +393,25 @@ class MainApp{
         case "remove":
             this.resultGW.isCreateEdge=false;
             break;
+        }
+    }
+
+
+    public setVertexInput(v:Vertex):void{
+        this.vertexExpandInput.value=v.id.toString();
+        this.vertexSetColor.value=v.getColorHexa();
+    }
+
+
+    public showModificationExpands(show:boolean):void{
+        if(show==false){
+            this.vertexExpandContainer.setAttribute("style","display:none;");
+            this.edgeExpandContainer.setAttribute("style","display:none;");
+            this.graphUploadButton.disabled=true;
+        }else{
+            this.vertexExpandContainer.removeAttribute("style");
+            this.edgeExpandContainer.removeAttribute("style");
+            this.graphUploadButton.disabled=false;
         }
     }
 }

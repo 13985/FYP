@@ -68,6 +68,7 @@ class MainApp {
     }
     constructor() {
         /**************************************************Vertex expand****************************************************/
+        this.vertexExpandContainer = document.getElementById("vertex-expand-li");
         this.vertexExpandInput = document.getElementById("vertex-expand-input");
         this.vertexSetColor = document.getElementById("vertex-set-color");
         this.vertexUpdateSelect = document.getElementById("vertex-update");
@@ -77,6 +78,7 @@ class MainApp {
         this.graphUploadButton = document.getElementById("graph-upload-button");
         this.graphStatusP = document.getElementById("graph-VE-status");
         /****************************************************edge expand *****************************************************/
+        this.edgeExpandContainer = document.getElementById("edge-expand-li");
         this.edgeUpdateSelect = document.getElementById("edge-update");
         this.edgeexpandInput = document.getElementById("edge-expand-input");
         this.edgeUpdateButton = document.getElementById("edge-update-button");
@@ -97,10 +99,6 @@ class MainApp {
         this.minShellFilter = document.getElementById("from-shell-value");
         this.maxShellFilter = document.getElementById("to-shell-value");
         this.kCore.setSelects(this.minShellFilter, this.maxShellFilter);
-        this.gw.setVertexDragStartCallback((v) => {
-            this.vertexExpandInput.value = v.id.toString();
-            this.vertexSetColor.value = v.getColorHexa();
-        });
         //gw.display(false);
         this.resultKCore.setVisualElementsColor(false);
         this.kClique = new KCliqueAlgorithm.KClique(this.graph, this.gw.innerSVG, this.gw);
@@ -125,6 +123,9 @@ class MainApp {
         this.vertexUpdateSelect.addEventListener("input", () => {
             this.vertexSetColor.style.display = this.vertexUpdateSelect.value == "color" ? "block" : "none";
         });
+        if (this.vertexUpdateSelect.value != "color") {
+            this.vertexSetColor.style.display = "none";
+        }
         this.vertexExpandInput.addEventListener("change", () => {
             if (this.vertexExpandInput.value.length == 0) {
                 return;
@@ -151,11 +152,11 @@ class MainApp {
             const theVertex = parseInt(this.vertexExpandInput.value);
             switch (this.vertexUpdateSelect.value) {
                 case "create": {
-                    graphHasUpdated = VisualizationUtils.Algorithm.addVertex(theVertex);
+                    graphHasUpdated = VisualizationUtils.Algorithm.addVertex(theVertex) || graphHasUpdated;
                     break;
                 }
                 case "remove": {
-                    graphHasUpdated = VisualizationUtils.Algorithm.removeVertex(theVertex);
+                    graphHasUpdated = VisualizationUtils.Algorithm.removeVertex(theVertex) || graphHasUpdated;
                     break;
                 }
                 case "color":
@@ -164,6 +165,7 @@ class MainApp {
                         break;
                     }
                     vl.main.setColorString(this.vertexSetColor.value);
+                    this.resultGraph.adjacencyList.get(theVertex).main.setColorString(this.vertexSetColor.value);
                     break;
             }
         });
@@ -172,8 +174,9 @@ class MainApp {
             this.resultGW.pressToAddEdge(this.edgeEditMode.checked);
             this.setEditAction();
         });
-        /*
-        this.edgeUpdateButton.addEventListener("click",()=>{
+        this.edgeUpdateButton.addEventListener("click", () => {
+            this.resultGW.doEdgeAction();
+            /*
             if(this.edgeexpandInput.value.length==0){
                 return;
             }
@@ -200,8 +203,8 @@ class MainApp {
                 break;
             }
             }
+            */
         });
-        */
         this.edgeUpdateSelect.addEventListener("input", () => {
             this.vertexSetColor.style.display = this.vertexUpdateSelect.value == "color" ? "block" : "none";
             this.setEditAction();
@@ -231,20 +234,25 @@ class MainApp {
         this.animationExpand.removeAttribute("style");
         switch (str) {
             case "kcore": {
+                this.showModificationExpands(true);
+                this.animationExpand.removeAttribute("style");
                 helper(this.kCore, this.resultKCore);
                 this.resultKCore.displayPolygons(true); //note they may have the same index structure
-                this.resultGW.setVertexDragStartCallback(this.resultKCore.calculateBound.bind(this.resultKCore));
-                this.gw.setVertexDragStartCallback(this.kCore.calculateBound.bind(this.kCore));
+                this.resultGW.setVertexMovingCallback(this.resultKCore.calculateBound.bind(this.resultKCore));
+                this.gw.setVertexMovingCallback(this.kCore.calculateBound.bind(this.kCore));
                 break;
             }
             case "kclique": {
+                this.showModificationExpands(true);
+                this.animationExpand.removeAttribute("style");
                 helper(this.kClique, this.resultKClique);
                 this.kCore.displayPolygons(false);
-                this.resultGW.setVertexDragStartCallback(undefined);
-                this.gw.setVertexDragStartCallback(undefined);
+                this.resultGW.setVertexMovingCallback(undefined);
+                this.gw.setVertexMovingCallback(undefined);
                 break;
             }
             case "kclique-and-kcore": {
+                this.showModificationExpands(false);
                 this.animationExpand.setAttribute("style", "display:none;");
                 if (graphHasUpdated) {
                     if (VisualizationUtils.Algorithm.VisualizationTarget() == this.kCore) {
@@ -260,8 +268,8 @@ class MainApp {
                 //the left graph window is associated with this.kCore/this.kClique
                 //the right graph window is associated with this.resultkCore/this.resultKClique
                 VisualizationUtils.Algorithm.changeAlgorithm(this.kCore, this.resultKClique);
-                this.gw.setVertexDragStartCallback(this.kCore.calculateBound.bind(this.kCore));
-                this.resultGW.setVertexDragStartCallback(undefined);
+                this.gw.setVertexMovingCallback(this.kCore.calculateBound.bind(this.kCore));
+                this.resultGW.setVertexMovingCallback(undefined);
                 this.kCore.setVisualElementsColor(false);
                 this.resultKClique.setVisualElementsColor(false);
                 break;
@@ -303,6 +311,22 @@ class MainApp {
             case "remove":
                 this.resultGW.isCreateEdge = false;
                 break;
+        }
+    }
+    setVertexInput(v) {
+        this.vertexExpandInput.value = v.id.toString();
+        this.vertexSetColor.value = v.getColorHexa();
+    }
+    showModificationExpands(show) {
+        if (show == false) {
+            this.vertexExpandContainer.setAttribute("style", "display:none;");
+            this.edgeExpandContainer.setAttribute("style", "display:none;");
+            this.graphUploadButton.disabled = true;
+        }
+        else {
+            this.vertexExpandContainer.removeAttribute("style");
+            this.edgeExpandContainer.removeAttribute("style");
+            this.graphUploadButton.disabled = false;
         }
     }
 }

@@ -478,7 +478,7 @@ var KCoreAlgorithm;
             this.set0.push(target);
             this.degrees.set(target, KCore.PROCESSED);
             const idx = this.inSet1.get(target);
-            const last = arrayLast(this.set1);
+            const last = ArrayUtils.last(this.set1);
             this.set1[idx] = last;
             this.inSet1.set(last, idx);
             this.inSet1.delete(target);
@@ -548,7 +548,7 @@ var KCoreAlgorithm;
                 for (let i = 0; i < descriptionStates.length; ++i) {
                     lis[i].innerHTML = descriptionStates[i].stepDescription;
                 }
-                VisualizationUtils.DescriptionDisplay.highlightCode(arrayLast(descriptionStates).codeStep);
+                VisualizationUtils.DescriptionDisplay.highlightCode(ArrayUtils.last(descriptionStates).codeStep);
             }
             else {
                 VisualizationUtils.DescriptionDisplay.highlightCode(-1);
@@ -638,7 +638,7 @@ var KCoreAlgorithm;
                 }
                 theInfo = a_idx;
             }
-            this.KCore_ConnectedComponent(theInfo);
+            this.KCore_ConnectedComponent(theInfo).calculateBound();
             return true;
         }
         removeEdge(a, b) {
@@ -660,7 +660,7 @@ var KCoreAlgorithm;
             else { //they must be in the same connected component
                 theInfo = a_idx;
             }
-            this.KCore_ConnectedComponent(theInfo);
+            this.KCore_ConnectedComponent(theInfo).calculateBound();
             return true;
         }
         addVertex(a) {
@@ -680,14 +680,42 @@ var KCoreAlgorithm;
             return true;
         }
         removeVertex(a) {
-            if (this.graph.removeVertex(a) == null) {
+            const vl = this.graph.adjacencyList.get(a);
+            if (vl == undefined) {
                 return false;
             }
-            this.graphWindow.updateSimulation();
             const info = this.vertexToInfo.get(a);
             const cc = this.shellComponents[info.shell].connectedComponents[info.index];
-            cc.removeVertex(a);
-            this.KCore_ConnectedComponent(info);
+            if (cc.shell == 0) {
+                this.removeComponent(this.shellComponents[0], info.index, true);
+                KCoreCC.POOL.release(cc);
+            }
+            else {
+                const infos = [];
+                for (const other of vl.others) {
+                    const info_ = this.vertexToInfo.get(other);
+                    if (info_.shell == info.shell && info.index == info_.index) {
+                        continue;
+                    } //skip the info that points to cc
+                    infos.push(info_);
+                }
+                this.graph.removeVertex(a);
+                this.graphWindow.updateSimulation();
+                cc.removeVertex(a);
+                infos.sort((a, b) => {
+                    if (a.shell == b.shell) {
+                        return a.index - b.index;
+                    }
+                    else {
+                        return a.shell - b.shell;
+                    }
+                });
+                for (let i = 0, j; i < infos.length; i = j) {
+                    this.KCore_ConnectedComponent(infos[i]);
+                    for (j = i + 1; j < infos.length && infos[j].shell == infos[i].shell && infos[j].index == infos[i].index; ++j) { }
+                }
+                this.KCore_ConnectedComponent(info).calculateBound(); //change the cc at the end to prevent it merged into other cc
+            }
             this.vertexToInfo.delete(a);
             return true;
         }
@@ -871,8 +899,8 @@ var KCoreAlgorithm;
                 KCoreCC.POOL.release(newBuffer);
                 this.setVisualElementsColor(this.notColorful);
                 if (status != CORE_INCREASED) {
-                    const color = arrayLast(this.shellComponents).color;
-                    while (this.shellComponents.length >= 0 && arrayLast(this.shellComponents).connectedComponents.length <= 0) {
+                    const color = ArrayUtils.last(this.shellComponents).color;
+                    while (this.shellComponents.length >= 0 && ArrayUtils.last(this.shellComponents).connectedComponents.length <= 0) {
                         this.shellComponents.pop();
                         status = CORE_DECREASED;
                     }
@@ -889,9 +917,9 @@ var KCoreAlgorithm;
                     this.setVisualElementsColor(this.notColorful);
                     break;
             }
-            this.calculateBound();
             KCoreCC.POOL.release(theCC);
             this.checkCCs();
+            return this;
         }
         findConnected(v, CC, index) {
             CC.vertices.push(v);
@@ -1024,9 +1052,15 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             const polygon = cp.polygon;
             polygon.points.clear();
             if (verticesBuffer.length < 3) {
+                for (const v of verticesBuffer) {
+                    cp.bound.push(v);
+                }
                 return verticesBuffer.length;
             }
             else if (verticesBuffer.length < 4) {
+                for (const v of verticesBuffer) {
+                    cp.bound.push(v);
+                }
                 for (const vertex of verticesBuffer) {
                     const p = svg.createSVGPoint();
                     p.x = vertex.x;
@@ -1073,7 +1107,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                 ConvesHull.points.push(p);
                 cp.bound.push(vertex);
             }
-            if (arrayLast(cp.bound).id == cp.bound[0].id) {
+            if (ArrayUtils.last(cp.bound).id == cp.bound[0].id) {
                 ConvesHull.points.pop();
                 cp.bound.pop();
             }

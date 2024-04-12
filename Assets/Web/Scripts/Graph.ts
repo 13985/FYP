@@ -341,7 +341,7 @@ class Graph{
 
 
     public addEdge(a:number,b:number):boolean{
-        if(this.adjacencyList.get(a)==undefined||this.adjacencyList.get(b)==undefined){
+        if(a==b||this.adjacencyList.get(a)==undefined||this.adjacencyList.get(b)==undefined){
             return false;
         }
         const code:number=this.getEdgeHashCode(a,b);
@@ -360,7 +360,7 @@ class Graph{
 
 
     public removeEdge(a:number,b:number):boolean{
-        if(this.adjacencyList.get(a)==undefined||this.adjacencyList.get(b)==undefined){
+        if(a==b||this.adjacencyList.get(a)==undefined||this.adjacencyList.get(b)==undefined){
             return false;
         }
         const code:number=this.getEdgeHashCode(a,b);
@@ -368,7 +368,7 @@ class Graph{
         if(idx==undefined){
             return false;
         }
-        const e:Edge=arrayLast(this.edges);
+        const e:Edge=ArrayUtils.last(this.edges);
         this.existsEdges.set(this.getEdgeHashCode(e.source.id,e.target.id),idx);
         this.existsEdges.delete(code);
         this.edges[idx].line?.remove();

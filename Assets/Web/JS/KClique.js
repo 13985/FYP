@@ -115,7 +115,6 @@ var KCliqueAlgorithm;
             /**************************index data structures**********************/
             //1-cliques stored at 0, 2-cliques stored at 1, 3-cliques stored at 2....
             this.cliqueComponents = [];
-            this.edgeToIndex = new Map();
             this.vertexToInfo = new Map();
         }
         setColorGradient(start_, end_) {
@@ -191,14 +190,12 @@ var KCliqueAlgorithm;
             else {
                 const kc = new CliqueComponets(2);
                 this.cliqueComponents.push(kc);
-                this.edgeToIndex.clear();
                 for (let i = 0; i < this.graph.edges.length; ++i) {
                     const e = this.graph.edges[i];
                     const cc = KCliqueCC.POOL.get();
                     cc.clique = 2;
                     cc.vertices.push(e.source);
                     cc.vertices.push(e.target);
-                    this.edgeToIndex.set(this.graph.getEdgeHashCode(e.source.id, e.target.id), i);
                     kc.connectedComponents.push(cc);
                 }
                 const returnEdgeCode = { value: 0 };
@@ -218,16 +215,8 @@ var KCliqueAlgorithm;
                                 KCliqueCC.POOL.release(second);
                                 first.clique = currentClique;
                                 next.connectedComponents.push(first);
-                                removeAsSwapBack(previous, j);
-                                removeAsSwapBack(previous, i);
-                                /*
-                                const idx:number=this.edgeToIndex.get(returnEdgeCode.value) as number;
-                                removeAsSwapBack(this.cliqueComponents[1].connectedComponents,idx);
-                                this.edgeToIndex.delete(returnEdgeCode.value);
-                                if(idx<this.cliqueComponents[1].connectedComponents.length){
-                                    const cc:KCliqueCC=this.cliqueComponents[1].connectedComponents[idx];
-                                    this.edgeToIndex.set(this.graph.getEdgeHashCode(cc.vertices[0].id,cc.vertices[1].id),idx);
-                                }*/
+                                ArrayUtils.removeAsSwapBack(previous, j);
+                                ArrayUtils.removeAsSwapBack(previous, i);
                                 break Label_0;
                             }
                             ++i;
@@ -256,7 +245,7 @@ var KCliqueAlgorithm;
                         }
                         if (this.set.size <= 0) {
                             KCliqueCC.POOL.release(previous[a]);
-                            removeAsSwapBack(previous, a);
+                            ArrayUtils.removeAsSwapBack(previous, a);
                         }
                         else {
                             ++a;
@@ -476,9 +465,9 @@ var KCliqueAlgorithm;
                             }
                             first.vertices.push(left_v);
                             newGenerated.push(first);
-                            removeAsSwapBack(previous, j);
+                            ArrayUtils.removeAsSwapBack(previous, j);
                             if (i < previous.length - 1) {
-                                removeAsSwapBack(previous, i);
+                                ArrayUtils.removeAsSwapBack(previous, i);
                                 --i; //prevent the increment of i
                             }
                             noUpdate = false;
@@ -596,7 +585,7 @@ var KCliqueAlgorithm;
                 for (let i = 0; i < descriptionStates.length; ++i) {
                     lis[i].innerHTML = descriptionStates[i].stepDescription;
                 }
-                VisualizationUtils.DescriptionDisplay.highlightCode(arrayLast(descriptionStates).codeStep);
+                VisualizationUtils.DescriptionDisplay.highlightCode(ArrayUtils.last(descriptionStates).codeStep);
             }
             else {
                 VisualizationUtils.DescriptionDisplay.highlightCode(-1);
@@ -636,7 +625,7 @@ var KCliqueAlgorithm;
                 else {
                     for (let i = 0; i < theCC.vertices.length; ++i) {
                         if (theCC.vertices[i].id == a) {
-                            removeAsSwapBack(theCC.vertices, i);
+                            ArrayUtils.removeAsSwapBack(theCC.vertices, i);
                             break;
                         }
                     }
@@ -683,8 +672,8 @@ var KCliqueAlgorithm;
                         first.vertices.push(left_v);
                         newGeneratedCCs.push(first);
                         KCliqueCC.POOL.release(second);
-                        removeAsSwapBack(subCCsFrom, i); //remove first from subCCsFrom to prevent first got freed
-                        removeAsSwapBack(subCCsTo, j); //remove second from subCCsTo since it is merged and freed
+                        ArrayUtils.removeAsSwapBack(subCCsFrom, i); //remove first from subCCsFrom to prevent first got freed
+                        ArrayUtils.removeAsSwapBack(subCCsTo, j); //remove second from subCCsTo since it is merged and freed
                         --i;
                         break;
                     }
@@ -706,7 +695,7 @@ var KCliqueAlgorithm;
                         first.vertices.push(left_v);
                         this.moveCC(currentClique + 1, info);
                         KCliqueCC.POOL.release(second);
-                        removeAsSwapBack(subCCsTo, j); //remove second from subCCsTo since it is merged and freed
+                        ArrayUtils.removeAsSwapBack(subCCsTo, j); //remove second from subCCsTo since it is merged and freed
                     }
                 }
                 for (const info of toInfos) {
@@ -725,7 +714,7 @@ var KCliqueAlgorithm;
                         first.vertices.push(left_v);
                         this.moveCC(currentClique + 1, info);
                         KCliqueCC.POOL.release(second);
-                        removeAsSwapBack(subCCsFrom, j); //remove second from subCCsTo since it is merged and freed
+                        ArrayUtils.removeAsSwapBack(subCCsFrom, j); //remove second from subCCsTo since it is merged and freed
                     }
                 }
                 //merge two existing clique
@@ -783,11 +772,11 @@ var KCliqueAlgorithm;
                     const newCC = KCliqueCC.POOL.get();
                     const theCC = this.cliqueComponents[newClique].connectedComponents[fromInfo.index];
                     newCC.clique = newClique;
-                    removeAsSwapBack(toInfos, j); //remove toInfo since theCC not storing "to" anymore (toInfo and fromInfo both pointing to theCC)
+                    ArrayUtils.removeAsSwapBack(toInfos, j); //remove toInfo since theCC not storing "to" anymore (toInfo and fromInfo both pointing to theCC)
                     for (let idx = 0; idx < theCC.vertices.length;) {
                         const v = theCC.vertices[idx];
                         if (v.id == to) {
-                            removeAsSwapBack(theCC.vertices, idx); //theCC contains "from", and remove "to"
+                            ArrayUtils.removeAsSwapBack(theCC.vertices, idx); //theCC contains "from", and remove "to"
                             newCC.vertices.push(v); //newCC contains "to"
                         }
                         else if (v.id == from) {
@@ -804,7 +793,7 @@ var KCliqueAlgorithm;
                         ;
                         KCliqueCC.POOL.release(theCC);
                         this.removeCC(fromInfo);
-                        removeAsSwapBack(fromInfos, i);
+                        ArrayUtils.removeAsSwapBack(fromInfos, i);
                         if (i < fromInfos.length) {
                             --i;
                         }
@@ -840,7 +829,7 @@ var KCliqueAlgorithm;
                     if (info.clique != theClique || info.index != theIndex) {
                         continue;
                     }
-                    removeAsSwapBack(infos, i);
+                    ArrayUtils.removeAsSwapBack(infos, i);
                     break;
                 }
             }
@@ -1016,7 +1005,7 @@ var KCliqueAlgorithm;
                     }
                     return a.clique - b.clique;
                 });
-                a.setColor(this.cliqueComponents[arrayLast(aInfos).clique - 1].color);
+                a.setColor(this.cliqueComponents[ArrayUtils.last(aInfos).clique - 1].color);
                 for (let j = 0; j < verticesCount; ++j) {
                     const b = cc.vertices[j];
                     const bInfos = this.vertexToInfo.get(b.id);
@@ -1026,7 +1015,7 @@ var KCliqueAlgorithm;
                         }
                         return a.clique - b.clique;
                     });
-                    b.setColor(this.cliqueComponents[arrayLast(bInfos).clique - 1].color);
+                    b.setColor(this.cliqueComponents[ArrayUtils.last(bInfos).clique - 1].color);
                     const info = getMaxCommonInfo(aInfos, bInfos);
                     const e = this.graph.getEdge(a.id, b.id);
                     const line = e.line;

@@ -52,32 +52,39 @@ class FloatingPanel {
     }
     close() {
         this.toggler.checked = false;
-        this.isDragging = false;
-        this.outerOffsetX = 0;
-        this.outerOffsetY = 0;
-        this.outerDiv.style.top = "";
-        this.outerDiv.style.left = "";
-        document.body.removeChild(this.outerDiv);
-        this.originalParent.appendChild(this.outerDiv);
-        this.isOpened = false;
-        setTimeout(() => {
-            this.outerDiv.classList.toggle("floating-panel-open");
-        }, 1); //no idea why it needs to wait some time
+        if (this.isOpened) {
+            this.isDragging = false;
+            this.outerOffsetX = 0;
+            this.outerOffsetY = 0;
+            this.outerDiv.style.top = "";
+            this.outerDiv.style.left = "";
+            document.body.removeChild(this.outerDiv);
+            this.originalParent.appendChild(this.outerDiv);
+            this.isOpened = false;
+            setTimeout(() => {
+                this.outerDiv.classList.toggle("floating-panel-open");
+            }, 1); //no idea why it needs to wait some time
+        }
+        else {
+        }
     }
     open() {
-        const rect = this.outerDiv.getBoundingClientRect();
-        this.outerOffsetX = rect.left;
-        this.outerOffsetY = rect.top;
-        this.outerDiv.style.left = `${this.outerOffsetX}px`;
-        this.outerDiv.style.top = `${this.outerOffsetY}px`;
-        this.originalParent.removeChild(this.outerDiv);
-        if (this.isOpened == false) {
-            document.body.appendChild(this.outerDiv);
+        this.toggler.checked = true;
+        if (this.isOpened) {
         }
-        this.isOpened = true;
-        setTimeout(() => {
-            this.outerDiv.classList.toggle("floating-panel-open");
-        }, 1); //no idea why it needs to wait some time
+        else {
+            const rect = this.outerDiv.getBoundingClientRect();
+            this.outerOffsetX = rect.left;
+            this.outerOffsetY = rect.top;
+            this.outerDiv.style.left = `${this.outerOffsetX}px`;
+            this.outerDiv.style.top = `${this.outerOffsetY}px`;
+            this.originalParent.removeChild(this.outerDiv);
+            document.body.appendChild(this.outerDiv);
+            this.isOpened = true;
+            setTimeout(() => {
+                this.outerDiv.classList.toggle("floating-panel-open");
+            }, 1); //no idea why it needs to wait some time
+        }
     }
 }
 class GraphWindow {
@@ -167,7 +174,7 @@ class GraphWindow {
         };
         this.edgeEditMode = (ke) => {
             switch (ke.key) {
-                case "KeyC": {
+                case "c": {
                     this.removeVerticesHighlight(this.firstSelectedVertex);
                     this.removeVerticesHighlight(this.secondSelectedVertex);
                     this.firstSelectedVertex = -1;
@@ -176,22 +183,14 @@ class GraphWindow {
                     break;
                 }
                 case "Enter": {
-                    if (this.firstSelectedVertex == -1 || this.secondSelectedVertex == -1) {
-                        return;
-                    }
-                    if (this.isCreateEdge) {
-                        //dont change the order to prevent short circuit evaluation
-                        graphHasUpdated = VisualizationUtils.Algorithm.addEdge(this.firstSelectedVertex, this.secondSelectedVertex) || graphHasUpdated;
-                    }
-                    else {
-                        graphHasUpdated = VisualizationUtils.Algorithm.removeEdge(this.firstSelectedVertex, this.secondSelectedVertex) || graphHasUpdated;
-                    }
-                    this.updateSimulation();
+                    this.doEdgeAction();
+                    /*
                     this.removeVerticesHighlight(this.firstSelectedVertex);
                     this.removeVerticesHighlight(this.secondSelectedVertex);
-                    this.firstSelectedVertex = -1;
-                    this.secondSelectedVertex = -1;
-                    this.pressNumber = 0;
+                    this.firstSelectedVertex=-1;
+                    this.secondSelectedVertex=-1;
+                    this.pressNumber=0;
+                    */
                     break;
                 }
             }
@@ -302,7 +301,7 @@ class GraphWindow {
         this.graph = g;
         return this.updateSimulation();
     }
-    setVertexDragStartCallback(callback = undefined) {
+    setVertexMovingCallback(callback = undefined) {
         this.onVertexMoved = callback;
         return this;
     }
@@ -396,23 +395,20 @@ class GraphWindow {
         event.subject.fx = event.subject.x;
         event.subject.fy = event.subject.y;
         this.simulationStable = false;
-        if (this.pressToSelectVertex) {
+        if (this.pressToSelectVertex && this.secondSelectedVertex != event.subject.id && this.firstSelectedVertex != event.subject.id) {
             event.subject.circle.classList.toggle("highlight-vertex", true);
             if (this.pressNumber == 1) {
-                if (this.firstSelectedVertex != event.subject.id) {
-                    this.removeVerticesHighlight(this.secondSelectedVertex);
-                    this.secondSelectedVertex = event.subject.id;
-                    this.pressNumber = 0;
-                }
+                this.removeVerticesHighlight(this.secondSelectedVertex);
+                this.secondSelectedVertex = event.subject.id;
+                this.pressNumber = 0;
             }
             else {
-                if (this.secondSelectedVertex != event.subject.id) {
-                    this.removeVerticesHighlight(this.firstSelectedVertex);
-                    this.firstSelectedVertex = event.subject.id;
-                    this.pressNumber = 1;
-                }
+                this.removeVerticesHighlight(this.firstSelectedVertex);
+                this.firstSelectedVertex = event.subject.id;
+                this.pressNumber = 1;
             }
         }
+        MainApp.instance().setVertexInput(this.graph.adjacencyList.get(event.subject.id).main);
     }
     VertexDragged(event, v) {
         event.subject.fx = event.x;
@@ -485,8 +481,23 @@ class GraphWindow {
             this.pressToSelectVertex = false;
             this.removeVerticesHighlight(this.firstSelectedVertex);
             this.removeVerticesHighlight(this.secondSelectedVertex);
+            this.firstSelectedVertex = -1;
+            this.secondSelectedVertex = -1;
             window.removeEventListener("keypress", this.edgeEditMode);
         }
+    }
+    doEdgeAction() {
+        if (this.firstSelectedVertex == -1 || this.secondSelectedVertex == -1) {
+            return;
+        }
+        if (this.isCreateEdge) {
+            //dont change the order to prevent short circuit evaluation
+            graphHasUpdated = VisualizationUtils.Algorithm.addEdge(this.firstSelectedVertex, this.secondSelectedVertex) || graphHasUpdated;
+        }
+        else {
+            graphHasUpdated = VisualizationUtils.Algorithm.removeEdge(this.firstSelectedVertex, this.secondSelectedVertex) || graphHasUpdated;
+        }
+        this.updateSimulation();
     }
     removeVerticesHighlight(v) {
         if (v >= 0) {

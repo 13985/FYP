@@ -357,9 +357,11 @@ namespace VisualizationUtils{
             VideoControl.stopButton.disabled=false;
             VideoControl.runButton.disabled=true;
             VideoControl.progressBar.valueAsNumber=0;
+            MainApp.instance().showModificationExpands(false);
 
             await this.animate();
 
+            MainApp.instance().showModificationExpands(true);
             this.isAnimating=false;
             this.isPause=false;
             this.videoControlStatus=VideoControlStatus.noAction;
@@ -990,11 +992,28 @@ class Color implements IClone<Color>{
 }
 
 
-function arrayLast<T>(arr:T[]):T{
-    return arr[arr.length-1];
-}
+namespace ArrayUtils{
+    let set:Set<number>=new Set();
 
-function removeAsSwapBack<T>(arr:T[],idx:number):void{
-    arr[idx]=arr[arr.length-1];
-    arr.pop();
+    export function last<T>(arr:T[]):T{
+        return arr[arr.length-1];
+    }
+    
+    export function removeAsSwapBack<T>(arr:T[],idx:number):void{
+        arr[idx]=arr[arr.length-1];
+        arr.pop();
+    }
+    
+    export function removeDuplicate(arr:number[]):void{
+        set.clear();
+        let i:number=0,j:number=0;
+        for(;j<arr.length;++j){
+            if(set.has(arr[j])){}
+            else{
+                set.add(arr[j]);
+                arr[i++]=arr[j];
+            }
+        }
+        arr.length=i;
+    }
 }

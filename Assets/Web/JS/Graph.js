@@ -269,7 +269,7 @@ class Graph {
         return v;
     }
     addEdge(a, b) {
-        if (this.adjacencyList.get(a) == undefined || this.adjacencyList.get(b) == undefined) {
+        if (a == b || this.adjacencyList.get(a) == undefined || this.adjacencyList.get(b) == undefined) {
             return false;
         }
         const code = this.getEdgeHashCode(a, b);
@@ -287,7 +287,7 @@ class Graph {
     }
     removeEdge(a, b) {
         var _a;
-        if (this.adjacencyList.get(a) == undefined || this.adjacencyList.get(b) == undefined) {
+        if (a == b || this.adjacencyList.get(a) == undefined || this.adjacencyList.get(b) == undefined) {
             return false;
         }
         const code = this.getEdgeHashCode(a, b);
@@ -295,7 +295,7 @@ class Graph {
         if (idx == undefined) {
             return false;
         }
-        const e = arrayLast(this.edges);
+        const e = ArrayUtils.last(this.edges);
         this.existsEdges.set(this.getEdgeHashCode(e.source.id, e.target.id), idx);
         this.existsEdges.delete(code);
         (_a = this.edges[idx].line) === null || _a === void 0 ? void 0 : _a.remove();

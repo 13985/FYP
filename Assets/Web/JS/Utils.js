@@ -330,7 +330,9 @@ var VisualizationUtils;
                 VideoControl.stopButton.disabled = false;
                 VideoControl.runButton.disabled = true;
                 VideoControl.progressBar.valueAsNumber = 0;
+                MainApp.instance().showModificationExpands(false);
                 yield this.animate();
+                MainApp.instance().showModificationExpands(true);
                 this.isAnimating = false;
                 this.isPause = false;
                 this.videoControlStatus = 0 /* VideoControlStatus.noAction */;
@@ -817,10 +819,29 @@ class Color {
         ret.a = start.a * (1 - t) + end.a * t;
     }
 }
-function arrayLast(arr) {
-    return arr[arr.length - 1];
-}
-function removeAsSwapBack(arr, idx) {
-    arr[idx] = arr[arr.length - 1];
-    arr.pop();
-}
+var ArrayUtils;
+(function (ArrayUtils) {
+    let set = new Set();
+    function last(arr) {
+        return arr[arr.length - 1];
+    }
+    ArrayUtils.last = last;
+    function removeAsSwapBack(arr, idx) {
+        arr[idx] = arr[arr.length - 1];
+        arr.pop();
+    }
+    ArrayUtils.removeAsSwapBack = removeAsSwapBack;
+    function removeDuplicate(arr) {
+        set.clear();
+        let i = 0, j = 0;
+        for (; j < arr.length; ++j) {
+            if (set.has(arr[j])) { }
+            else {
+                set.add(arr[j]);
+                arr[i++] = arr[j];
+            }
+        }
+        arr.length = i;
+    }
+    ArrayUtils.removeDuplicate = removeDuplicate;
+})(ArrayUtils || (ArrayUtils = {}));
