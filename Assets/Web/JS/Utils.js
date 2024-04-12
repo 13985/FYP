@@ -289,7 +289,7 @@ var VisualizationUtils;
             (_a = Algorithm.visualizationTarget) === null || _a === void 0 ? void 0 : _a.setVisualElementsColor(defaultColor);
         }
         constructor(g, svg, gw) {
-            this.showDefaultColor = true;
+            this.notColorful = true;
             this.videoControlStatus = 0 /* VideoControlStatus.noAction */; //if the user is fast enough he can cancel the "stop animation" action by replace it to be another action (pressing other button/input)
             this.isAnimating = false;
             this.isPause = false;

@@ -48,6 +48,16 @@ var KCoreAlgorithm;
             sc.color = this.color.clone();
             return sc;
         }
+        size() {
+            let sum = 0;
+            for (const cc of this.connectedComponents) {
+                sum += cc.vertices.length;
+            }
+            return sum;
+        }
+        empty() {
+            return this.connectedComponents.length <= 0;
+        }
     }
     class CorePolygon {
         constructor(p, key = 0) {
@@ -545,7 +555,7 @@ var KCoreAlgorithm;
             }
         }
         setVisualElementsColor(defaultColor) {
-            this.showDefaultColor = defaultColor;
+            this.notColorful = defaultColor;
             if (defaultColor) {
                 for (const v of this.graph.vertices) {
                     v.circle.setAttribute("fill", "var(--reverse-color2)");
@@ -795,11 +805,16 @@ var KCoreAlgorithm;
             const oldBuffer = buffers.find((cc) => cc.shell == orginalShell);
             const newBuffer = buffers.find((cc) => cc.shell != orginalShell);
             this.degrees.clear();
+            const CORE_INCREASED = 1;
+            const CORE_DECREASED = -1;
+            const CORE_NO_CHANGE = 0;
+            let status = CORE_NO_CHANGE;
             if (currentShell >= this.shellComponents.length && currentShell < MAX_DEGREE) { //if vertex in 0 kcore got deleted, then the currentShell wont change.... (i.e. it will still == MAX_DEGREE since no kcore is ran)
                 const sc = new ShellComponet();
                 sc.shell = currentShell;
                 this.shellComponents.push(sc);
                 this.setColorGradient(this.shellComponents[0].color, this.shellComponents[this.shellComponents.length - 2].color).ensurePolygons();
+                status = CORE_INCREASED;
             }
             if (oldBuffer != undefined) {
                 const destSC = this.shellComponents[orginalShell];
@@ -848,12 +863,31 @@ var KCoreAlgorithm;
                     }
                     destSC.connectedComponents.push(newCC);
                 }
-                if (this.showDefaultColor == false) {
+                if (this.notColorful == false) {
                     for (const v of newBuffer.vertices) {
                         v.setColor(destSC.color);
                     }
                 }
                 KCoreCC.POOL.release(newBuffer);
+                this.setVisualElementsColor(this.notColorful);
+                if (status != CORE_INCREASED) {
+                    const color = arrayLast(this.shellComponents).color;
+                    while (this.shellComponents.length >= 0 && arrayLast(this.shellComponents).connectedComponents.length <= 0) {
+                        this.shellComponents.pop();
+                        status = CORE_DECREASED;
+                    }
+                    if (this.shellComponents.length > 0) {
+                        this.setColorGradient(this.shellComponents[0].color, color).ensurePolygons();
+                    }
+                }
+            }
+            switch (status) {
+                case CORE_NO_CHANGE:
+                    break;
+                case CORE_INCREASED:
+                case CORE_DECREASED:
+                    this.setVisualElementsColor(this.notColorful);
+                    break;
             }
             this.calculateBound();
             KCoreCC.POOL.release(theCC);
@@ -877,7 +911,7 @@ var KCoreAlgorithm;
         ensurePolygons() {
             const min = Math.min(this.shellComponents.length, this.corePolygons.length);
             for (let i = 0; i < min; ++i) {
-                this.corePolygons[i].display(this.showDefaultColor == false).polygon.setAttribute("fill", `color-mix(in srgb, ${this.shellComponents[i].color.toString()} 30%, var(--main-color1) 70%)`);
+                this.corePolygons[i].display(this.notColorful == false).polygon.setAttribute("fill", `color-mix(in srgb, ${this.shellComponents[i].color.toString()} 30%, var(--main-color1) 70%)`);
             }
             if (min == this.shellComponents.length) {
                 for (let i = this.shellComponents.length; i < this.corePolygons.length; ++i) {
@@ -895,7 +929,7 @@ var KCoreAlgorithm;
                      * so query the first g and insert before it
                      */
                     this.polygonsContainer.insertBefore(p, this.polygonsContainer.querySelector("g"));
-                    const coreP = new CorePolygon(p).display(this.showDefaultColor == false);
+                    const coreP = new CorePolygon(p).display(this.notColorful == false);
                     this.corePolygons.push(coreP);
                 }
             }

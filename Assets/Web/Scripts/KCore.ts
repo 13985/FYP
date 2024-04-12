@@ -43,6 +43,18 @@ namespace KCoreAlgorithm{
             sc.color=this.color.clone();
             return sc;
         }
+
+        public size():number{
+            let sum=0;
+            for(const cc of this.connectedComponents){
+                sum+=cc.vertices.length;
+            }
+            return sum;
+        }
+
+        public empty():boolean{
+            return this.connectedComponents.length<=0;
+        }
     }
 
 
@@ -913,11 +925,18 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             const newBuffer:KCoreCC|undefined=buffers.find((cc):boolean=>cc.shell!=orginalShell);
             this.degrees.clear();
 
+            const CORE_INCREASED:number=1;
+            const CORE_DECREASED:number=-1;
+            const CORE_NO_CHANGE:number=0;
+        
+            let status:number=CORE_NO_CHANGE;
+
             if(currentShell>=this.shellComponents.length&&currentShell<MAX_DEGREE){//if vertex in 0 kcore got deleted, then the currentShell wont change.... (i.e. it will still == MAX_DEGREE since no kcore is ran)
                 const sc=new ShellComponet();
                 sc.shell=currentShell;
                 this.shellComponents.push(sc);
                 this.setColorGradient(this.shellComponents[0].color,this.shellComponents[this.shellComponents.length-2].color).ensurePolygons();
+                status=CORE_INCREASED;
             }
 
             if(oldBuffer!=undefined){
@@ -977,6 +996,28 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                 }
                 
                 KCoreCC.POOL.release(newBuffer);
+                this.setVisualElementsColor(this.notColorful);
+
+                if(status!=CORE_INCREASED){
+                    const color:Color=arrayLast(this.shellComponents).color;
+                    while(this.shellComponents.length>=0&&arrayLast(this.shellComponents).connectedComponents.length<=0){
+                        this.shellComponents.pop();
+                        status=CORE_DECREASED;
+                    }
+
+                    if(this.shellComponents.length>0){
+                        this.setColorGradient(this.shellComponents[0].color,color).ensurePolygons();
+                    }
+                }
+            }
+
+            switch(status){
+            case CORE_NO_CHANGE:
+                break;
+            case CORE_INCREASED:
+            case CORE_DECREASED:
+                this.setVisualElementsColor(this.notColorful);
+                break;
             }
 
             this.calculateBound();

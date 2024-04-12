@@ -973,7 +973,7 @@ var KCliqueAlgorithm;
             return left_v;
         }
         changeColor(cc) {
-            if (this.showDefaultColor) {
+            if (this.notColorful) {
                 return;
             }
             const verticesCount = cc.vertices.length;
