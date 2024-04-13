@@ -412,6 +412,27 @@ var VisualizationUtils;
         clear() {
             this.vertices.length = 0;
         }
+        toString(bound = "") {
+            let ret = "";
+            let i = 0;
+            for (; i < this.vertices.length - 1; ++i) {
+                ret += `${this.vertices[i].id},`;
+            }
+            ret += `${this.vertices[i].id}`;
+            if (bound.length <= 0) {
+                return ret;
+            }
+            else if (bound == '(') {
+                return `(${ret})`;
+            }
+            else if (bound == '{') {
+                return `{${ret}}`;
+            }
+            else if (bound == '[') {
+                return `[${ret}]`;
+            }
+            return ret;
+        }
     }
     VisualizationUtils.ConnectedComponent = ConnectedComponent;
     class DescriptionState {

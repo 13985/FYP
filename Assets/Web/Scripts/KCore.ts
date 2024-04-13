@@ -710,14 +710,14 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             let i:number=this.shellComponents.length-1;
             //the vertices in shell component may point to the other graph not this.graph
             {
-                const cp:CorePolygon=this.corePolygons[i];
+                const cp:CorePolygon=this.corePolygons[i];//the largest core
                 cp.bound.length=0;
                 ConvesHull.Solve(cp,this.shellComponents[i],this.graph,this.svgContainer);
             }
-            for(--i;i>=0;--i){
+            for(--i;i>=0;--i){//for each smaller core
                 const cp:CorePolygon=this.corePolygons[i];
                 cp.bound.length=0;
-                ConvesHull.Solve(cp,this.shellComponents[i],this.graph,this.svgContainer,this.corePolygons[i+1].bound)
+                ConvesHull.Solve(cp,this.shellComponents[i],this.graph,this.svgContainer,this.corePolygons[i+1].bound);
             }
             return this;
         }
@@ -1142,33 +1142,6 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             this.shellComponents.length=0;
             return this;
         }
-
-
-        /*
-        public copyIndexStructure(other: KCoreAlgorithm.KCore): void {
-            other.releaseCCs();
-            other.shellComponents.length=0;
-            other.vertexToInfo.clear();
-
-            for(const sc of this.shellComponents){
-                const newSC:ShellComponet=sc.clone();
-                other.shellComponents.push(newSC);
-
-                for(const cc of sc.connectedComponents){
-                    const newCC:KCoreCC=cc.clone();
-                    for(const v of cc.vertices){
-                        newCC.vertices.push((other.graph.adjacencyList.get(v.id) as VerticeList).main);
-                    }
-
-                    newSC.connectedComponents.push(newCC);
-                }
-            }
-
-            for(const kvp of this.vertexToInfo){
-                other.vertexToInfo.set(kvp[0],kvp[1].clone());
-            }
-        }
-        */
     }
     
 
@@ -1203,7 +1176,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             }
             for(const cc of sc.connectedComponents){
                 for(const v of cc.vertices){
-                    verticesBuffer.push((graph.adjacencyList.get(v.id) as VerticeList).main);
+                    verticesBuffer.push((graph.adjacencyList.get(v.id) as VerticeList).main);//loads all vertices to buffer
                 }
             }
             const polygon:SVGPolygonElement=cp.polygon;

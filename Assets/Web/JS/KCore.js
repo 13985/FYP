@@ -605,11 +605,11 @@ var KCoreAlgorithm;
             let i = this.shellComponents.length - 1;
             //the vertices in shell component may point to the other graph not this.graph
             {
-                const cp = this.corePolygons[i];
+                const cp = this.corePolygons[i]; //the largest core
                 cp.bound.length = 0;
                 ConvesHull.Solve(cp, this.shellComponents[i], this.graph, this.svgContainer);
             }
-            for (--i; i >= 0; --i) {
+            for (--i; i >= 0; --i) { //for each smaller core
                 const cp = this.corePolygons[i];
                 cp.bound.length = 0;
                 ConvesHull.Solve(cp, this.shellComponents[i], this.graph, this.svgContainer, this.corePolygons[i + 1].bound);
@@ -1046,7 +1046,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             }
             for (const cc of sc.connectedComponents) {
                 for (const v of cc.vertices) {
-                    verticesBuffer.push(graph.adjacencyList.get(v.id).main);
+                    verticesBuffer.push(graph.adjacencyList.get(v.id).main); //loads all vertices to buffer
                 }
             }
             const polygon = cp.polygon;

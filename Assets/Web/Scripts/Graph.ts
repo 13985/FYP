@@ -184,7 +184,7 @@ class Graph{
             if(Graph.edgeFormat.test(e)==false){
                 continue;
             }
-            const matchedValues=e.match(/(\d+)/g);
+            const matchedValues:RegExpMatchArray|null=e.match(/(\d+)/g);
             if(matchedValues==undefined){
                 continue;
             }

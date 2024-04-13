@@ -144,7 +144,7 @@ namespace KCliqueAlgorithm{
         /**************************UI******************************************/
 
         /**************************helper data structures**********************/
-        private readonly set:Set<number>=new Set();
+        private readonly set0:Set<number>=new Set();
 
         private subCliqueGeneratorA?:SubCliqueGenerator;
         private subCliqueGeneratorB?:SubCliqueGenerator;
@@ -299,15 +299,15 @@ namespace KCliqueAlgorithm{
                 
                 for(let b:number=0;b<next.length;++b){
                     for(let a:number=0;a<previous.length;){
-                        this.set.clear();
+                        this.set0.clear();
                         for(const v of previous[a].vertices){
-                            this.set.add(v.id);
+                            this.set0.add(v.id);
                         }
                         for(const v of next[b].vertices){
-                            this.set.delete(v.id);
+                            this.set0.delete(v.id);
                         }
 
-                        if(this.set.size<=0){
+                        if(this.set0.size<=0){
                             KCliqueCC.POOL.release(previous[a]);
                             ArrayUtils.removeAsSwapBack(previous,a);
                         }else{
@@ -376,7 +376,12 @@ namespace KCliqueAlgorithm{
             }else{
                 let previous:KCliqueCC[]=[];
                 let newGenerated:KCliqueCC[]=[];
-                let remainVertices:Vertex[]=[];
+
+                const $bufferCC0:KCliqueCC=KCliqueCC.POOL.get();
+                const $bufferCC1:KCliqueCC=KCliqueCC.POOL.get();
+
+                const remainVertices:Vertex[]=$bufferCC0.vertices;
+                const highlightedVertices:Vertex[]=$bufferCC1.vertices;
                 const previousEdgeColor:Map<number,string>=new Map();
                 
                 for(const e of this.graph.edges){
@@ -421,21 +426,12 @@ namespace KCliqueAlgorithm{
                 ++step;
 
                 let currentClique:number=2;
-                for(let noUpdate:boolean;true;){
-                    noUpdate=true;
+                while(true){
                     newGenerated.length=0;
                     this.states.localStatePush({step:step,codeStep:3,stepDescription:`for ${currentClique+1}-Clique`});
                     ++step;
 
                     for(let i:number=0;i<previous.length;++i){
-                        function ccToString(cc:KCliqueCC):string{
-                            let ret:string="";
-                            for(const v of cc.vertices){
-                                ret+=`${v.id},`
-                            }
-                            return ret.substring(0,ret.length-1);
-                        }
-
                         const highlightCC=(cc:KCliqueCC,opacity:number,edgeWidth:number,updateEdgeColor:boolean=false):void=>{
                             const clique:number=cc.clique;
                             const vertexColor:string=this.cliqueComponents[clique-1].color.toString();
@@ -467,7 +463,7 @@ namespace KCliqueAlgorithm{
 
                         const first:KCliqueCC=previous[i];
                         highlightCC(first,1,1+(first.clique*3/(this.cliqueComponents.length+2)));
-                        this.states.localStatePush({step:step,codeStep:4,stepDescription:`clique: ${ccToString(first)}`});
+                        this.states.localStatePush({step:step,codeStep:4,stepDescription:`clique: ${first.toString('{')}`});
                         ++step;
 
                         /**
@@ -475,58 +471,63 @@ namespace KCliqueAlgorithm{
                          */
                         Label_1:for(let j:number=i+1;j<previous.length;++j){
                             const second:KCliqueCC=previous[j];
-                            this.set.clear();
+                            this.set0.clear();
                             remainVertices.length=0;
+                            highlightedVertices.length=0;
                             
                             for(const v of first.vertices){
-                                this.set.add(v.id);
+                                this.set0.add(v.id);
                             }
                             
                             for(const v of second.vertices){
-                                if(this.set.has(v.id)){
-                                    this.set.delete(v.id);
+                                if(this.set0.has(v.id)){
+                                    this.set0.delete(v.id);
+                                    highlightedVertices.push(v);
                                 }else{
                                     remainVertices.push(v);
                                 }
                             }
 
-                            const highlightRemainVertices=(clique:number,opacity:number,width:number):void=>{
+                            const highlightRemainVE=(clique:number,opacity:number,width:number):void=>{
+                                const helper=(vA:Vertex,vB:Vertex):void=>{
+                                    const e:Edge|undefined=this.graph.getEdge(vA.id,vB.id);
+                                    if(e==undefined){return;}
+                                    const code:number=this.graph.getEdgeHashCode(vA.id,vB.id);
+                                    const ds:DataState=DataState.POOL.get();
+                                    ds.step=step;
+                                    ds.color=previousEdgeColor.get(code) as string;
+                                    ds.opacity=opacity;
+                                    ds.width=width;
+                                    (this.states as State).dataStatePush(code,ds);
+                                }
+
+                                for(const v0 of highlightedVertices){
+                                    for(const v1 of remainVertices){
+                                        helper(v0,v1);
+                                    }
+                                }
+
                                 for(let i:number=0;i<remainVertices.length;++i){
                                     const v0:Vertex=remainVertices[i];
                                     const vertexColor:string=this.cliqueComponents[clique-1].color.toString();
-                                    let ds:DataState=DataState.POOL.get();
+                                    const ds:DataState=DataState.POOL.get();
                                     ds.step=step;
                                     ds.color=vertexColor;
                                     ds.opacity=opacity;
                                     (this.states as State).dataStatePush(v0.id,ds);
-    
-                                    const helper=(vA:Vertex,vB:Vertex):void=>{
-                                        const e:Edge|undefined=this.graph.getEdge(vA.id,vB.id);
-                                        if(e==undefined){return;}
-                                        const code:number=this.graph.getEdgeHashCode(vA.id,vB.id);
-                                        ds=DataState.POOL.get();
-                                        ds.step=step;
-                                        ds.color=previousEdgeColor.get(code) as string;
-                                        ds.opacity=opacity;
-                                        ds.width=width;
-                                        (this.states as State).dataStatePush(code,ds);
-                                    }
-    
-                                    for(const v1 of first.vertices){
-                                        helper(v1,v0);
-                                    }
                                     for(let j:number=i+1;j<remainVertices.length;++j){
-                                        helper(remainVertices[j],v0);
+                                        const v1:Vertex=remainVertices[j];
+                                        helper(v0,v1);
                                     }
                                 }
                             }
                             
-                            highlightRemainVertices(second.clique,1,this.getEdgeStorkeWidth(second.clique));
-                            this.states.localStatePush({step:step,codeStep:5,stepDescription:`check with clique: ${ccToString(second)}`});
+                            highlightRemainVE(second.clique,1,this.getEdgeStorkeWidth(second.clique));
+                            this.states.localStatePush({step:step,codeStep:5,stepDescription:`check with clique: ${second.toString("{")}`});
                             ++step;
 
                             if(remainVertices.length>1){//i hate early continue, make sure the state has poped
-                                highlightRemainVertices(second.clique,KClique.OPACITY,1);
+                                highlightRemainVE(second.clique,KClique.OPACITY,1);
                                 this.states.localStatePop(step);
                                 ++step;
                                 continue;
@@ -534,12 +535,12 @@ namespace KCliqueAlgorithm{
                             
                             const left_v:Vertex=remainVertices[0];
                             let the_v:Vertex=left_v;//just to prevent use of unassigned local variable error
-                            for(const v of this.set){
+                            for(const v of this.set0){
                                 the_v=(this.graph.adjacencyList.get(v) as VerticeList).main;
                             }
 
                             if(this.graph.getEdge(the_v.id,left_v.id)==undefined){
-                                highlightRemainVertices(second.clique,KClique.OPACITY,1);
+                                highlightRemainVE(second.clique,KClique.OPACITY,1);
                                 this.states.localStatePop(step);
                                 ++step;
                                 continue;
@@ -553,15 +554,16 @@ namespace KCliqueAlgorithm{
                                 ArrayUtils.removeAsSwapBack(previous,i);
                                 --i;//prevent the increment of i
                             }
-                            noUpdate=false;
                             
                             first.clique=currentClique+1;
                             highlightCC(first,1,this.getEdgeStorkeWidth(currentClique),true);
-                            this.states.localStateTop({step:step,codeStep:6,stepDescription:`merge`});
+                            this.states.localStatePush({step:step,codeStep:6,stepDescription:`merge`});
                             ++step;
                             this.states.localStateTop({step:step,codeStep:7,stepDescription:`set no_update=false`});
                             ++step;
                             this.states.localStatePop(step);
+                            ++step;
+                            this.states.localStatePop(step);//pushed twice so pop twice
                             ++step;
 
                             KCliqueCC.POOL.release(second);
@@ -571,23 +573,23 @@ namespace KCliqueAlgorithm{
                         this.states.localStatePop(step);
                         ++step;
                     }
-
+                    
                     this.states.localStatePop(step);
                     ++step;
-
-                    {//swap two buffer
+                    if(newGenerated.length>0){//swap two buffer
                         const temp=previous;
                         previous=newGenerated;
                         newGenerated=temp;
-                    }
-                    if(noUpdate){
+                    }else{
+                        this.states.localStateTop({step:step,codeStep:8,stepDescription:`highest clique:${currentClique}`});
+                        ++step;
                         break;
                     }
                     ++currentClique;
                 }
 
-                this.states.localStateTop({step:step,codeStep:8,stepDescription:`highest clique:${currentClique}`});
-                ++step;
+                KCliqueCC.POOL.release($bufferCC0);
+                KCliqueCC.POOL.release($bufferCC1);
             }
             this.states.localStatePop(step);
             this.states.onInitEnd(step);
@@ -1045,15 +1047,15 @@ namespace KCliqueAlgorithm{
          * @returns the vertex in b if they can be combined
          */
         private testCombine(a:KCliqueCC,b:KCliqueCC,outEdgeCode?:NumberReference):Vertex|null{
-            this.set.clear();
+            this.set0.clear();
             let left_v:Vertex|null=null;
             for(const v of a.vertices){
-                this.set.add(v.id);
+                this.set0.add(v.id);
             }
             Label_0:{
                 for(const v of b.vertices){
-                    if(this.set.has(v.id)){
-                        this.set.delete(v.id);
+                    if(this.set0.has(v.id)){
+                        this.set0.delete(v.id);
                     }else if(left_v!=null){
                         left_v=null;
                         break Label_0;
@@ -1062,7 +1064,7 @@ namespace KCliqueAlgorithm{
                     }
                 }
                 
-                for(const v_id of this.set){//only one v_id
+                for(const v_id of this.set0){//only one v_id
                     if(this.graph.getEdge(v_id,(left_v as Vertex).id)==undefined){
                         left_v=null;
                     }else if(outEdgeCode!=undefined){
