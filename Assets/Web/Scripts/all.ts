@@ -460,4 +460,15 @@ window.onload=():void=>{
     23 23\r\n\
     24 24\r\n\
     ");
+    MainApp.instance().loadGraph("0 1\r\n\
+    0 2\r\n\
+    0 3\r\n\
+    0 4\r\n\
+    1 3\r\n\
+    1 2\r\n\
+    1 4\r\n\
+    3 1\r\n\
+    3 4\r\n\
+    2 3\r\n\
+    ");
 }

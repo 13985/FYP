@@ -112,6 +112,8 @@ var KCliqueAlgorithm;
             /**************************UI******************************************/
             /**************************helper data structures**********************/
             this.set0 = new Set();
+            this.ccBuffer0 = [];
+            this.ccBuffer1 = [];
             /**************************index data structures**********************/
             //1-cliques stored at 0, 2-cliques stored at 1, 3-cliques stored at 2....
             this.cliqueComponents = [];
@@ -166,6 +168,7 @@ var KCliqueAlgorithm;
             return this;
         }
         createIndexStructure() {
+            this.vertexToInfo.clear();
             for (const kc of this.cliqueComponents) {
                 for (const cc of kc.connectedComponents) {
                     KCliqueCC.POOL.release(cc);
@@ -222,35 +225,22 @@ var KCliqueAlgorithm;
                             ++i;
                         }
                     }
-                    if (next.connectedComponents.length > 0) {
-                        this.cliqueComponents.push(next);
-                    }
-                    else {
+                    if (next.connectedComponents.length <= 0) {
                         break;
                     }
-                }
-            }
-            //clean up, remove the subcliques of larger clique
-            for (let i = 1, j = 2; j < this.cliqueComponents.length; i = j, ++j) {
-                const previous = this.cliqueComponents[i].connectedComponents;
-                const next = this.cliqueComponents[j].connectedComponents;
-                for (let b = 0; b < next.length; ++b) {
-                    for (let a = 0; a < previous.length;) {
-                        this.set0.clear();
-                        for (const v of previous[a].vertices) {
-                            this.set0.add(v.id);
-                        }
-                        for (const v of next[b].vertices) {
-                            this.set0.delete(v.id);
-                        }
-                        if (this.set0.size <= 0) {
-                            KCliqueCC.POOL.release(previous[a]);
-                            ArrayUtils.removeAsSwapBack(previous, a);
-                        }
-                        else {
-                            ++a;
+                    //clean up, remove the subcliques of larger clique
+                    for (let b = 0; b < next.connectedComponents.length; ++b) {
+                        for (let a = 0; a < previous.length;) {
+                            if (this.isSubClique(previous[a], next.connectedComponents[b])) {
+                                KCliqueCC.POOL.release(previous[a]);
+                                ArrayUtils.removeAsSwapBack(previous, a);
+                            }
+                            else {
+                                ++a;
+                            }
                         }
                     }
+                    this.cliqueComponents.push(next);
                 }
             }
             for (const kc of this.cliqueComponents) {
@@ -304,8 +294,10 @@ var KCliqueAlgorithm;
                 ++step;
             }
             else {
-                let previous = [];
-                let newGenerated = [];
+                let previous = this.ccBuffer0;
+                let newGenerated = this.ccBuffer1;
+                previous.length = 0;
+                newGenerated.length = 0;
                 const $bufferCC0 = KCliqueCC.POOL.get();
                 const $bufferCC1 = KCliqueCC.POOL.get();
                 const remainVertices = $bufferCC0.vertices;
@@ -647,110 +639,83 @@ var KCliqueAlgorithm;
                 return false;
             }
             this.graphWindow.updateSimulation();
-            if (this.subCliqueGeneratorA == undefined) {
-                this.subCliqueGeneratorA = new SubCliqueGenerator();
-                this.subCliqueGeneratorB = new SubCliqueGenerator();
+            if (this.subCliqueGenerator == undefined) {
+                this.subCliqueGenerator = new SubCliqueGenerator();
             }
-            const generatorFrom = this.subCliqueGeneratorA;
-            const generatorTo = this.subCliqueGeneratorB;
+            const generatorFrom = this.subCliqueGenerator;
             const fromInfos = this.vertexToInfo.get(from);
             const toInfos = this.vertexToInfo.get(to);
-            generatorFrom.set(fromInfos, this.cliqueComponents);
-            generatorTo.set(toInfos, this.cliqueComponents);
-            const newGeneratedCCs = [];
-            for (let currentClique = 1; true;) {
-                const subCCsFrom = generatorFrom.generateSubCliques(currentClique);
-                const subCCsTo = generatorTo.generateSubCliques(currentClique);
-                //merging two sub clique
-                for (let i = 0; i < subCCsFrom.length; ++i) {
-                    const first = subCCsFrom[i];
-                    for (let j = 0; j < subCCsTo.length; ++j) {
-                        const second = subCCsTo[j];
-                        const left_v = this.testCombine(first, second);
-                        if (left_v == null) {
-                            continue;
+            const toV = this.graph.adjacencyList.get(to).main;
+            const newGeneratedCCs = this.ccBuffer0;
+            const stableCCs = this.ccBuffer1;
+            newGeneratedCCs.length = 0;
+            stableCCs.length = 0;
+            for (const fromInfo of fromInfos) {
+                const cc = this.getKCliqueCC(fromInfo);
+                if (this.fullyConnected(toV, cc)) { //move directly, dont need to generate sub clique anymore
+                    cc.vertices.push(toV);
+                    ++cc.clique;
+                    this.moveCC(cc.clique, fromInfo);
+                    stableCCs.push(cc);
+                    continue;
+                }
+                generatorFrom.set(cc);
+                for (let clique = cc.clique - 1; clique > 1; --clique) {
+                    const ccs = generatorFrom.generate(toV, clique);
+                    for (let i = 0; i < ccs.length;) {
+                        const cc_ = ccs[i];
+                        Label_0: if (this.fullyConnected(toV, cc_)) {
+                            cc_.vertices.push(toV);
+                            ++cc_.clique;
+                            for (let j = 0; j < stableCCs.length; ++j) {
+                                if (cc_.clique < stableCCs[j].clique && this.isSubClique(cc_, stableCCs[j])) {
+                                    ++i;
+                                    break Label_0;
+                                }
+                            }
+                            newGeneratedCCs.push(cc_);
+                            ArrayUtils.removeAsSwapBack(ccs, i);
                         }
-                        //the two remain vertices must be from and to....
-                        first.clique = currentClique + 1;
-                        first.vertices.push(left_v);
-                        newGeneratedCCs.push(first);
-                        KCliqueCC.POOL.release(second);
-                        ArrayUtils.removeAsSwapBack(subCCsFrom, i); //remove first from subCCsFrom to prevent first got freed
-                        ArrayUtils.removeAsSwapBack(subCCsTo, j); //remove second from subCCsTo since it is merged and freed
+                        else {
+                            ++i;
+                        }
+                    }
+                    generatorFrom.releaseAll();
+                }
+            }
+            newGeneratedCCs.sort((a, b) => a.clique - b.clique);
+            for (let i = 0; i < newGeneratedCCs.length; ++i) {
+                label_0: {
+                    const cc = newGeneratedCCs[i];
+                    for (let j = i + 1; j < newGeneratedCCs.length; ++j) {
+                        if (this.isSubClique(cc, newGeneratedCCs[j])) {
+                            KCliqueCC.POOL.release(cc);
+                            break label_0;
+                        }
+                    }
+                    for (let j = 0; j < stableCCs.length; ++j) {
+                        if (stableCCs[j].clique > cc.clique && this.isSubClique(cc, stableCCs[j])) {
+                            KCliqueCC.POOL.release(cc);
+                            break label_0;
+                        }
+                    }
+                    stableCCs.push(cc);
+                }
+            }
+            for (let i = 0; i < toInfos.length; ++i) { //those clique is only contain "to", no "from" inside
+                const toInfo = toInfos[i];
+                const cc = this.getKCliqueCC(toInfo);
+                for (let j = 0; j < stableCCs.length; ++j) {
+                    if (toInfo.clique < stableCCs[j].clique && this.isSubClique(cc, stableCCs[j])) {
+                        this.removeCC(toInfo);
+                        KCliqueCC.POOL.release(cc);
+                        ArrayUtils.removeAsSwapBack(toInfos, i);
                         --i;
                         break;
                     }
                 }
-                //merging one sub clique and one existing clique
-                for (const info of fromInfos) {
-                    if (info.clique != currentClique) {
-                        continue;
-                    }
-                    const first = this.cliqueComponents[info.clique - 1].connectedComponents[info.index];
-                    for (let j = 0; j < subCCsTo.length; ++j) {
-                        const second = subCCsTo[j];
-                        const left_v = this.testCombine(first, second);
-                        if (left_v == null) {
-                            continue;
-                        }
-                        //the two remain vertices must be from and to....
-                        first.clique = currentClique + 1;
-                        first.vertices.push(left_v);
-                        this.moveCC(currentClique + 1, info);
-                        KCliqueCC.POOL.release(second);
-                        ArrayUtils.removeAsSwapBack(subCCsTo, j); //remove second from subCCsTo since it is merged and freed
-                    }
-                }
-                for (const info of toInfos) {
-                    if (info.clique != currentClique) {
-                        continue;
-                    }
-                    const first = this.cliqueComponents[info.clique - 1].connectedComponents[info.index];
-                    for (let j = 0; j < subCCsFrom.length; ++j) {
-                        const second = subCCsFrom[j];
-                        const left_v = this.testCombine(first, second);
-                        if (left_v == null) {
-                            continue;
-                        }
-                        //the two remain vertices must be from and to....
-                        first.clique = currentClique + 1;
-                        first.vertices.push(left_v);
-                        this.moveCC(currentClique + 1, info);
-                        KCliqueCC.POOL.release(second);
-                        ArrayUtils.removeAsSwapBack(subCCsFrom, j); //remove second from subCCsTo since it is merged and freed
-                    }
-                }
-                //merge two existing clique
-                for (const fromInfo of fromInfos) {
-                    if (fromInfo.clique != currentClique) {
-                        continue;
-                    }
-                    const fromCC = this.cliqueComponents[fromInfo.clique - 1].connectedComponents[fromInfo.index];
-                    for (const toInfo of toInfos) {
-                        if (toInfo.clique != currentClique) {
-                            continue;
-                        }
-                        const toCC = this.cliqueComponents[toInfo.clique - 1].connectedComponents[toInfo.index];
-                        const left_v = this.testCombine(fromCC, toCC);
-                        if (left_v == null) {
-                            continue;
-                        }
-                        //the two remain vertices must be from and to....
-                        fromCC.clique = currentClique + 1;
-                        fromCC.vertices.push(left_v);
-                        this.moveCC(currentClique + 1, fromInfo);
-                        KCliqueCC.POOL.release(this.removeCC(toInfo));
-                    }
-                }
-                for (const cc of subCCsFrom) {
-                    KCliqueCC.POOL.release(cc);
-                }
-                for (const cc of subCCsTo) {
-                    KCliqueCC.POOL.release(cc);
-                }
-                break;
             }
-            for (const cc of newGeneratedCCs) {
+            for (const cc of stableCCs) {
                 this.addCC(cc);
             }
             this.checkCCs();
@@ -791,25 +756,33 @@ var KCliqueAlgorithm;
                             newCC.vertices.push(v);
                         }
                     }
-                    //not storing 1-clique
-                    if (this.tryMoveCC(theCC, fromInfo) == false) {
-                        ;
-                        KCliqueCC.POOL.release(theCC);
-                        this.removeCC(fromInfo);
-                        ArrayUtils.removeAsSwapBack(fromInfos, i);
-                        if (i < fromInfos.length) {
-                            --i;
+                    Check_theCC: {
+                        for (const info of fromInfos) {
+                            if (info.clique <= theCC.vertices.length || info == fromInfo) {
+                                continue;
+                            }
+                            else if (this.isSubClique(theCC, this.cliqueComponents[info.clique - 1].connectedComponents[info.index]) == false) {
+                                continue;
+                            }
+                            this.removeCC(fromInfo);
+                            KCliqueCC.POOL.release(theCC);
+                            ArrayUtils.removeAsSwapBack(fromInfos, i);
+                            if (i < fromInfos.length) {
+                                --i;
+                            }
+                            break Check_theCC;
                         }
                     }
-                    if (newCC.vertices.length <= 1) {
-                        if (this.graph.adjacencyList.get(to).others.length <= 0) {
-                            this.addCC(newCC);
+                    Check_newCC: {
+                        for (const info of toInfos) {
+                            if (info.clique <= theCC.vertices.length || info == fromInfo) {
+                                continue;
+                            }
+                            else if (this.isSubClique(newCC, this.cliqueComponents[info.clique - 1].connectedComponents[info.index])) {
+                                KCliqueCC.POOL.release(newCC);
+                                break Check_newCC;
+                            }
                         }
-                        else {
-                            KCliqueCC.POOL.release(newCC);
-                        }
-                    }
-                    else {
                         this.addCC(newCC);
                     }
                 }
@@ -964,6 +937,30 @@ var KCliqueAlgorithm;
             }
             return left_v;
         }
+        /**
+         * @brief test if a is subclique of b
+         */
+        isSubClique(a, b) {
+            this.set0.clear();
+            for (const v of a.vertices) {
+                this.set0.add(v.id);
+            }
+            for (const v of b.vertices) {
+                this.set0.delete(v.id);
+            }
+            return this.set0.size <= 0;
+        }
+        fullyConnected(v, cc) {
+            this.set0.clear();
+            for (const v of cc.vertices) {
+                this.set0.add(v.id);
+            }
+            const vl = this.graph.adjacencyList.get(v.id);
+            for (const other of vl.others) {
+                this.set0.delete(other);
+            }
+            return this.set0.size <= 0;
+        }
         changeColor(cc) {
             if (this.notColorful) {
                 return;
@@ -1062,6 +1059,9 @@ var KCliqueAlgorithm;
                 }
             }
         }
+        getKCliqueCC(info) {
+            return this.cliqueComponents[info.clique - 1].connectedComponents[info.index];
+        }
     }
     KClique.OPACITY = 0.4;
     KClique.CODE_DESCRIPTION = `iteration manner`;
@@ -1085,31 +1085,31 @@ var KCliqueAlgorithm;
     class SubCliqueGenerator {
         constructor() {
             this.results = [];
-            this.ccs = [];
             this.verticesBuffer = [];
             this.currentCC = KCliqueCC.POOL.get();
             KCliqueCC.POOL.release(this.currentCC);
         }
-        set(infos, cliqueComponents) {
-            this.ccs.length = 0;
-            for (const info of infos) {
-                this.ccs.push(cliqueComponents[info.clique - 1].connectedComponents[info.index]);
-            }
-            this.ccs.sort((a, b) => {
-                return b.clique - a.clique;
-            });
+        set(cc) {
+            this.currentCC = cc;
         }
-        generateSubCliques(clique) {
+        generate(mustHave, clique) {
             this.verticesBuffer.length = clique;
-            this.results.length = 0;
-            for (const cc of this.ccs) {
-                if (cc.clique <= clique) {
+            let idx = 0;
+            for (; idx < this.currentCC.vertices.length; ++idx) {
+                if (this.currentCC.vertices[idx].id == mustHave.id) {
                     break;
                 }
-                this.currentCC = cc;
-                this.generateClique(0, clique);
             }
+            this.swap(0, idx);
+            this.verticesBuffer[0] = mustHave;
+            this.generateClique(1, clique - 1);
+            this.swap(0, idx);
             return this.results;
+        }
+        swap(idx0, idx1) {
+            const v = this.currentCC.vertices[idx0];
+            this.currentCC.vertices[idx0] = this.currentCC.vertices[idx1];
+            this.currentCC.vertices[idx1] = v;
         }
         releaseAll() {
             for (const cc of this.results) {
