@@ -330,6 +330,7 @@ var KCoreAlgorithm;
             this.states.onInitEnd(step);
             this.refreshSelect();
             VisualizationUtils.VideoControl.maxStepSpan.innerText = `${this.states.maxStep}`;
+            DataState.POOL.deallocateSome();
             return this;
         }
         createIndexStructure() {
@@ -406,6 +407,8 @@ var KCoreAlgorithm;
                 KCoreCC.POOL.release(theCC);
             }
             this.ensurePolygons().calculateBound();
+            KCoreCC.POOL.deallocateSome();
+            TreeNode.POOL.deallocateSome();
             return this;
         }
         animate() {

@@ -408,6 +408,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             this.states.onInitEnd(step);
             this.refreshSelect();
             VisualizationUtils.VideoControl.maxStepSpan.innerText=`${this.states.maxStep}`;
+            DataState.POOL.deallocateSome();
             return this;
         }
 
@@ -493,6 +494,8 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             }
 
             this.ensurePolygons().calculateBound();
+            KCoreCC.POOL.deallocateSome();
+            TreeNode.POOL.deallocateSome();
             return this;
         }
         

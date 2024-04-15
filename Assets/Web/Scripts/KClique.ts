@@ -1,5 +1,4 @@
 namespace KCliqueAlgorithm{
-
     class KCliqueCC extends VisualizationUtils.ConnectedComponent{
         public static readonly POOL:VisualizationUtils.ObjectPool<KCliqueCC>=new VisualizationUtils.ObjectPool(KCliqueCC,256);
 
@@ -131,13 +130,13 @@ namespace KCliqueAlgorithm{
             {code:"   no_update=true;",step:3},
             {code:"   for all cliques in the highest cliques group;",step:4},
             {code:"      check it against other clique :{",step:5},
-            {code:"         if they intersect in size vertex count-1 and<br> remaining two vertices are connected :{",step:7},
-            {code:"            merge them;",step:6},
-            {code:"            no_update=false;",step:7},
+            {code:"         if they intersect in size vertex count-1 and<br> remaining two vertices are connected :{",step:6},
+            {code:"            merge them;",step:7},
+            {code:"            no_update=false;",step:8},
             {code:"         }",step:undefined},
             {code:"      }",step:undefined},
             {code:"   }",step:undefined},
-            {code:"   if no_update is true,break",step:8},
+            {code:"   if no_update is true,break",step:9},
             {code:"}",step:undefined},
         ];
 
@@ -226,6 +225,10 @@ namespace KCliqueAlgorithm{
                 }
             }
             this.cliqueComponents.length=0;
+            
+            if(this.subCliqueGenerator==undefined){
+                this.subCliqueGenerator=new SubCliqueGenerator();
+            }
 
             {//for 1 cliques
                 const kc:CliqueComponets=new CliqueComponets(1);
@@ -317,6 +320,7 @@ namespace KCliqueAlgorithm{
                 }
             }
 
+            KCliqueCC.POOL.deallocateSome();
             return this;
         }
 
@@ -545,9 +549,9 @@ namespace KCliqueAlgorithm{
                             
                             first.clique=currentClique+1;
                             highlightCC(first,1,this.getEdgeStorkeWidth(currentClique),true);
-                            this.states.localStatePush({step:step,codeStep:6,stepDescription:`merge`});
+                            this.states.localStatePush({step:step,codeStep:7,stepDescription:`merge`});
                             ++step;
-                            this.states.localStateTop({step:step,codeStep:7,stepDescription:`set no_update=false`});
+                            this.states.localStateTop({step:step,codeStep:8,stepDescription:`set no_update=false`});
                             ++step;
                             this.states.localStatePop(step);
                             ++step;
@@ -582,6 +586,8 @@ namespace KCliqueAlgorithm{
             this.states.localStatePop(step);
             this.states.onInitEnd(step);
             VisualizationUtils.VideoControl.maxStepSpan.innerText=`${this.states.maxStep}`;
+            DataState.POOL.deallocateSome();
+            TreeNode.POOL.deallocateSome();
             return this;
         }
 
@@ -734,21 +740,18 @@ namespace KCliqueAlgorithm{
                 return false;
             }
             this.graphWindow.updateSimulation();
-            if(this.subCliqueGenerator==undefined){
-                this.subCliqueGenerator=new SubCliqueGenerator();
-            }
             const generatorFrom=this.subCliqueGenerator as SubCliqueGenerator;
             const fromInfos=this.vertexToInfo.get(from) as ConnectedComponetInfo[];
             const toInfos=this.vertexToInfo.get(to) as ConnectedComponetInfo[];
             const toV:Vertex=(this.graph.adjacencyList.get(to) as VerticeList).main;
 
-            const newGeneratedCCs:KCliqueCC[]=this.ccBuffer0;
+            const generatedCCs:KCliqueCC[]=this.ccBuffer0;
             const stableCCs:KCliqueCC[]=this.ccBuffer1;
-            newGeneratedCCs.length=0;
+            generatedCCs.length=0;
             stableCCs.length=0;
 
             for(const fromInfo of fromInfos){
-                const cc:KCliqueCC=this.getKCliqueCC(fromInfo);
+                const cc:KCliqueCC=this.getKCliqueCC(fromInfo);//for all cc of from
                 if(this.fullyConnected(toV,cc)){//move directly, dont need to generate sub clique anymore
                     cc.vertices.push(toV);
                     ++cc.clique;
@@ -759,38 +762,31 @@ namespace KCliqueAlgorithm{
 
                 generatorFrom.set(cc);
 
-                for(let clique=cc.clique-1;clique>1;--clique){
-                    const ccs:KCliqueCC[]=generatorFrom.generate(toV,clique);
+                Label_0:for(let clique=cc.clique-1;clique>0;--clique){
+                    const results:KCliqueCC[]=generatorFrom.generate(toV,clique);
 
-                    for(let i:number=0;i<ccs.length;){
-                        const cc_:KCliqueCC=ccs[i];
-                        Label_0:if(this.fullyConnected(toV,cc_)){
-                            cc_.vertices.push(toV);
-                            ++cc_.clique;
-                            for(let j:number=0;j<stableCCs.length;++j){
-                                if(cc_.clique<stableCCs[j].clique&&this.isSubClique(cc_,stableCCs[j])){
-                                    ++i;
-                                    break Label_0;
-                                }
-                            }
-                            newGeneratedCCs.push(cc_);
-                            ArrayUtils.removeAsSwapBack(ccs,i);
-                        }else{
-                            ++i;
-                        }
+                    for(let i:number=0;i<results.length;++i){
+                        const cc_:KCliqueCC=results[i];
+                        if(this.fullyConnected(toV,cc_)==false){continue;}
+
+                        cc_.vertices.push(toV);
+                        ++cc_.clique;
+                        generatedCCs.push(cc_);
+                        ArrayUtils.removeAsSwapBack(results,i);
+                        generatorFrom.releaseAll();
+                        break Label_0;
                     }
                     
                     generatorFrom.releaseAll();
                 }
             }
 
-            newGeneratedCCs.sort((a,b):number=>a.clique-b.clique);
-
-            for(let i:number=0;i<newGeneratedCCs.length;++i){
+            generatedCCs.sort((a,b):number=>a.clique-b.clique);
+            for(let i:number=0;i<generatedCCs.length;++i){
                 label_0:{
-                    const cc:KCliqueCC=newGeneratedCCs[i];
-                    for(let j:number=i+1;j<newGeneratedCCs.length;++j){
-                        if(this.isSubClique(cc,newGeneratedCCs[j])){
+                    const cc:KCliqueCC=generatedCCs[i];
+                    for(let j:number=i+1;j<generatedCCs.length;++j){
+                        if(this.isSubClique(cc,generatedCCs[j])){
                             KCliqueCC.POOL.release(cc);
                             break label_0;
                         }

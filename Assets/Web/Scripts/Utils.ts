@@ -358,10 +358,12 @@ namespace VisualizationUtils{
             VideoControl.runButton.disabled=true;
             VideoControl.progressBar.valueAsNumber=0;
             MainApp.instance().showModificationExpands(false);
+            AlgorithmSelect.showOthers(false);
 
             await this.animate();
 
             MainApp.instance().showModificationExpands(true);
+            AlgorithmSelect.showOthers(true);
             this.isAnimating=false;
             this.isPause=false;
             this.videoControlStatus=VideoControlStatus.noAction;
@@ -478,6 +480,7 @@ namespace VisualizationUtils{
     export class ObjectPool<T extends IClearable>{
         private pool:T[]=[];
         private iNew:new()=>T;
+        private allocated:number=0;
 
         public constructor(iNew:new(...args:any)=>T,poolCapacity:number=128){
             this.iNew=iNew;
@@ -488,6 +491,7 @@ namespace VisualizationUtils{
 
 
         public get():T{
+            ++this.allocated;
             if(this.pool.length>0){
                 return this.pool.pop() as T;
             }else{
@@ -497,8 +501,14 @@ namespace VisualizationUtils{
 
 
         public release(t:T):void{
+            --this.allocated;
             t.clear();
             this.pool.push(t);
+        }
+
+
+        public deallocateSome():void{
+            this.pool.length=Math.min(this.allocated*2,this.pool.length);
         }
     }
 

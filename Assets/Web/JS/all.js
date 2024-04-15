@@ -3,34 +3,58 @@
 let graphHasUpdated = false;
 var AlgorithmSelect;
 (function (AlgorithmSelect) {
-    let kCoreInput;
-    let KCliqueInput;
-    let previousCheckedInput;
+    let tagInpus = [];
+    let tagLabels = [];
+    let previousChecked;
+    const TYPE_NUMBER = 3;
     function main() {
+        tagInpus.length = TYPE_NUMBER;
         const nav = document.querySelector("nav.algorithm-select");
-        kCoreInput = nav.querySelector("input#select-kcore");
-        KCliqueInput = nav.querySelector("input#select-kclique");
-        const KKInput = nav.querySelector("input#select-kclique-and-kcore");
-        addInputEventListener(kCoreInput);
-        addInputEventListener(KCliqueInput);
-        addInputEventListener(KKInput);
+        tagInpus[0 /* AlgorithmType.K_CORE */] = nav.querySelector("input#select-kcore");
+        tagInpus[1 /* AlgorithmType.K_CLIQUE */] = nav.querySelector("input#select-kclique");
+        tagInpus[2 /* AlgorithmType.BOTH */] = nav.querySelector("input#select-kclique-and-kcore");
+        tagLabels[0 /* AlgorithmType.K_CORE */] = nav.querySelector("input#select-kcore + label");
+        tagLabels[1 /* AlgorithmType.K_CLIQUE */] = nav.querySelector("input#select-kclique + label");
+        tagLabels[2 /* AlgorithmType.BOTH */] = nav.querySelector("input#select-kclique-and-kcore + label");
+        addInputEventListener(tagInpus[0 /* AlgorithmType.K_CORE */], 0 /* AlgorithmType.K_CORE */);
+        addInputEventListener(tagInpus[1 /* AlgorithmType.K_CLIQUE */], 1 /* AlgorithmType.K_CLIQUE */);
+        addInputEventListener(tagInpus[2 /* AlgorithmType.BOTH */], 2 /* AlgorithmType.BOTH */);
     }
     AlgorithmSelect.main = main;
-    function addInputEventListener(input) {
+    function addInputEventListener(input, type) {
         if (input.checked) {
-            MainApp.instance().tryChangeAlgo(input.value);
-            previousCheckedInput = input;
+            MainApp.instance().tryChangeAlgo(type);
+            previousChecked = type;
         }
         input.addEventListener("input", () => {
-            if (input.checked && MainApp.instance().tryChangeAlgo(input.value)) {
-                previousCheckedInput = input;
+            if (input.checked && MainApp.instance().tryChangeAlgo(type)) {
+                previousChecked = type;
             }
             else {
                 input.checked = false;
-                previousCheckedInput.checked = true;
+                tagInpus[previousChecked].checked = true;
             }
         });
     }
+    function showOthers(show) {
+        if (show) {
+            for (let i = 0; i < TYPE_NUMBER; ++i) {
+                if (i == previousChecked) {
+                    continue;
+                }
+                tagLabels[i].removeAttribute("style");
+            }
+        }
+        else {
+            for (let i = 0; i < TYPE_NUMBER; ++i) {
+                if (i == previousChecked) {
+                    continue;
+                }
+                tagLabels[i].setAttribute("style", "display:none;");
+            }
+        }
+    }
+    AlgorithmSelect.showOthers = showOthers;
 })(AlgorithmSelect || (AlgorithmSelect = {}));
 function setThemeToggle() {
     const themeButton = document.getElementById("theme-button-set");
@@ -210,7 +234,7 @@ class MainApp {
             this.setEditAction();
         });
     }
-    tryChangeAlgo(str) {
+    tryChangeAlgo(type) {
         if (VisualizationUtils.Algorithm.isVisualizing()) {
             return false;
         }
@@ -232,8 +256,8 @@ class MainApp {
             }
         };
         this.animationExpand.removeAttribute("style");
-        switch (str) {
-            case "kcore": {
+        switch (type) {
+            case 0 /* AlgorithmType.K_CORE */: {
                 this.showModificationExpands(true);
                 this.animationExpand.removeAttribute("style");
                 helper(this.kCore, this.resultKCore);
@@ -242,7 +266,7 @@ class MainApp {
                 this.gw.setVertexMovingCallback(this.kCore.calculateBound.bind(this.kCore));
                 break;
             }
-            case "kclique": {
+            case 1 /* AlgorithmType.K_CLIQUE */: {
                 this.showModificationExpands(true);
                 this.animationExpand.removeAttribute("style");
                 helper(this.kClique, this.resultKClique);
@@ -251,7 +275,7 @@ class MainApp {
                 this.gw.setVertexMovingCallback(undefined);
                 break;
             }
-            case "kclique-and-kcore": {
+            case 2 /* AlgorithmType.BOTH */: {
                 this.showModificationExpands(false);
                 this.animationExpand.setAttribute("style", "display:none;");
                 if (graphHasUpdated) {
@@ -275,7 +299,7 @@ class MainApp {
                 break;
             }
             default: {
-                console.log(`unknown value ${str}`);
+                console.log(`unknown value!!!!`);
                 break;
             }
         }

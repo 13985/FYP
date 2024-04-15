@@ -331,8 +331,10 @@ var VisualizationUtils;
                 VideoControl.runButton.disabled = true;
                 VideoControl.progressBar.valueAsNumber = 0;
                 MainApp.instance().showModificationExpands(false);
+                AlgorithmSelect.showOthers(false);
                 yield this.animate();
                 MainApp.instance().showModificationExpands(true);
+                AlgorithmSelect.showOthers(true);
                 this.isAnimating = false;
                 this.isPause = false;
                 this.videoControlStatus = 0 /* VideoControlStatus.noAction */;
@@ -378,12 +380,14 @@ var VisualizationUtils;
     class ObjectPool {
         constructor(iNew, poolCapacity = 128) {
             this.pool = [];
+            this.allocated = 0;
             this.iNew = iNew;
             for (let i = 0; i < poolCapacity; ++i) {
                 this.pool.push(new iNew());
             }
         }
         get() {
+            ++this.allocated;
             if (this.pool.length > 0) {
                 return this.pool.pop();
             }
@@ -392,8 +396,12 @@ var VisualizationUtils;
             }
         }
         release(t) {
+            --this.allocated;
             t.clear();
             this.pool.push(t);
+        }
+        deallocateSome() {
+            this.pool.length = Math.min(this.allocated * 2, this.pool.length);
         }
     }
     VisualizationUtils.ObjectPool = ObjectPool;
