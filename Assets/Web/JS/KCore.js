@@ -974,8 +974,7 @@ var KCoreAlgorithm;
                     for (const v of cc.vertices) {
                         const info = this.vertexToInfo.get(v.id);
                         if (info.shell != shell || info.index != i) {
-                            console.log(`fail at (stored in) shell:${shell} cc idx:${i} of v:${v.id} (incorrect values: shell:${info.shell} idx:${info.index})`);
-                            throw new Error();
+                            throw new Error(`${cc.toString("[")},fail at (stored in) shell:${shell},idx:${i} of v:${v.id} (incorrect values: shell:${info.shell},idx:${info.index})`);
                         }
                     }
                 }
@@ -991,8 +990,7 @@ var KCoreAlgorithm;
                     }
                 }
                 if (have == false) {
-                    console.log(`fail at ${v.id} (incorrect values: shell:${info.shell} idx:${info.index})`);
-                    throw new Error();
+                    throw new Error(`connected component ${cc.toString("[")} (shell:${info.shell}, idx:${info.index}) not contains v ${v.id}`);
                 }
             }
         }

@@ -130,6 +130,7 @@ var KCliqueAlgorithm;
             return this;
         }
         setVisualElementsColor(defaultColor) {
+            this.notColorful = defaultColor;
             if (defaultColor) {
                 this.graph.resetVisualElements();
             }
@@ -637,6 +638,7 @@ var KCliqueAlgorithm;
                 }
             }
             this.vertexToInfo.delete(a);
+            this.setVisualElementsColor(this.notColorful);
             this.checkCCs();
             return true;
         }
@@ -706,7 +708,6 @@ var KCliqueAlgorithm;
                     if (toInfo.clique < stableCCs[j].clique && this.isSubClique(cc, stableCCs[j])) {
                         this.removeCC(toInfo);
                         KCliqueCC.POOL.release(cc);
-                        ArrayUtils.removeAsSwapBack(toInfos, i);
                         --i;
                         break;
                     }
@@ -715,6 +716,7 @@ var KCliqueAlgorithm;
             for (const cc of stableCCs) {
                 this.addCC(cc);
             }
+            this.setVisualElementsColor(this.notColorful);
             this.checkCCs();
             return true;
         }
@@ -734,56 +736,60 @@ var KCliqueAlgorithm;
                         continue;
                     } //find the common clique contains from and to
                     const newClique = fromInfo.clique - 1;
-                    const newCC = KCliqueCC.POOL.get();
-                    const theCC = this.cliqueComponents[newClique].connectedComponents[fromInfo.index];
-                    newCC.clique = newClique;
-                    ArrayUtils.removeAsSwapBack(toInfos, j); //remove toInfo since theCC not storing "to" anymore (toInfo and fromInfo both pointing to theCC)
-                    for (let idx = 0; idx < theCC.vertices.length;) {
-                        const v = theCC.vertices[idx];
+                    const toCC = KCliqueCC.POOL.get();
+                    const fromCC = this.cliqueComponents[newClique].connectedComponents[fromInfo.index];
+                    toCC.clique = newClique;
+                    ArrayUtils.removeAsSwapBack(toInfos, j); //remove toInfo since fromCC not storing "to" anymore (toInfo and fromInfo both pointing to fromCC)
+                    Split: for (let idx = 0; idx < fromCC.vertices.length;) {
+                        const v = fromCC.vertices[idx];
                         if (v.id == to) {
-                            ArrayUtils.removeAsSwapBack(theCC.vertices, idx); //theCC contains "from", and remove "to"
-                            newCC.vertices.push(v); //newCC contains "to"
+                            ArrayUtils.removeAsSwapBack(fromCC.vertices, idx); //theCC contains "from", and remove "to"
+                            toCC.vertices.push(v); //newCC contains "to"
                         }
                         else if (v.id == from) {
                             ++idx;
-                            //newCC not contains "from"
+                            //toCC not contains "from"
                         }
                         else {
                             ++idx;
-                            newCC.vertices.push(v);
+                            toCC.vertices.push(v);
                         }
                     }
-                    Check_theCC: {
+                    Check_fromCC: {
                         for (const info of fromInfos) {
-                            if (info.clique <= theCC.vertices.length || info == fromInfo) {
+                            if (info.clique <= fromCC.vertices.length || info == fromInfo) {
                                 continue;
                             }
-                            else if (this.isSubClique(theCC, this.cliqueComponents[info.clique - 1].connectedComponents[info.index]) == false) {
+                            else if (this.isSubClique(fromCC, this.getKCliqueCC(info)) == false) {
                                 continue;
                             }
                             this.removeCC(fromInfo);
-                            KCliqueCC.POOL.release(theCC);
-                            ArrayUtils.removeAsSwapBack(fromInfos, i);
+                            KCliqueCC.POOL.release(fromCC);
                             if (i < fromInfos.length) {
                                 --i;
                             }
-                            break Check_theCC;
+                            break Check_fromCC;
                         }
+                        console.log(`store from ${fromCC.toString("{")}`);
+                        this.moveCC(newClique, fromInfo);
                     }
-                    Check_newCC: {
+                    Check_toCC: {
                         for (const info of toInfos) {
-                            if (info.clique <= theCC.vertices.length || info == fromInfo) {
+                            if (info.clique <= fromCC.vertices.length || info == toInfo) {
                                 continue;
                             }
-                            else if (this.isSubClique(newCC, this.cliqueComponents[info.clique - 1].connectedComponents[info.index])) {
-                                KCliqueCC.POOL.release(newCC);
-                                break Check_newCC;
+                            else if (this.isSubClique(toCC, this.getKCliqueCC(info))) {
+                                KCliqueCC.POOL.release(toCC);
+                                break Check_toCC;
                             }
                         }
-                        this.addCC(newCC);
+                        console.log(`store to ${toCC.toString("{")}`);
+                        this.addCC(toCC);
                     }
+                    break;
                 }
             }
+            this.setVisualElementsColor(this.notColorful);
             this.checkCCs();
             return true;
         }
@@ -1025,20 +1031,24 @@ var KCliqueAlgorithm;
             for (const kvp of this.vertexToInfo) {
                 for (const info of kvp[1]) {
                     let find = false;
-                    for (const v of this.cliqueComponents[info.clique - 1].connectedComponents[info.index].vertices) {
+                    const cc = this.getKCliqueCC(info);
+                    for (const v of cc.vertices) {
                         if (v.id == kvp[0]) {
                             find = true;
                             break;
                         }
                     }
                     if (find == false) {
-                        throw new Error(`cant find ${kvp[0]} in clique:${info.clique},${info.index}`);
+                        throw new Error(`cant find vertex: ${kvp[0]} in clique:${cc.toString("{")} (clique:${info.clique}, idx:${info.index})`);
                     }
                 }
             }
             for (const kc of this.cliqueComponents) {
                 let idx = 0;
                 for (const cc of kc.connectedComponents) {
+                    if (cc.vertices.length != kc.clique) {
+                        throw new Error(`vertice number unexpected ${cc.vertices} vs (real:) ${kc.clique}`);
+                    }
                     for (const v of cc.vertices) {
                         const infos = this.vertexToInfo.get(v.id);
                         let find = false;
@@ -1049,7 +1059,7 @@ var KCliqueAlgorithm;
                             }
                         }
                         if (find == false) {
-                            throw new Error(`info of ${v.id} in clique ${kc.clique},${idx} missing`);
+                            throw new Error(`info of ${v.id} in clique:${cc.toString("{")} (clique:${kc.clique},idx: ${idx}) missing`);
                         }
                     }
                     ++idx;

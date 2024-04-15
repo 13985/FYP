@@ -1111,8 +1111,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                     for(const v of cc.vertices){
                         const info:ConnectedComponetInfo=this.vertexToInfo.get(v.id) as ConnectedComponetInfo;
                         if(info.shell!=shell||info.index!=i){
-                            console.log(`fail at (stored in) shell:${shell} cc idx:${i} of v:${v.id} (incorrect values: shell:${info.shell} idx:${info.index})`);
-                            throw  new Error();
+                            throw new Error(`${cc.toString("[")},fail at (stored in) shell:${shell},idx:${i} of v:${v.id} (incorrect values: shell:${info.shell},idx:${info.index})`);
                         }
                     }
                 }
@@ -1129,8 +1128,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                     }
                 }
                 if(have==false){
-                    console.log(`fail at ${v.id} (incorrect values: shell:${info.shell} idx:${info.index})`);
-                    throw new Error();
+                    throw new Error(`connected component ${cc.toString("[")} (shell:${info.shell}, idx:${info.index}) not contains v ${v.id}`);
                 }
             }
         }

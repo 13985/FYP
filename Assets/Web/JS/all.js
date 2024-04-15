@@ -116,7 +116,7 @@ class MainApp {
         this.animationExpand = document.querySelector("li.expand.animation");
         this.graph = new Graph();
         this.resultGraph = new Graph();
-        this.gw = new GraphWindow(this.graph).setWH(30, 500);
+        this.gw = new GraphWindow(this.graph).setWH(4, 500);
         this.resultGW = new GraphWindow(this.resultGraph).setWH(450, 500);
         this.kCore = new KCoreAlgorithm.KCore(this.graph, this.gw.innerSVG, this.gw);
         this.resultKCore = new KCoreAlgorithm.KCore(this.resultGraph, this.resultGW.innerSVG, this.resultGW);
@@ -397,6 +397,7 @@ window.onload = () => {
     23 23\r\n\
     24 24\r\n\
     ");
+    /*
     MainApp.instance().loadGraph("0 1\r\n\
     0 2\r\n\
     0 3\r\n\
@@ -408,4 +409,5 @@ window.onload = () => {
     3 4\r\n\
     2 3\r\n\
     ");
+    */
 };
