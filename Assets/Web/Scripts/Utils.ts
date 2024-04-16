@@ -440,7 +440,7 @@ namespace VisualizationUtils{
 
 
         /**
-         * @summary used to set some visualization realted stuff eg description/pseudo code
+         * @summary used to set some visualization related stuff eg description/pseudo code
          */
         protected onRegisterSelf():void{}
 
