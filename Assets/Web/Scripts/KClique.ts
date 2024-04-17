@@ -199,16 +199,18 @@ namespace KCliqueAlgorithm{
                     for(const cc of cc_.connectedComponents){
                         const edgeColorStr:string=cc_.clique==2?"var(--reverse-color2)":cc_.color.toString();
                         const vertexColorStr:string=cc_.color.toString();
-                        for(const from of cc.vertices){
-                            for(const to of cc.vertices){
-                                if(from.id==to.id){continue;}
+                        for(let i:number=0;i<cc.vertices.length;++i){
+                            const from:Vertex=cc.vertices[i];
+                            (from.circle as SVGCircleElement).setAttribute("fill-opacity",KClique.OPACITY.toString());
+                            from.setColorString(vertexColorStr);
+
+                            for(let j:number=i+1;j<cc.vertices.length;++j){
+                                const to:Vertex=cc.vertices[j];
                                 const e=this.graph.getEdge(from.id,to.id) as Edge;
                                 const line=e.line as SVGLineElement;
                                 line.setAttribute("stroke",edgeColorStr);
                                 line.setAttribute("stroke-opacity","1");
                                 line.setAttribute("stroke-width",`${this.getEdgeStorkeWidth(cc.clique)}`);
-                                from.setColorString(vertexColorStr);
-                                (from.circle as SVGCircleElement).setAttribute("fill-opacity",KClique.OPACITY.toString());
                             }
                         }
                     }

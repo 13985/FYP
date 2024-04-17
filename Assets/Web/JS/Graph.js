@@ -86,12 +86,11 @@ class VerticeList {
         this.main.list = this;
         this.others = new Array();
     }
-    remove(other) {
+    remove(other_v) {
         const length = this.others.length;
         for (let i = 0; i < length; ++i) {
-            if (this.others[i] == other) {
-                this.others[i] = this.others[length - 1];
-                this.others.pop();
+            if (this.others[i] == other_v) {
+                ArrayUtils.removeAsSwapBack(this.others, i);
                 return;
             }
         }
@@ -223,11 +222,12 @@ class Graph {
         }
         for (const v_id of vl.others) {
             const other_vl = this.adjacencyList.get(v_id);
+            other_vl.remove(theVertex);
             for (let i = 0; i < other_vl.others.length; ++i) {
                 if (other_vl.others[i] != theVertex) {
                     continue;
                 }
-                other_vl.others.splice(i, 1);
+                ArrayUtils.removeAsSwapBack(other_vl.others, i);
                 break;
             }
         }
@@ -250,7 +250,11 @@ class Graph {
             }
             else {
                 (_c = e.line) === null || _c === void 0 ? void 0 : _c.remove();
-                this.edges[i] = this.edges[lengthLeft - 1];
+                const last_e = ArrayUtils.last(this.edges);
+                this.existsEdges.set(this.getEdgeHashCode(last_e.source.id, last_e.target.id), i);
+                this.existsEdges.delete(this.getEdgeHashCode(e.source.id, e.target.id));
+                this.edges[i] = last_e;
+                this.edges.pop();
                 --lengthLeft;
             }
         }

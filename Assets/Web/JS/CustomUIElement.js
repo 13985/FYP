@@ -359,6 +359,9 @@ class GraphWindow {
         link.exit().remove();
         link = link.enter().append("line")
             .attr("stroke-width", 1)
+            .attr("data-edge", (e) => {
+            return `${e.source.id}-${e.target.id}`;
+        })
             .each(function (e, _idx, _lines) {
             e.line = this;
             e.line.setAttribute("stroke", "var(--reverse-color4)");

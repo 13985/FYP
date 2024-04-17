@@ -149,18 +149,18 @@ var KCliqueAlgorithm;
                     for (const cc of cc_.connectedComponents) {
                         const edgeColorStr = cc_.clique == 2 ? "var(--reverse-color2)" : cc_.color.toString();
                         const vertexColorStr = cc_.color.toString();
-                        for (const from of cc.vertices) {
-                            for (const to of cc.vertices) {
-                                if (from.id == to.id) {
-                                    continue;
-                                }
+                        for (let i = 0; i < cc.vertices.length; ++i) {
+                            const from = cc.vertices[i];
+                            from.circle.setAttribute("fill-opacity", KClique.OPACITY.toString());
+                            from.setColorString(vertexColorStr);
+                            
+                            for (let j = i + 1; j < cc.vertices.length; ++j) {
+                                const to = cc.vertices[j];
                                 const e = this.graph.getEdge(from.id, to.id);
                                 const line = e.line;
                                 line.setAttribute("stroke", edgeColorStr);
                                 line.setAttribute("stroke-opacity", "1");
                                 line.setAttribute("stroke-width", `${this.getEdgeStorkeWidth(cc.clique)}`);
-                                from.setColorString(vertexColorStr);
-                                from.circle.setAttribute("fill-opacity", KClique.OPACITY.toString());
                             }
                         }
                     }
@@ -660,6 +660,9 @@ var KCliqueAlgorithm;
                 if (this.fullyConnected(toV, cc)) { //move directly, dont need to generate sub clique anymore
                     cc.vertices.push(toV);
                     ++cc.clique;
+                    if (cc.clique - 1 >= this.cliqueComponents.length) {
+                        this.cliqueComponents.push(new CliqueComponets(cc.clique));
+                    }
                     this.moveCC(cc.clique, fromInfo);
                     stableCCs.push(cc);
                     continue;
@@ -760,7 +763,7 @@ var KCliqueAlgorithm;
                             if (info.clique <= fromCC.vertices.length || info == fromInfo) {
                                 continue;
                             }
-                            else if (this.isSubClique(fromCC, this.getKCliqueCC(info)) == false) {
+                            else if (this.isSubClique(fromCC, this.getKCliqueCC(fromInfo)) == false) {
                                 continue;
                             }
                             this.removeCC(fromInfo);
@@ -770,7 +773,6 @@ var KCliqueAlgorithm;
                             }
                             break Check_fromCC;
                         }
-                        console.log(`store from ${fromCC.toString("{")}`);
                         this.moveCC(newClique, fromInfo);
                     }
                     Check_toCC: {
@@ -783,7 +785,6 @@ var KCliqueAlgorithm;
                                 break Check_toCC;
                             }
                         }
-                        console.log(`store to ${toCC.toString("{")}`);
                         this.addCC(toCC);
                     }
                     break;

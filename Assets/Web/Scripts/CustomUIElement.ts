@@ -347,6 +347,9 @@ class GraphWindow{
         link.exit().remove();
         link=link.enter().append("line")
         .attr("stroke-width",1)
+        .attr("data-edge",(e:Edge):string=>{
+            return `${e.source.id}-${e.target.id}`;
+        })
         .each(function(e:Edge,_idx:number,_lines:SVGLineElement[]|ArrayLike<SVGLineElement>):void{
             e.line=this;
             e.line.setAttribute("stroke","var(--reverse-color4)");

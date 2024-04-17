@@ -128,12 +128,11 @@ class VerticeList implements IClone<VerticeList>{
     }
 
 
-    public remove(other:number):void{
+    public remove(other_v:number):void{
         const length:number=this.others.length;
         for(let i:number=0;i<length;++i){
-            if(this.others[i]==other){
-                this.others[i]=this.others[length-1];
-                this.others.pop();
+            if(this.others[i]==other_v){
+                ArrayUtils.removeAsSwapBack(this.others,i);
                 return;
             }
         }
@@ -295,12 +294,14 @@ class Graph{
 
         for(const v_id of vl.others){
             const other_vl:VerticeList=<VerticeList>this.adjacencyList.get(v_id);
+            other_vl.remove(theVertex);
             for(let i:number=0;i<other_vl.others.length;++i){
                 if(other_vl.others[i]!=theVertex){continue;}
-                other_vl.others.splice(i,1);
+                ArrayUtils.removeAsSwapBack(other_vl.others,i);
                 break;
             }
         }
+
         this.adjacencyList.delete(theVertex);
         for(let i:number=0;i<this.vertices.length;++i){
             const v:Vertex=this.vertices[i];
@@ -318,7 +319,11 @@ class Graph{
                 ++i;
             }else{
                 e.line?.remove();
-                this.edges[i]=this.edges[lengthLeft-1];
+                const last_e:Edge=ArrayUtils.last(this.edges);
+                this.existsEdges.set(this.getEdgeHashCode(last_e.source.id,last_e.target.id),i);
+                this.existsEdges.delete(this.getEdgeHashCode(e.source.id,e.target.id));
+                this.edges[i]=last_e;
+                this.edges.pop();
                 --lengthLeft;
             }
         }

@@ -358,7 +358,7 @@ var VisualizationUtils;
             this.isPause = false;
         }
         /**
-         * @summary used to set some visualization realted stuff eg description/pseudo code
+         * @summary used to set some visualization related stuff eg description/pseudo code
          */
         onRegisterSelf() { }
         waitfor() {
