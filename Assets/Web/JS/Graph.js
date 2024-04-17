@@ -199,23 +199,8 @@ class Graph {
         this.existsEdges.clear();
         return this;
     }
-    translate(dx, dy) {
-        const translate = `translate(${dx}px,${dy}px);`;
-        for (let i = 0; i < this.vertices.length; ++i) {
-            const v = this.vertices[i];
-            if (v.circle != null) {
-                v.circle.style.transform = translate;
-            }
-        }
-        for (let i = 0; i < this.edges.length; ++i) {
-            const e = this.edges[i];
-            if (e.line) {
-                e.line.style.transform = translate;
-            }
-        }
-    }
     removeVertex(theVertex) {
-        var _a, _b, _c;
+        var _a, _b;
         const vl = this.adjacencyList.get(theVertex);
         if (vl == undefined) {
             return null;
@@ -249,12 +234,7 @@ class Graph {
                 ++i;
             }
             else {
-                (_c = e.line) === null || _c === void 0 ? void 0 : _c.remove();
-                const last_e = ArrayUtils.last(this.edges);
-                this.existsEdges.set(this.getEdgeHashCode(last_e.source.id, last_e.target.id), i);
-                this.existsEdges.delete(this.getEdgeHashCode(e.source.id, e.target.id));
-                this.edges[i] = last_e;
-                this.edges.pop();
+                this.removeEdgeHelper(e, i);
                 --lengthLeft;
             }
         }
@@ -290,7 +270,6 @@ class Graph {
         return true;
     }
     removeEdge(a, b) {
-        var _a;
         if (a == b || this.adjacencyList.get(a) == undefined || this.adjacencyList.get(b) == undefined) {
             return false;
         }
@@ -299,17 +278,21 @@ class Graph {
         if (idx == undefined) {
             return false;
         }
-        const e = ArrayUtils.last(this.edges);
-        this.existsEdges.set(this.getEdgeHashCode(e.source.id, e.target.id), idx);
-        this.existsEdges.delete(code);
-        (_a = this.edges[idx].line) === null || _a === void 0 ? void 0 : _a.remove();
-        this.edges[idx] = e;
-        this.edges.pop();
+        this.removeEdgeHelper(this.edges[idx], idx);
         const a_vl = this.adjacencyList.get(a);
         const b_vl = this.adjacencyList.get(b);
         a_vl.remove(b);
         b_vl.remove(a);
         return true;
+    }
+    removeEdgeHelper(e, idx) {
+        var _a;
+        (_a = e.line) === null || _a === void 0 ? void 0 : _a.remove();
+        const last_e = ArrayUtils.last(this.edges);
+        this.existsEdges.set(this.getEdgeHashCode(last_e.source.id, last_e.target.id), idx);
+        this.existsEdges.delete(this.getEdgeHashCode(e.source.id, e.target.id));
+        this.edges[idx] = last_e;
+        this.edges.pop();
     }
     getEdge(v0, v1) {
         const code = this.getEdgeHashCode(v0, v1);

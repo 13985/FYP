@@ -153,7 +153,6 @@ var KCliqueAlgorithm;
                             const from = cc.vertices[i];
                             from.circle.setAttribute("fill-opacity", KClique.OPACITY.toString());
                             from.setColorString(vertexColorStr);
-                            
                             for (let j = i + 1; j < cc.vertices.length; ++j) {
                                 const to = cc.vertices[j];
                                 const e = this.graph.getEdge(from.id, to.id);
@@ -763,7 +762,7 @@ var KCliqueAlgorithm;
                             if (info.clique <= fromCC.vertices.length || info == fromInfo) {
                                 continue;
                             }
-                            else if (this.isSubClique(fromCC, this.getKCliqueCC(fromInfo)) == false) {
+                            else if (this.isSubClique(fromCC, this.getKCliqueCC(info)) == false) {
                                 continue;
                             }
                             this.removeCC(fromInfo);

@@ -269,23 +269,6 @@ class Graph{
     }
 
 
-    public translate(dx:number,dy:number):void{
-        const translate:string=`translate(${dx}px,${dy}px);`;
-        for(let i:number=0;i<this.vertices.length;++i){
-            const v:Vertex=this.vertices[i];
-            if(v.circle!=null){
-                v.circle.style.transform=translate;
-            }
-        }
-        for(let i:number=0;i<this.edges.length;++i){
-            const e:Edge=this.edges[i];
-            if(e.line){
-                e.line.style.transform=translate;
-            }
-        }
-    }
-
-
     public removeVertex(theVertex:number):Vertex|null{
         const vl:VerticeList|undefined=this.adjacencyList.get(theVertex);
         if(vl==undefined){
@@ -318,12 +301,7 @@ class Graph{
             if(e.source.id!=theVertex&&e.target.id!=theVertex){
                 ++i;
             }else{
-                e.line?.remove();
-                const last_e:Edge=ArrayUtils.last(this.edges);
-                this.existsEdges.set(this.getEdgeHashCode(last_e.source.id,last_e.target.id),i);
-                this.existsEdges.delete(this.getEdgeHashCode(e.source.id,e.target.id));
-                this.edges[i]=last_e;
-                this.edges.pop();
+                this.removeEdgeHelper(e,i);
                 --lengthLeft;
             }
         }
@@ -373,18 +351,23 @@ class Graph{
         if(idx==undefined){
             return false;
         }
-        const e:Edge=ArrayUtils.last(this.edges);
-        this.existsEdges.set(this.getEdgeHashCode(e.source.id,e.target.id),idx);
-        this.existsEdges.delete(code);
-        this.edges[idx].line?.remove();
-        this.edges[idx]=e;
-        this.edges.pop();
+        this.removeEdgeHelper(this.edges[idx],idx);
 
         const a_vl:VerticeList=this.adjacencyList.get(a) as VerticeList;
         const b_vl:VerticeList=this.adjacencyList.get(b) as VerticeList;
         a_vl.remove(b);
         b_vl.remove(a);
         return true;
+    }
+
+
+    private removeEdgeHelper(e:Edge,idx:number):void{
+        e.line?.remove();
+        const last_e:Edge=ArrayUtils.last(this.edges);
+        this.existsEdges.set(this.getEdgeHashCode(last_e.source.id,last_e.target.id),idx);
+        this.existsEdges.delete(this.getEdgeHashCode(e.source.id,e.target.id));
+        this.edges[idx]=last_e;
+        this.edges.pop();
     }
 
 

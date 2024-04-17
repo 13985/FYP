@@ -872,7 +872,7 @@ namespace KCliqueAlgorithm{
                     Check_fromCC:{
                         for(const info of fromInfos){
                             if(info.clique<=fromCC.vertices.length||info==fromInfo){continue;}
-                            else if(this.isSubClique(fromCC,this.getKCliqueCC(fromInfo))==false){continue;}
+                            else if(this.isSubClique(fromCC,this.getKCliqueCC(info))==false){continue;}
 
                             this.removeCC(fromInfo);
                             KCliqueCC.POOL.release(fromCC);
