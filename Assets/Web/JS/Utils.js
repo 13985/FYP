@@ -412,7 +412,7 @@ var VisualizationUtils;
         removeVertex(v_id) {
             for (let i = 0; i < this.vertices.length; ++i) {
                 if (this.vertices[i].id == v_id) {
-                    this.vertices.splice(i, 1);
+                    ArrayUtils.removeAsSwapBack(this.vertices, i);
                     return;
                 }
             }

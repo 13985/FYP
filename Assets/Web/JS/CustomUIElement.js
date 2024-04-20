@@ -307,6 +307,7 @@ class GraphWindow {
     }
     display(show) {
         this.container.classList.toggle("hide", !show);
+        return this;
     }
     setWH(width, height) {
         this.width = width;
@@ -373,6 +374,9 @@ class GraphWindow {
             .attr("fill", "var(--reverse-color2)")
             .attr("r", function (n, _i) {
             return n.radius;
+        })
+            .attr("data-vertex", function (n, _i) {
+            return n.id.toString();
         })
             .call(d3.drag()
             .on("start", this.vertexDragstarted.bind(this))
@@ -504,8 +508,11 @@ class GraphWindow {
     }
     removeVerticesHighlight(v) {
         if (v >= 0) {
-            const vertex = this.graph.adjacencyList.get(v).main;
-            vertex.circle.classList.toggle("highlight-vertex", false);
+            const vl = this.graph.adjacencyList.get(v);
+            if (vl == undefined) { //previous selected vertex maybe removed so check it
+                return;
+            }
+            vl.main.circle.classList.toggle("highlight-vertex", false);
         }
     }
     setGTransforms() {

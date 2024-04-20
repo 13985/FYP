@@ -170,7 +170,7 @@ class MainApp{
         this.graph=new Graph();
         this.resultGraph=new Graph();
         
-        this.gw=new GraphWindow(this.graph).setWH(4,500);
+        this.gw=new GraphWindow(this.graph).setWH(450,500).display(false);
         this.resultGW=new GraphWindow(this.resultGraph).setWH(450,500);
         
         this.kCore=new KCoreAlgorithm.KCore(this.graph,this.gw.innerSVG as SVGSVGElement,this.gw);

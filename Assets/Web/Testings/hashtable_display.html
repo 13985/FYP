@@ -7,6 +7,11 @@
         }
 
 
+        body{
+            background-color: black;
+        }
+
+
         ul{
             list-style: none;
         }
@@ -122,6 +127,10 @@
             <span style="margin-right: 2px;">Value:</span>
             <ul class="value">
                 <li class="array-element">
+                    <span class="step">step</span>
+                    <span>style X</span>
+                </li>
+                <li class="array-element">
                     <span class="step">0</span>
                     <span>style 00</span>
                 </li>
@@ -137,7 +146,7 @@
                     <span class="step">4</span>
                     <span>style 03</span>
                 </li>
-                <li class="array-element red">
+                <li class="array-element">
                     <span class="step">6</span>
                     <span>style 04</span>
                 </li>
@@ -152,6 +161,26 @@
                 <li class="array-element">
                     <span class="step">19</span>
                     <span>style 07</span>
+                </li>
+                <li class="array-element red">
+                    <span class="step">20</span>
+                    <span>style 08</span>
+                </li>
+                <li class="array-element">
+                    <span class="step">21</span>
+                    <span>style 09</span>
+                </li>
+                <li class="array-element">
+                    <span class="step">28</span>
+                    <span>style 10</span>
+                </li>
+                <li class="array-element">
+                    <span class="step">30</span>
+                    <span>style 11</span>
+                </li>
+                <li class="array-element">
+                    <span class="step">31</span>
+                    <span>style 12</span>
                 </li>
             </ul>
         </li>
@@ -247,6 +276,33 @@
                 </li>
             </ul>
         </li>
-    </ul>  
+    </ul>
+
+    <div>
+        <style>
+            div.stack{
+                height:20vh;
+                width:8%;
+                border: 1px solid white;
+                border-top: none;
+                padding: 4px;
+                gap:4px;
+                display: flex;
+                flex-direction: column;
+                justify-content: flex-end;
+            }
+
+            div.stack-ele{
+                color: white;
+                border: 1px solid white;
+                text-align: center;
+            }
+        </style>
+        <div class="stack">
+            <div class="stack-ele">a=100</div>
+            <div class="stack-ele">j=5</div>
+            <div class="stack-ele">i=4</div>
+        </div>
+    </div>
 </body>
 </html>

@@ -275,24 +275,25 @@ class GraphWindow{
     }
 
 
-    public setGraph(g:Graph):GraphWindow{
+    public setGraph(g:Graph):this{
         this.graph=g;
         return this.updateSimulation();
     }
 
 
-    public setVertexMovingCallback(callback:((v:Vertex)=>void)|undefined=undefined):GraphWindow{
+    public setVertexMovingCallback(callback:((v:Vertex)=>void)|undefined=undefined):this{
         this.onVertexMoved=callback;
         return this;
     }
 
 
-    public display(show:boolean):void{
+    public display(show:boolean):this{
         this.container.classList.toggle("hide",!show);
+        return this;
     }
 
 
-    public setWH(width:number,height:number):GraphWindow{
+    public setWH(width:number,height:number):this{
         this.width=width;
         this.height=height;
         this.forceToX.x(this.width/2);this.forceToY.y(this.height/2);
@@ -307,7 +308,7 @@ class GraphWindow{
      * @reference https://gist.github.com/mbostock/1095795
      * @reference https://observablehq.com/@d3/force-directed-graph/2?intent=fork
      */
-    public updateSimulation():GraphWindow{
+    public updateSimulation():this{
         const nodes:Array<Vertex>=this.graph.vertices;
         const links:Edge[]=this.graph.edges;
         this.simulation.stop();
@@ -362,6 +363,9 @@ class GraphWindow{
         .attr("fill","var(--reverse-color2)")
         .attr("r",function(n:Vertex,_i:number):number{
             return n.radius;
+        })
+        .attr("data-vertex",function(n:Vertex,_i:number):string{
+            return n.id.toString();
         })
         .call(
             d3.drag<SVGCircleElement,Vertex>()
@@ -427,7 +431,7 @@ class GraphWindow{
     }
 
 
-    public allowMoveGraph():GraphWindow{
+    public allowMoveGraph():this{
         this.moveCameraAllowed=!this.moveCameraAllowed;
         if(this.moveCameraAllowed){
             this.innerSVG.addEventListener("mousedown",this.containerDragStarted);
@@ -511,7 +515,7 @@ class GraphWindow{
     }
 
 
-    public scaleGraph(magnifier:number):GraphWindow{
+    public scaleGraph(magnifier:number):this{
         this.offsetX-=(magnifier-this.magnifier)*this.width/2;
         this.offsetY-=(magnifier-this.magnifier)*this.height/2;//move the graph the top left by the size/2 and the different between current and previous magnifier
         this.magnifier=magnifier;
@@ -521,7 +525,7 @@ class GraphWindow{
     }
 
 
-    public setCenter(x:number,y:number):GraphWindow{
+    public setCenter(x:number,y:number):this{
         const centerX:number=this.width/2;
         const centerY:number=this.height/2;
         this.offsetX=centerX-x*this.scaleX;
@@ -530,7 +534,7 @@ class GraphWindow{
     }
 
 
-    public resetContainerTransform():GraphWindow{
+    public resetContainerTransform():this{
         this.offsetX=this.offsetY=0;
         this.scaleX=this.scaleY=1;
         return this.setGTransforms();
@@ -597,13 +601,16 @@ class GraphWindow{
 
     private removeVerticesHighlight(v:number):void{
         if(v>=0){
-            const vertex:Vertex=(this.graph.adjacencyList.get(v) as VerticeList).main;
-            (vertex.circle as SVGCircleElement).classList.toggle("highlight-vertex",false);
+            const vl:VerticeList|undefined=this.graph.adjacencyList.get(v);
+            if(vl==undefined){//previous selected vertex maybe removed so check it
+                return;
+            }
+            (vl.main.circle as SVGCircleElement).classList.toggle("highlight-vertex",false);
         }
     }
 
 
-    private setGTransforms():GraphWindow{
+    private setGTransforms():this{
         this.allG.setAttribute("transform",`translate(${this.offsetX} ${this.offsetY}) scale(${this.scaleX} ${this.scaleY})`);
         return this;
     }

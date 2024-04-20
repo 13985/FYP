@@ -521,7 +521,7 @@ namespace VisualizationUtils{
         public removeVertex(v_id:number):void{
             for(let i:number=0;i<this.vertices.length;++i){
                 if(this.vertices[i].id==v_id){
-                    this.vertices.splice(i,1);
+                    ArrayUtils.removeAsSwapBack(this.vertices,i);
                     return;
                 }
             }

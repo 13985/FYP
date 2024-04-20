@@ -73,11 +73,11 @@
                         </h3>
                         <div class="menu indent">
                             <select class="graph-update" id="vertex-update" value="create">
-                                <option value="create">Create</option>
                                 <option value="remove">Remove</option>
+                                <option value="create">Create</option>
                                 <option value="color">Color</option>
                             </select>
-                            <input class="vertices-input" id="vertex-expand-input" type="text" pattern="(?:\d+\s?)+" max-length="500"/>
+                            <input class="vertices-input" id="vertex-expand-input" type="text" pattern="(?:\d+\s?)+" max-length="50" autocomplete="off"/>
                             <input class="set-color" id="vertex-set-color" type="color"/>
                             <button type="button" id="vertex-update-button" class="button-reverse button">Update</button>
                         </div>
