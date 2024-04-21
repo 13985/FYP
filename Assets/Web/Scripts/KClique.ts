@@ -731,8 +731,8 @@ namespace KCliqueAlgorithm{
             }
 
             this.vertexToInfo.delete(a);
-            this.setVisualElementsColor(this.notColorful);
             this.checkCCs();
+            this.setVisualElementsColor(this.notColorful);
             return true;
         }
 
@@ -746,37 +746,45 @@ namespace KCliqueAlgorithm{
             const fromInfos=this.vertexToInfo.get(from) as ConnectedComponetInfo[];
             const toInfos=this.vertexToInfo.get(to) as ConnectedComponetInfo[];
             const toV:Vertex=(this.graph.adjacencyList.get(to) as VerticeList).main;
+            const fromV:Vertex=(this.graph.adjacencyList.get(from) as VerticeList).main;
 
             const generatedCCs:KCliqueCC[]=this.ccBuffer0;
             const stableCCs:KCliqueCC[]=this.ccBuffer1;
             generatedCCs.length=0;
             stableCCs.length=0;
+            console.log(`f:${from} t:${to}`);
 
-            for(const fromInfo of fromInfos){
+            for(let i:number=0;i<fromInfos.length;){
+                const fromInfo:ConnectedComponetInfo=fromInfos[i];
                 const cc:KCliqueCC=this.getKCliqueCC(fromInfo);//for all cc of from
+                console.log(cc.toString("{"));
+
                 if(this.fullyConnected(toV,cc)){//move directly, dont need to generate sub clique anymore
                     cc.vertices.push(toV);
                     if(cc.clique()-1>=this.cliqueComponents.length){
                         this.cliqueComponents.push(new CliqueComponets(cc.clique()));
+                        this.setColorGradient(this.cliqueComponents[0].color,this.cliqueComponents[this.cliqueComponents.length-2].color);
                     }
                     this.removeCC(fromInfo);
-                    this.addCC(cc);
                     stableCCs.push(cc);
+                    //dont add to index structure to prevent it interrupt the fromInfos
                     continue;
                 }
 
+                ++i;
                 generatorFrom.set(cc);
 
                 Label_0:for(let clique=cc.clique()-1;clique>0;--clique){
-                    const results:KCliqueCC[]=generatorFrom.generate(toV,clique);
+                    const results:KCliqueCC[]=generatorFrom.generate(fromV,clique);
 
-                    for(let i:number=0;i<results.length;++i){
-                        const cc_:KCliqueCC=results[i];
+                    for(let j:number=0;j<results.length;++j){
+                        const cc_:KCliqueCC=results[j];
+                        console.log(cc_.toString("{"));
                         if(this.fullyConnected(toV,cc_)==false){continue;}
 
                         cc_.vertices.push(toV);
                         generatedCCs.push(cc_);
-                        ArrayUtils.removeAsSwapBack(results,i);
+                        ArrayUtils.removeAsSwapBack(results,j);
                         generatorFrom.releaseAll();
                         break Label_0;
                     }
@@ -786,6 +794,7 @@ namespace KCliqueAlgorithm{
             }
 
             generatedCCs.sort((a,b):number=>a.clique()-b.clique());
+
             label_0:for(let i:number=0;i<generatedCCs.length;++i){
                 const cc:KCliqueCC=generatedCCs[i];
                 for(let j:number=i+1;j<generatedCCs.length;++j){
@@ -795,7 +804,7 @@ namespace KCliqueAlgorithm{
                     }
                 }
                 for(let j:number=0;j<stableCCs.length;++j){
-                    if(stableCCs[j].clique>cc.clique&&this.isSubClique(cc,stableCCs[j])){
+                    if(stableCCs[j].clique()>cc.clique()&&this.isSubClique(cc,stableCCs[j])){
                         KCliqueCC.POOL.release(cc);
                         continue label_0;
                     }
@@ -817,12 +826,12 @@ namespace KCliqueAlgorithm{
                 }
             }
 
-            for(const cc of stableCCs){
-                this.addCC(cc);
+            for(let i:number=0;i<stableCCs.length;++i){
+                this.addCC(stableCCs[i]);
             }
 
-            this.setVisualElementsColor(this.notColorful);
             this.checkCCs();
+            this.setVisualElementsColor(this.notColorful);
             return true;
         }
 
@@ -889,8 +898,8 @@ namespace KCliqueAlgorithm{
             for(const cc of newCCs){
                 this.addCC(cc);
             }
-            this.setVisualElementsColor(this.notColorful);
             this.checkCCs();
+            this.setVisualElementsColor(this.notColorful);
             return true;
         }
 
@@ -1149,7 +1158,8 @@ namespace KCliqueAlgorithm{
                 let idx:number=0;
                 for(const cc of kc.connectedComponents){
                     if(cc.vertices.length!=kc.clique){
-                        throw new Error(`vertice number unexpected ${cc.vertices} vs (real:) ${kc.clique}`);
+                        console.log(`at clique ${kc.clique} index ${idx}`);
+                        throw new Error(`vertice number unexpected ${cc.toString("{")}`);
                     }
                     for(const v of cc.vertices){
                         const infos=this.vertexToInfo.get(v.id) as ConnectedComponetInfo[];
@@ -1241,10 +1251,9 @@ namespace KCliqueAlgorithm{
                 this.results.push(cc);
                 return;
             }
-            --left;
-            for(let i:number=idx;i<this.currentCC.vertices.length-left;++i){
+            for(let i:number=idx;i<this.currentCC.vertices.length-left+1;++i){
                 this.verticesBuffer[left]=this.currentCC.vertices[i];
-                this.generateClique(i+1,left);
+                this.generateClique(i+1,left-1);
             }
         }
 
