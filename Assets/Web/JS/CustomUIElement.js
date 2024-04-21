@@ -92,7 +92,7 @@ class GraphWindow {
         GraphWindow.template = document.getElementById("graph-window-template").content;
     }
     constructor(g) {
-        var _a, _b, _c, _d;
+        var _a, _b, _c, _d, _e, _f;
         this.forceToX = d3.forceX().strength(0.15);
         this.forceToY = d3.forceY().strength(0.15);
         this.simulation = d3.forceSimulation()
@@ -119,6 +119,71 @@ class GraphWindow {
         this.pressToSelectVertex = false;
         this.isCreateEdge = false;
         this.onVertexMoved = undefined;
+        this.readCommands = () => {
+            const text = this.commandInput.value.trim();
+            if (text.length < 2) {
+                console.log(`unknown command: ${text}`);
+            }
+            const command = text.substring(0, 2);
+            const left = text.substring(2);
+            function getVertices() {
+                const arr = left.match(/(\d+)/g);
+                if (arr == null) {
+                    return [];
+                }
+                else {
+                    return arr.map((str) => parseInt(str));
+                }
+            }
+            function getEdges() {
+                const arr = left.match(/(\d+,\d+)/g);
+                const edges = [];
+                if (arr == null) {
+                }
+                else {
+                    for (const s of arr) {
+                        const numbers = s.split(",");
+                        edges.push(parseInt(numbers[0]));
+                        edges.push(parseInt(numbers[1]));
+                    }
+                }
+                return edges;
+            }
+            switch (command) {
+                case "rv": {
+                    const vs = getVertices();
+                    for (const v of vs) {
+                        graphHasUpdated = VisualizationUtils.Algorithm.removeVertex(v) || graphHasUpdated;
+                    }
+                    break;
+                }
+                case "av": {
+                    const vs = getVertices();
+                    for (const v of vs) {
+                        graphHasUpdated = VisualizationUtils.Algorithm.addVertex(v) || graphHasUpdated;
+                    }
+                    break;
+                }
+                case "ae": {
+                    const edges = getEdges();
+                    for (let i = 0; i < edges.length; i += 2) {
+                        graphHasUpdated = VisualizationUtils.Algorithm.addEdge(edges[i], edges[i + 1]) || graphHasUpdated;
+                    }
+                    break;
+                }
+                case "re": {
+                    const edges = getEdges();
+                    for (let i = 0; i < edges.length; i += 2) {
+                        graphHasUpdated = VisualizationUtils.Algorithm.removeEdge(edges[i], edges[i + 1]) || graphHasUpdated;
+                    }
+                    break;
+                }
+                default: {
+                    console.log(`unknown command: ${command}`);
+                }
+            }
+            this.commandInput.value = "";
+        };
         this.containerDragStarted = (me) => {
             if (me.button == 2) {
                 this.isDraggingContainer = true;
@@ -295,7 +360,27 @@ class GraphWindow {
                 this.displayVertexIds(showIdCheckBox.checked);
             });
         }
+        {
+            this.commandExpand = control.querySelector(".command.expand");
+            const idstr = `qqewfrwwe-${GraphWindow.ID}`;
+            let innerId = 0;
+            (_e = this.commandExpand.querySelector("input.switch")) === null || _e === void 0 ? void 0 : _e.setAttribute("id", idstr);
+            (_f = this.commandExpand.querySelector(".switch.text>label")) === null || _f === void 0 ? void 0 : _f.setAttribute("for", idstr);
+            const menu = this.commandExpand.querySelector(".menu");
+            this.commandInput = menu.querySelector("input.command");
+            const commandButton = menu.querySelector("button#command-input-button");
+            commandButton.addEventListener("click", this.readCommands);
+            this.commandInput.addEventListener("keydown", (ke) => {
+                if (ke.key == "Enter") {
+                    this.readCommands();
+                }
+            });
+        }
         ++GraphWindow.ID;
+    }
+    hideCommandModule(hide = true) {
+        this.commandExpand.classList.toggle("hide", hide);
+        return this;
     }
     setGraph(g) {
         this.graph = g;

@@ -104,6 +104,17 @@ label.speed{
 }
 
 
+input.command{
+    background-color: var(--main-color1);
+    outline: none;
+}
+
+
+input.command:invalid{
+    border: 2px solid red;
+}
+
+
 .vertex.text{
     fill:var(--reverse-color1);
 }

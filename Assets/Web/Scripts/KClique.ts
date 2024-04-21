@@ -2,7 +2,6 @@ namespace KCliqueAlgorithm{
     class KCliqueCC extends VisualizationUtils.ConnectedComponent{
         public static readonly POOL:VisualizationUtils.ObjectPool<KCliqueCC>=new VisualizationUtils.ObjectPool(KCliqueCC,256);
 
-
         constructor(){
             super();
         }
@@ -284,26 +283,24 @@ namespace KCliqueAlgorithm{
                     const next:CliqueComponets=new CliqueComponets(currentClique);
                     const previous:KCliqueCC[]=this.cliqueComponents[currentClique-2].connectedComponents;//currentClique == .length+2
     
-                    for(let i:number=0;i<previous.length;){
+                    Label_0:for(let i:number=0;i<previous.length;){
                         const first:KCliqueCC=previous[i];
-                        Label_0:{
-                            for(let j:number=i+1;j<previous.length;++j){
-                                const second:KCliqueCC=previous[j];
-                                const left_v:Vertex|null=this.testCombine(first,second,returnEdgeCode);
-                                if(left_v==null){
-                                    continue;
-                                }
-                                
-                                first.vertices.push(left_v);
-                                KCliqueCC.POOL.release(second);
-                                next.connectedComponents.push(first);
-                                
-                                ArrayUtils.removeAsSwapBack(previous,j);
-                                ArrayUtils.removeAsSwapBack(previous,i);
-                                break Label_0;
+                        for(let j:number=i+1;j<previous.length;++j){
+                            const second:KCliqueCC=previous[j];
+                            const left_v:Vertex|null=this.testCombine(first,second,returnEdgeCode);
+                            if(left_v==null){
+                                continue;
                             }
-                            ++i;
+                            
+                            first.vertices.push(left_v);
+                            KCliqueCC.POOL.release(second);
+                            next.connectedComponents.push(first);
+                            
+                            ArrayUtils.removeAsSwapBack(previous,j);
+                            ArrayUtils.removeAsSwapBack(previous,i);
+                            continue Label_0;
                         }
+                        ++i;
                     }
                     
                     if(next.connectedComponents.length<=0){
@@ -725,7 +722,7 @@ namespace KCliqueAlgorithm{
 
                 theCC.removeVertex(a);
 
-                if(this.searchLargerClique(theCC,info)==false){//no parent clique
+                if(this.searchLargerClique(theCC)==false){//no parent clique
                     this.addCC(theCC);
                 }else{
                     KCliqueCC.POOL.release(theCC);
@@ -789,23 +786,21 @@ namespace KCliqueAlgorithm{
             }
 
             generatedCCs.sort((a,b):number=>a.clique()-b.clique());
-            for(let i:number=0;i<generatedCCs.length;++i){
-                label_0:{
-                    const cc:KCliqueCC=generatedCCs[i];
-                    for(let j:number=i+1;j<generatedCCs.length;++j){
-                        if(this.isSubClique(cc,generatedCCs[j])){
-                            KCliqueCC.POOL.release(cc);
-                            break label_0;
-                        }
+            label_0:for(let i:number=0;i<generatedCCs.length;++i){
+                const cc:KCliqueCC=generatedCCs[i];
+                for(let j:number=i+1;j<generatedCCs.length;++j){
+                    if(this.isSubClique(cc,generatedCCs[j])){
+                        KCliqueCC.POOL.release(cc);
+                        continue label_0;
                     }
-                    for(let j:number=0;j<stableCCs.length;++j){
-                        if(stableCCs[j].clique>cc.clique&&this.isSubClique(cc,stableCCs[j])){
-                            KCliqueCC.POOL.release(cc);
-                            break label_0;
-                        }
-                    }
-                    stableCCs.push(cc);
                 }
+                for(let j:number=0;j<stableCCs.length;++j){
+                    if(stableCCs[j].clique>cc.clique&&this.isSubClique(cc,stableCCs[j])){
+                        KCliqueCC.POOL.release(cc);
+                        continue label_0;
+                    }
+                }
+                stableCCs.push(cc);
             }
 
             for(let i:number=0;i<toInfos.length;++i){//those clique is only contain "to", no "from" inside
@@ -1041,28 +1036,26 @@ namespace KCliqueAlgorithm{
          * @param theCC
          * check if there is any clique that contains the chole theCC
          */
-        private searchLargerClique(theCC:KCliqueCC,originalInfo:ConnectedComponetInfo):boolean{
+        private searchLargerClique(theCC:KCliqueCC):boolean{
             const infos:ConnectedComponetInfo[]=this.infoBuffer0 as ConnectedComponetInfo[];
             infos.length=0;
 
             const firstInfos:ConnectedComponetInfo[]=this.vertexToInfo.get(theCC.vertices[0].id) as ConnectedComponetInfo[];
             for(const info of firstInfos){
-                if(info.clique<originalInfo.clique||info==originalInfo){continue;}
+                if(info.clique<=theCC.clique()){continue;}
                 infos.push(info);
             }
 
-            for(let j:number=0;j<infos.length;++j){//for every clique pointing to
-                Label_1:{
-                    for(let i:number=1;i<theCC.vertices.length;++i){//for other vertex in same CC
-                        const otherInfos=this.vertexToInfo.get(theCC.vertices[i].id) as ConnectedComponetInfo[];
+            Label_1:for(let j:number=0;j<infos.length;++j){//for every clique pointing to
+                for(let i:number=1;i<theCC.vertices.length;++i){//for other vertex in same CC
+                    const otherInfos=this.vertexToInfo.get(theCC.vertices[i].id) as ConnectedComponetInfo[];
 
-                        const other:ConnectedComponetInfo|null=this.searchInfo(otherInfos,infos[j]);
-                        if(other==null){
-                            break Label_1;
-                        }
+                    const other:ConnectedComponetInfo|null=this.searchInfo(otherInfos,infos[j]);
+                    if(other==null){
+                        continue Label_1;
                     }
-                    return true;
                 }
+                return true;
             }
             return false;
         }
@@ -1170,6 +1163,10 @@ namespace KCliqueAlgorithm{
                         if(find==false){
                             throw new Error(`info of ${v.id} in clique:${cc.toString("{")} (clique:${kc.clique},idx: ${idx}) missing`);
                         }
+                    }
+
+                    if(this.searchLargerClique(cc)){
+                        throw new Error(`cc ${cc.toString("{")} is subclique`);
                     }
 
                     ++idx;

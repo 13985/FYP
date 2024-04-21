@@ -218,24 +218,22 @@ var KCliqueAlgorithm;
                 for (let currentClique = 3; true; ++currentClique) {
                     const next = new CliqueComponets(currentClique);
                     const previous = this.cliqueComponents[currentClique - 2].connectedComponents; //currentClique == .length+2
-                    for (let i = 0; i < previous.length;) {
+                    Label_0: for (let i = 0; i < previous.length;) {
                         const first = previous[i];
-                        Label_0: {
-                            for (let j = i + 1; j < previous.length; ++j) {
-                                const second = previous[j];
-                                const left_v = this.testCombine(first, second, returnEdgeCode);
-                                if (left_v == null) {
-                                    continue;
-                                }
-                                first.vertices.push(left_v);
-                                KCliqueCC.POOL.release(second);
-                                next.connectedComponents.push(first);
-                                ArrayUtils.removeAsSwapBack(previous, j);
-                                ArrayUtils.removeAsSwapBack(previous, i);
-                                break Label_0;
+                        for (let j = i + 1; j < previous.length; ++j) {
+                            const second = previous[j];
+                            const left_v = this.testCombine(first, second, returnEdgeCode);
+                            if (left_v == null) {
+                                continue;
                             }
-                            ++i;
+                            first.vertices.push(left_v);
+                            KCliqueCC.POOL.release(second);
+                            next.connectedComponents.push(first);
+                            ArrayUtils.removeAsSwapBack(previous, j);
+                            ArrayUtils.removeAsSwapBack(previous, i);
+                            continue Label_0;
                         }
+                        ++i;
                     }
                     if (next.connectedComponents.length <= 0) {
                         break;
@@ -623,7 +621,7 @@ var KCliqueAlgorithm;
                 const info = infos[0];
                 const theCC = this.removeCC(info); //take infos of vertex a and remove info (at index 0) from infos
                 theCC.removeVertex(a);
-                if (this.searchLargerClique(theCC, info) == false) { //no parent clique
+                if (this.searchLargerClique(theCC) == false) { //no parent clique
                     this.addCC(theCC);
                 }
                 else {
@@ -679,23 +677,21 @@ var KCliqueAlgorithm;
                 }
             }
             generatedCCs.sort((a, b) => a.clique() - b.clique());
-            for (let i = 0; i < generatedCCs.length; ++i) {
-                label_0: {
-                    const cc = generatedCCs[i];
-                    for (let j = i + 1; j < generatedCCs.length; ++j) {
-                        if (this.isSubClique(cc, generatedCCs[j])) {
-                            KCliqueCC.POOL.release(cc);
-                            break label_0;
-                        }
+            label_0: for (let i = 0; i < generatedCCs.length; ++i) {
+                const cc = generatedCCs[i];
+                for (let j = i + 1; j < generatedCCs.length; ++j) {
+                    if (this.isSubClique(cc, generatedCCs[j])) {
+                        KCliqueCC.POOL.release(cc);
+                        continue label_0;
                     }
-                    for (let j = 0; j < stableCCs.length; ++j) {
-                        if (stableCCs[j].clique > cc.clique && this.isSubClique(cc, stableCCs[j])) {
-                            KCliqueCC.POOL.release(cc);
-                            break label_0;
-                        }
-                    }
-                    stableCCs.push(cc);
                 }
+                for (let j = 0; j < stableCCs.length; ++j) {
+                    if (stableCCs[j].clique > cc.clique && this.isSubClique(cc, stableCCs[j])) {
+                        KCliqueCC.POOL.release(cc);
+                        continue label_0;
+                    }
+                }
+                stableCCs.push(cc);
             }
             for (let i = 0; i < toInfos.length; ++i) { //those clique is only contain "to", no "from" inside
                 const toInfo = toInfos[i];
@@ -907,27 +903,25 @@ var KCliqueAlgorithm;
          * @param theCC
          * check if there is any clique that contains the chole theCC
          */
-        searchLargerClique(theCC, originalInfo) {
+        searchLargerClique(theCC) {
             const infos = this.infoBuffer0;
             infos.length = 0;
             const firstInfos = this.vertexToInfo.get(theCC.vertices[0].id);
             for (const info of firstInfos) {
-                if (info.clique < originalInfo.clique || info == originalInfo) {
+                if (info.clique <= theCC.clique()) {
                     continue;
                 }
                 infos.push(info);
             }
-            for (let j = 0; j < infos.length; ++j) { //for every clique pointing to
-                Label_1: {
-                    for (let i = 1; i < theCC.vertices.length; ++i) { //for other vertex in same CC
-                        const otherInfos = this.vertexToInfo.get(theCC.vertices[i].id);
-                        const other = this.searchInfo(otherInfos, infos[j]);
-                        if (other == null) {
-                            break Label_1;
-                        }
+            Label_1: for (let j = 0; j < infos.length; ++j) { //for every clique pointing to
+                for (let i = 1; i < theCC.vertices.length; ++i) { //for other vertex in same CC
+                    const otherInfos = this.vertexToInfo.get(theCC.vertices[i].id);
+                    const other = this.searchInfo(otherInfos, infos[j]);
+                    if (other == null) {
+                        continue Label_1;
                     }
-                    return true;
                 }
+                return true;
             }
             return false;
         }
@@ -1028,6 +1022,9 @@ var KCliqueAlgorithm;
                         if (find == false) {
                             throw new Error(`info of ${v.id} in clique:${cc.toString("{")} (clique:${kc.clique},idx: ${idx}) missing`);
                         }
+                    }
+                    if (this.searchLargerClique(cc)) {
+                        throw new Error(`cc ${cc.toString("{")} is subclique`);
                     }
                     ++idx;
                 }

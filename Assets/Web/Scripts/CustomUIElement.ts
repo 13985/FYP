@@ -118,6 +118,8 @@ class GraphWindow{
     public graph:Graph;
     public readonly container:HTMLElement;
     public readonly innerSVG:SVGElement;
+    private readonly commandExpand:HTMLElement;
+    private readonly commandInput:HTMLInputElement;
     
     private readonly forceToX:d3.ForceX<Vertex>=d3.forceX().strength(0.15);
     private readonly forceToY:d3.ForceY<Vertex>=d3.forceY().strength(0.15);
@@ -271,7 +273,98 @@ class GraphWindow{
                 this.displayVertexIds(showIdCheckBox.checked);
             });
         }
+        {
+            this.commandExpand=control.querySelector(".command.expand") as HTMLElement;
+            const idstr:string=`qqewfrwwe-${GraphWindow.ID}`;
+            let innerId:number=0;
+            this.commandExpand.querySelector("input.switch")?.setAttribute("id",idstr);
+            this.commandExpand.querySelector(".switch.text>label")?.setAttribute("for",idstr);
+
+            const menu=this.commandExpand.querySelector(".menu") as HTMLElement;
+            this.commandInput=menu.querySelector("input.command") as HTMLInputElement;
+            const commandButton:HTMLButtonElement=menu.querySelector("button#command-input-button") as HTMLButtonElement;
+            commandButton.addEventListener("click",this.readCommands);
+            this.commandInput.addEventListener("keydown",(ke:KeyboardEvent):void=>{
+                if(ke.key=="Enter"){
+                    this.readCommands();
+                }
+            });
+        }
         ++GraphWindow.ID;
+    }
+
+
+    private readonly readCommands=():void=>{
+        const text:string=this.commandInput.value.trim();
+        if(text.length<2){
+            console.log(`unknown command: ${text}`);
+        }
+        const command:string=text.substring(0,2);
+        const left:string=text.substring(2);
+
+        function getVertices():number[]{
+            const arr:RegExpMatchArray | null=left.match(/(\d+)/g);
+            if(arr==null){
+                return [];
+            }else{
+                return arr.map<number>((str:string):number=>parseInt(str));
+            }
+        }
+
+        function getEdges():number[]{
+            const arr:RegExpMatchArray | null=left.match(/(\d+,\d+)/g);
+            const edges:number[]=[];
+            if(arr==null){
+            }else{
+                for(const s of arr){
+                    const numbers:string[]=s.split(",");
+                    edges.push(parseInt(numbers[0]));
+                    edges.push(parseInt(numbers[1]));
+                }
+            }
+            return edges;
+        }
+
+        switch(command){
+        case "rv":{
+            const vs:number[]=getVertices();
+            for(const v of vs){
+                graphHasUpdated=VisualizationUtils.Algorithm.removeVertex(v)||graphHasUpdated;
+            }
+            break;
+        }
+        case "av":{
+            const vs:number[]=getVertices();
+            for(const v of vs){
+                graphHasUpdated=VisualizationUtils.Algorithm.addVertex(v)||graphHasUpdated;
+            }
+            break;
+        }
+        case "ae":{
+            const edges:number[]=getEdges();
+            for(let i:number=0;i<edges.length;i+=2){
+                graphHasUpdated=VisualizationUtils.Algorithm.addEdge(edges[i],edges[i+1])||graphHasUpdated;
+            }
+            break;
+        }
+        case "re":{
+            const edges:number[]=getEdges();
+            for(let i:number=0;i<edges.length;i+=2){
+                graphHasUpdated=VisualizationUtils.Algorithm.removeEdge(edges[i],edges[i+1])||graphHasUpdated;
+            }
+            break;
+        }
+        default:{
+            console.log(`unknown command: ${command}`);
+        }
+        }
+        this.commandInput.value="";
+    }
+
+
+    public hideCommandModule(hide=true):this{
+        this.commandExpand.classList.toggle("hide",hide);
+        return this;
     }
 
 

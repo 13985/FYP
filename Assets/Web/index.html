@@ -83,7 +83,7 @@
                         </div>
                     </li>
                     <li class="expand" id="edge-expand-li"><!------------------------------------Edge expand------------------------------------------->
-                        <input type="checkbox" id="edge-expand-set" class="switch" checked/>
+                        <input type="checkbox" id="edge-expand-set" class="switch"/>
                         <h3 class="switch text slightly">
                             <label for="edge-expand-set" class="switch">Edge</label>
                         </h3>
@@ -213,6 +213,16 @@
                             <div class="menu">
                                 <input type="checkbox" class="show-id switch">
                                 <label class="show-id switch text">Show Id</label>
+                            </div>
+                        </div>
+                        <div class="command expand">
+                            <input type="checkbox" class="switch"/>
+                            <h4 class="switch slightly text">
+                                <label class="switch">Command</label>
+                            </h4>
+                            <div class="menu">
+                                <input type="text" class="command" pattern="((?:av|rv)(\s+\d+)+|(?:ae|re)(\s+\d+,\d+)+)">
+                                <button type="button" id="command-input-button" class="button-reverse button">Submit</button>
                             </div>
                         </div>
                     </div>

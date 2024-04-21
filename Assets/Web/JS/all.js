@@ -104,7 +104,7 @@ class MainApp {
         /****************************************************edge expand *****************************************************/
         this.edgeExpandContainer = document.getElementById("edge-expand-li");
         this.edgeUpdateSelect = document.getElementById("edge-update");
-        this.edgeexpandInput = document.getElementById("edge-expand-input");
+        this.edgeExpandInput = document.getElementById("edge-expand-input");
         this.edgeUpdateButton = document.getElementById("edge-update-button");
         this.edgeEditMode = document.getElementById("edge-edit-mode");
         /****************************************************Algo expand **********************************************/
@@ -116,7 +116,7 @@ class MainApp {
         this.animationExpand = document.querySelector("li.expand.animation");
         this.graph = new Graph();
         this.resultGraph = new Graph();
-        this.gw = new GraphWindow(this.graph).setWH(450, 500).display(false);
+        this.gw = new GraphWindow(this.graph).setWH(450, 500).hideCommandModule().display(false);
         this.resultGW = new GraphWindow(this.resultGraph).setWH(450, 500);
         this.kCore = new KCoreAlgorithm.KCore(this.graph, this.gw.innerSVG, this.gw);
         this.resultKCore = new KCoreAlgorithm.KCore(this.resultGraph, this.resultGW.innerSVG, this.resultGW);
@@ -256,6 +256,7 @@ class MainApp {
             }
         };
         this.animationExpand.removeAttribute("style");
+        this.resultGW.hideCommandModule(false);
         switch (type) {
             case 0 /* AlgorithmType.K_CORE */: {
                 this.showModificationExpands(true);
@@ -278,13 +279,14 @@ class MainApp {
             case 2 /* AlgorithmType.BOTH */: {
                 this.showModificationExpands(false);
                 this.animationExpand.setAttribute("style", "display:none;");
+                this.resultGW.hideCommandModule();
                 if (graphHasUpdated) {
                     if (VisualizationUtils.Algorithm.VisualizationTarget() == this.kCore) {
                         this.resultKClique.createIndexStructure().setColorGradient(VertexGradient.start, VertexGradient.end);
                         this.kClique.setIndexStructure(this.resultKClique).createState();
                     }
                     else {
-                        this.resultKCore.createIndexStructure().setColorGradient(VertexGradient.start, VertexGradient.end);
+                        this.resultKCore.createIndexStructure().setColorGradient(VertexGradient.start, VertexGradient.end).setVisualElementsColor(true);
                         this.kCore.setIndexStructure(this.resultKCore).createState();
                     }
                     graphHasUpdated = false;
@@ -409,5 +411,68 @@ window.onload = () => {
     3 4\r\n\
     2 3\r\n\
     ");
+    */
+    /*
+    VisualizationUtils.Algorithm.addEdge(23,17);
+    VisualizationUtils.Algorithm.addEdge(15,4);
+    VisualizationUtils.Algorithm.addEdge(15,3);
+    VisualizationUtils.Algorithm.removeEdge(15,1);
+    VisualizationUtils.Algorithm.removeVertex(13);
+    VisualizationUtils.Algorithm.addEdge(7,4);
+    VisualizationUtils.Algorithm.addEdge(4,12);
+    VisualizationUtils.Algorithm.removeVertex(3);
+    VisualizationUtils.Algorithm.addVertex(3);
+    VisualizationUtils.Algorithm.addEdge(3,6);
+    VisualizationUtils.Algorithm.addVertex(30);
+    VisualizationUtils.Algorithm.addVertex(31);
+    VisualizationUtils.Algorithm.addVertex(32);
+    VisualizationUtils.Algorithm.addEdge(7,30);
+    VisualizationUtils.Algorithm.removeEdge(7,4);
+    VisualizationUtils.Algorithm.removeEdge(4,6);
+    VisualizationUtils.Algorithm.removeEdge(7,6);
+    VisualizationUtils.Algorithm.addEdge(19,22);
+    VisualizationUtils.Algorithm.addEdge(7,22);
+    VisualizationUtils.Algorithm.addEdge(19,21);
+    VisualizationUtils.Algorithm.addEdge(5,20);
+    VisualizationUtils.Algorithm.addEdge(8,21);
+    VisualizationUtils.Algorithm.addEdge(2,21);
+    VisualizationUtils.Algorithm.addEdge(0,21);
+    VisualizationUtils.Algorithm.addEdge(30,19);
+    VisualizationUtils.Algorithm.addEdge(30,22);
+    VisualizationUtils.Algorithm.addEdge(30,21);
+    VisualizationUtils.Algorithm.addEdge(4,10);
+    VisualizationUtils.Algorithm.addEdge(4,11);
+    VisualizationUtils.Algorithm.removeVertex(12);
+    VisualizationUtils.Algorithm.addEdge(9,11);
+    VisualizationUtils.Algorithm.addEdge(10,7);
+    VisualizationUtils.Algorithm.addEdge(9,7);
+    VisualizationUtils.Algorithm.addEdge(4,7);
+    VisualizationUtils.Algorithm.addEdge(11,7);
+    VisualizationUtils.Algorithm.removeVertex(7);
+    VisualizationUtils.Algorithm.addEdge(6,11);
+    VisualizationUtils.Algorithm.addEdge(6,4);
+    VisualizationUtils.Algorithm.addEdge(6,10);
+    VisualizationUtils.Algorithm.addEdge(3,15);
+    VisualizationUtils.Algorithm.addEdge(16,6);
+    VisualizationUtils.Algorithm.addEdge(16,4);
+    VisualizationUtils.Algorithm.addEdge(16,11);
+    VisualizationUtils.Algorithm.addEdge(16,10);
+    VisualizationUtils.Algorithm.addEdge(16,9);
+    VisualizationUtils.Algorithm.addEdge(0,19);
+    VisualizationUtils.Algorithm.addEdge(0,2);
+    VisualizationUtils.Algorithm.addEdge(0,22);
+    VisualizationUtils.Algorithm.removeEdge(30,19);
+    VisualizationUtils.Algorithm.addEdge(1,21);
+    VisualizationUtils.Algorithm.removeVertex(21);
+    VisualizationUtils.Algorithm.addEdge(8,6);
+    VisualizationUtils.Algorithm.addEdge(20,6);
+    VisualizationUtils.Algorithm.addEdge(5,6);
+    VisualizationUtils.Algorithm.addEdge(18,6);
+    VisualizationUtils.Algorithm.addEdge(30,6);
+    VisualizationUtils.Algorithm.addEdge(31,6);
+    VisualizationUtils.Algorithm.addEdge(18,32);
+    VisualizationUtils.Algorithm.addEdge(31,32);
+    VisualizationUtils.Algorithm.addEdge(23,6);
+    VisualizationUtils.Algorithm.removeVertex(6);
     */
 };
