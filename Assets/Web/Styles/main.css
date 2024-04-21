@@ -106,6 +106,7 @@ label.speed{
 
 input.command{
     background-color: var(--main-color1);
+    color: var(--reverse-color0);
     outline: none;
 }
 

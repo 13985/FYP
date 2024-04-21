@@ -304,5 +304,76 @@
             <div class="stack-ele">i=4</div>
         </div>
     </div>
+    <br><br><br>
+    <div>
+        <style>
+            ul.grid-20-2{
+                display: grid;
+                grid-template-columns: repeat(20,55px);
+                grid-template-rows: repeat(2,20px);
+                padding: 0;
+            }
+
+            ul.grid-3-3{
+                display: grid;
+                grid-template-columns: repeat(3,55px);
+                grid-template-rows: repeat(3,20px);
+                padding: 0;
+            }
+
+            ul.grid-20-2>li,
+            ul.grid-3-3>li{
+                text-align: center;
+            }
+
+
+            li.cadetblue{
+                background-color: rgb(149, 215, 218);
+            }
+
+            li.chocolate{
+                background-color: rgb(243, 144, 72);
+            }
+
+            li.cyan{
+                background-color: cyan;
+            }
+        </style>
+
+        <span style="color: white;">(step as index)</span>
+        <ul class="grid-20-2">
+
+        </ul>
+        <span style="color: white;">compressed to</span>
+        <script>
+            const ul=document.querySelector("ul.grid-20-2");
+            for(let i=0;i<20;++i){
+                ul.insertAdjacentHTML("beforeend",`<li style="color: white;">${i}</li>`);
+            }
+            for(let i=0;i<5;++i){
+                ul.insertAdjacentHTML("beforeend",`<li class="cadetblue">style 0</li>`);
+            }
+            for(let i=5;i<16;++i){
+                ul.insertAdjacentHTML("beforeend",`<li class="chocolate">style 1</li>`);
+            }
+            for(let i=16;i<20;++i){
+                ul.insertAdjacentHTML("beforeend",`<li class="cyan">style 2</li>`);
+            }
+        </script>
+
+
+        <ul class="grid-3-3">
+            <li style="color: white;">0</li>
+            <li style="color: white;">1</li>
+            <li style="color: white;">2</li>
+            <li class="cadetblue">step 0</li>
+            <li class="chocolate">step 5</li>
+            <li class="cyan">step 16</li>
+            <li class="cadetblue">style 0</li>
+            <li class="chocolate">style 1</li>
+            <li class="cyan">style 2</li>
+        </ul>
+    </div>
+    <br><br><br>
 </body>
 </html>

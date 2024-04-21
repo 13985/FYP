@@ -116,7 +116,7 @@ class MainApp {
         this.animationExpand = document.querySelector("li.expand.animation");
         this.graph = new Graph();
         this.resultGraph = new Graph();
-        this.gw = new GraphWindow(this.graph).setWH(450, 500).hideCommandModule().display(false);
+        this.gw = new GraphWindow(this.graph).setWH(450, 500).hideCommandModule().display(true);
         this.resultGW = new GraphWindow(this.resultGraph).setWH(450, 500);
         this.kCore = new KCoreAlgorithm.KCore(this.graph, this.gw.innerSVG, this.gw);
         this.resultKCore = new KCoreAlgorithm.KCore(this.resultGraph, this.resultGW.innerSVG, this.resultGW);
