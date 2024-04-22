@@ -116,7 +116,7 @@ class MainApp {
         this.animationExpand = document.querySelector("li.expand.animation");
         this.graph = new Graph();
         this.resultGraph = new Graph();
-        this.gw = new GraphWindow(this.graph).setWH(450, 500).hideCommandModule().display(true);
+        this.gw = new GraphWindow(this.graph).setWH(450, 500).showCommandModule(false).display(true);
         this.resultGW = new GraphWindow(this.resultGraph).setWH(450, 500);
         this.kCore = new KCoreAlgorithm.KCore(this.graph, this.gw.innerSVG, this.gw);
         this.resultKCore = new KCoreAlgorithm.KCore(this.resultGraph, this.resultGW.innerSVG, this.resultGW);
@@ -256,7 +256,7 @@ class MainApp {
             }
         };
         this.animationExpand.removeAttribute("style");
-        this.resultGW.hideCommandModule(false);
+        this.resultGW.showCommandModule(true);
         switch (type) {
             case 0 /* AlgorithmType.K_CORE */: {
                 this.showModificationExpands(true);
@@ -279,7 +279,7 @@ class MainApp {
             case 2 /* AlgorithmType.BOTH */: {
                 this.showModificationExpands(false);
                 this.animationExpand.setAttribute("style", "display:none;");
-                this.resultGW.hideCommandModule();
+                this.resultGW.showCommandModule(false);
                 if (graphHasUpdated) {
                     if (VisualizationUtils.Algorithm.VisualizationTarget() == this.kCore) {
                         this.resultKClique.createIndexStructure().setColorGradient(VertexGradient.start, VertexGradient.end);

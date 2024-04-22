@@ -170,7 +170,7 @@ class MainApp{
         this.graph=new Graph();
         this.resultGraph=new Graph();
         
-        this.gw=new GraphWindow(this.graph).setWH(450,500).hideCommandModule().display(true);
+        this.gw=new GraphWindow(this.graph).setWH(450,500).showCommandModule(false).display(true);
         this.resultGW=new GraphWindow(this.resultGraph).setWH(450,500);
         
         this.kCore=new KCoreAlgorithm.KCore(this.graph,this.gw.innerSVG as SVGSVGElement,this.gw);
@@ -328,7 +328,7 @@ class MainApp{
         }
 
         this.animationExpand.removeAttribute("style");
-        this.resultGW.hideCommandModule(false);
+        this.resultGW.showCommandModule(true);
         switch(type){
             case AlgorithmType.K_CORE:{
             this.showModificationExpands(true);
@@ -353,7 +353,7 @@ class MainApp{
         case AlgorithmType.BOTH:{
             this.showModificationExpands(false);
             this.animationExpand.setAttribute("style","display:none;");
-            this.resultGW.hideCommandModule();
+            this.resultGW.showCommandModule(false);
             
             if(graphHasUpdated){
                 if(VisualizationUtils.Algorithm.VisualizationTarget()==this.kCore){

@@ -362,8 +362,8 @@ class GraphWindow{
     }
 
 
-    public hideCommandModule(hide=true):this{
-        this.commandExpand.classList.toggle("hide",hide);
+    public showCommandModule(show:boolean):this{
+        this.commandExpand.classList.toggle("hide",!show);
         return this;
     }
 

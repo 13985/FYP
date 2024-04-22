@@ -378,8 +378,8 @@ class GraphWindow {
         }
         ++GraphWindow.ID;
     }
-    hideCommandModule(hide = true) {
-        this.commandExpand.classList.toggle("hide", hide);
+    showCommandModule(show) {
+        this.commandExpand.classList.toggle("hide", !show);
         return this;
     }
     setGraph(g) {

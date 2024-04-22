@@ -347,32 +347,28 @@ namespace VisualizationUtils{
         }
 
 
-        public async start(onEnd?:()=>void):Promise<void>{
+        public async start():Promise<void>{
             if(this.isAnimating){return;}
-            this.isAnimating=true;
-            this.isPause=false;
-            this.videoControlStatus=VideoControlStatus.noAction;
+
+            const helper=(startingAnimation:boolean):void=>{
+                this.isAnimating=startingAnimation;
+                VideoControl.stopButton.disabled=!startingAnimation;
+                VideoControl.runButton.disabled=startingAnimation;
+                MainApp.instance().showModificationExpands(!startingAnimation);
+                MainApp.instance().resultGW.showCommandModule(!startingAnimation);
+                AlgorithmSelect.showOthers(!startingAnimation);
+
+                this.isPause=false;
+                this.videoControlStatus=VideoControlStatus.noAction;
+            }
             
-            DescriptionDisplay.reset();
-            VideoControl.stopButton.disabled=false;
-            VideoControl.runButton.disabled=true;
             VideoControl.progressBar.valueAsNumber=0;
-            MainApp.instance().showModificationExpands(false);
-            MainApp.instance().resultGW.hideCommandModule(true);
-            AlgorithmSelect.showOthers(false);
+            DescriptionDisplay.reset();
+            helper(true);
 
             await this.animate();
 
-            MainApp.instance().showModificationExpands(true);
-            MainApp.instance().resultGW.hideCommandModule(false);
-            AlgorithmSelect.showOthers(true);
-            this.isAnimating=false;
-            this.isPause=false;
-            this.videoControlStatus=VideoControlStatus.noAction;
-
-            VideoControl.stopButton.disabled=true;
-            VideoControl.runButton.disabled=false;
-            if(onEnd){onEnd();}
+            helper(false);
         }
 
 

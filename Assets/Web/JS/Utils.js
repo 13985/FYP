@@ -318,33 +318,26 @@ var VisualizationUtils;
             this.svgContainer = svg;
             this.graphWindow = gw;
         }
-        start(onEnd) {
+        start() {
             return __awaiter(this, void 0, void 0, function* () {
                 if (this.isAnimating) {
                     return;
                 }
-                this.isAnimating = true;
-                this.isPause = false;
-                this.videoControlStatus = 0 /* VideoControlStatus.noAction */;
-                DescriptionDisplay.reset();
-                VideoControl.stopButton.disabled = false;
-                VideoControl.runButton.disabled = true;
+                const helper = (startingAnimation) => {
+                    this.isAnimating = startingAnimation;
+                    VideoControl.stopButton.disabled = !startingAnimation;
+                    VideoControl.runButton.disabled = startingAnimation;
+                    MainApp.instance().showModificationExpands(!startingAnimation);
+                    MainApp.instance().resultGW.showCommandModule(!startingAnimation);
+                    AlgorithmSelect.showOthers(!startingAnimation);
+                    this.isPause = false;
+                    this.videoControlStatus = 0 /* VideoControlStatus.noAction */;
+                };
                 VideoControl.progressBar.valueAsNumber = 0;
-                MainApp.instance().showModificationExpands(false);
-                MainApp.instance().resultGW.hideCommandModule(true);
-                AlgorithmSelect.showOthers(false);
+                DescriptionDisplay.reset();
+                helper(true);
                 yield this.animate();
-                MainApp.instance().showModificationExpands(true);
-                MainApp.instance().resultGW.hideCommandModule(false);
-                AlgorithmSelect.showOthers(true);
-                this.isAnimating = false;
-                this.isPause = false;
-                this.videoControlStatus = 0 /* VideoControlStatus.noAction */;
-                VideoControl.stopButton.disabled = true;
-                VideoControl.runButton.disabled = false;
-                if (onEnd) {
-                    onEnd();
-                }
+                helper(false);
             });
         }
         static setCurrentStep(step) {
