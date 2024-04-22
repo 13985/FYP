@@ -692,19 +692,19 @@ var VisualizationUtils;
             this.currentStep = targetStep;
             for (let i = 0; i < this.dataKeys.length; ++i) {
                 const dataKey = this.dataKeys[i];
-                const stateInfos = this.dataStates.get(dataKey);
-                this.dataStatesCurrent[i] = stateInfos[0];
+                const dataStates = this.dataStates.get(dataKey);
+                this.dataStatesCurrent[i] = dataStates[0];
                 this.dataStatesIndices[i] = 0;
-                for (let le = 0, ri = stateInfos.length; le < ri;) {
+                for (let le = 0, ri = dataStates.length; le < ri;) {
                     const mid = Math.floor((le + ri) / 2);
-                    const theStep = stateInfos[mid].step;
+                    const theStep = dataStates[mid].step;
                     if (theStep == this.currentStep) {
-                        this.dataStatesCurrent[i] = stateInfos[mid];
+                        this.dataStatesCurrent[i] = dataStates[mid];
                         this.dataStatesIndices[i] = mid;
                         break;
                     }
                     else if (theStep < this.currentStep) {
-                        this.dataStatesCurrent[i] = stateInfos[mid];
+                        this.dataStatesCurrent[i] = dataStates[mid];
                         this.dataStatesIndices[i] = mid;
                         le = mid + 1;
                     }

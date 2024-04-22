@@ -200,34 +200,6 @@ class MainApp {
         });
         this.edgeUpdateButton.addEventListener("click", () => {
             this.resultGW.doEdgeAction();
-            /*
-            if(this.edgeexpandInput.value.length==0){
-                return;
-            }
-            const edgeFormat:RegExp=/(\d+\s?,\s?\d+\s?)/g;
-            const edgesString:string[]=this.edgeexpandInput.value.split(edgeFormat);
-
-            switch(this.edgeUpdateSelect.value){
-            case "create":{
-                for(const str of edgesString){
-                    const numbers:string[]=str.split(/(\d+)/g);
-                    const from:number=parseInt(numbers[0]);
-                    const to:number=parseInt(numbers[0]);
-                    graphHasUpdated=graphHasUpdated||VisualizationUtils.Algorithm.addEdge(from,to);
-                }
-                break;
-            }
-            case "remove":{
-                for(const str of edgesString){
-                    const numbers:string[]=str.split(/(\d+)/g);
-                    const from:number=parseInt(numbers[0]);
-                    const to:number=parseInt(numbers[0]);
-                    graphHasUpdated=graphHasUpdated||VisualizationUtils.Algorithm.removeEdge(from,to);
-                }
-                break;
-            }
-            }
-            */
         });
         this.edgeUpdateSelect.addEventListener("input", () => {
             this.vertexSetColor.style.display = this.vertexUpdateSelect.value == "color" ? "block" : "none";
@@ -411,68 +383,5 @@ window.onload = () => {
     3 4\r\n\
     2 3\r\n\
     ");
-    */
-    /*
-    VisualizationUtils.Algorithm.addEdge(23,17);
-    VisualizationUtils.Algorithm.addEdge(15,4);
-    VisualizationUtils.Algorithm.addEdge(15,3);
-    VisualizationUtils.Algorithm.removeEdge(15,1);
-    VisualizationUtils.Algorithm.removeVertex(13);
-    VisualizationUtils.Algorithm.addEdge(7,4);
-    VisualizationUtils.Algorithm.addEdge(4,12);
-    VisualizationUtils.Algorithm.removeVertex(3);
-    VisualizationUtils.Algorithm.addVertex(3);
-    VisualizationUtils.Algorithm.addEdge(3,6);
-    VisualizationUtils.Algorithm.addVertex(30);
-    VisualizationUtils.Algorithm.addVertex(31);
-    VisualizationUtils.Algorithm.addVertex(32);
-    VisualizationUtils.Algorithm.addEdge(7,30);
-    VisualizationUtils.Algorithm.removeEdge(7,4);
-    VisualizationUtils.Algorithm.removeEdge(4,6);
-    VisualizationUtils.Algorithm.removeEdge(7,6);
-    VisualizationUtils.Algorithm.addEdge(19,22);
-    VisualizationUtils.Algorithm.addEdge(7,22);
-    VisualizationUtils.Algorithm.addEdge(19,21);
-    VisualizationUtils.Algorithm.addEdge(5,20);
-    VisualizationUtils.Algorithm.addEdge(8,21);
-    VisualizationUtils.Algorithm.addEdge(2,21);
-    VisualizationUtils.Algorithm.addEdge(0,21);
-    VisualizationUtils.Algorithm.addEdge(30,19);
-    VisualizationUtils.Algorithm.addEdge(30,22);
-    VisualizationUtils.Algorithm.addEdge(30,21);
-    VisualizationUtils.Algorithm.addEdge(4,10);
-    VisualizationUtils.Algorithm.addEdge(4,11);
-    VisualizationUtils.Algorithm.removeVertex(12);
-    VisualizationUtils.Algorithm.addEdge(9,11);
-    VisualizationUtils.Algorithm.addEdge(10,7);
-    VisualizationUtils.Algorithm.addEdge(9,7);
-    VisualizationUtils.Algorithm.addEdge(4,7);
-    VisualizationUtils.Algorithm.addEdge(11,7);
-    VisualizationUtils.Algorithm.removeVertex(7);
-    VisualizationUtils.Algorithm.addEdge(6,11);
-    VisualizationUtils.Algorithm.addEdge(6,4);
-    VisualizationUtils.Algorithm.addEdge(6,10);
-    VisualizationUtils.Algorithm.addEdge(3,15);
-    VisualizationUtils.Algorithm.addEdge(16,6);
-    VisualizationUtils.Algorithm.addEdge(16,4);
-    VisualizationUtils.Algorithm.addEdge(16,11);
-    VisualizationUtils.Algorithm.addEdge(16,10);
-    VisualizationUtils.Algorithm.addEdge(16,9);
-    VisualizationUtils.Algorithm.addEdge(0,19);
-    VisualizationUtils.Algorithm.addEdge(0,2);
-    VisualizationUtils.Algorithm.addEdge(0,22);
-    VisualizationUtils.Algorithm.removeEdge(30,19);
-    VisualizationUtils.Algorithm.addEdge(1,21);
-    VisualizationUtils.Algorithm.removeVertex(21);
-    VisualizationUtils.Algorithm.addEdge(8,6);
-    VisualizationUtils.Algorithm.addEdge(20,6);
-    VisualizationUtils.Algorithm.addEdge(5,6);
-    VisualizationUtils.Algorithm.addEdge(18,6);
-    VisualizationUtils.Algorithm.addEdge(30,6);
-    VisualizationUtils.Algorithm.addEdge(31,6);
-    VisualizationUtils.Algorithm.addEdge(18,32);
-    VisualizationUtils.Algorithm.addEdge(31,32);
-    VisualizationUtils.Algorithm.addEdge(23,6);
-    VisualizationUtils.Algorithm.removeVertex(6);
     */
 };

@@ -391,11 +391,7 @@ namespace VisualizationUtils{
          * first is animtion and second is the "colorful result and other visual elements",
          * so createState() must be reran after any CURD on the graph of first Algorithm instance
          * but changing index structure is enough after any CURD on the graph of second Algorithm instance
-         * 
-         * though generally copy the results from the first instance should be fast enough, if there
-         * is any "other visual elements" eg the polygons in kcore, then index structure is necessary
          */
-
         protected abstract animate():void;
 
         protected readonly onPrevStepPressed:NormalFunction=():void=>{
@@ -839,19 +835,19 @@ namespace VisualizationUtils{
             
             for(let i:number=0;i<this.dataKeys.length;++i){
                 const dataKey:number=this.dataKeys[i];
-                const stateInfos=this.dataStates.get(dataKey) as Array<TDataState>;
-                this.dataStatesCurrent[i]=stateInfos[0];
+                const dataStates=this.dataStates.get(dataKey) as Array<TDataState>;
+                this.dataStatesCurrent[i]=dataStates[0];
                 this.dataStatesIndices[i]=0;
 
-                for(let le:number=0,ri:number=stateInfos.length;le<ri;){
+                for(let le:number=0,ri:number=dataStates.length;le<ri;){
                     const mid:number=Math.floor((le+ri)/2);
-                    const theStep:number=stateInfos[mid].step;
+                    const theStep:number=dataStates[mid].step;
                     if(theStep==this.currentStep){
-                        this.dataStatesCurrent[i]=stateInfos[mid];
+                        this.dataStatesCurrent[i]=dataStates[mid];
                         this.dataStatesIndices[i]=mid;
                         break;
                     }else if(theStep<this.currentStep){
-                        this.dataStatesCurrent[i]=stateInfos[mid];
+                        this.dataStatesCurrent[i]=dataStates[mid];
                         this.dataStatesIndices[i]=mid;
                         le=mid+1;
                     }else{

@@ -266,7 +266,20 @@ var KCliqueAlgorithm;
                     }
                 }
             }
+            for (const kc of this.cliqueComponents) {
+                const ccs = kc.connectedComponents;
+                for (let idx = 0; idx < ccs.length; ++idx) {
+                    const cc = ccs[idx];
+                    if (this.searchLargerClique(cc)) {
+                        const info = ConnectedComponetInfo.POOL.get().set(kc.clique, idx);
+                        this.removeCC(info);
+                        ConnectedComponetInfo.POOL.release(info);
+                    }
+                }
+            }
+            this.checkCCs();
             KCliqueCC.POOL.deallocateSome();
+            ConnectedComponetInfo.POOL.deallocateSome();
             return this;
         }
         onRegisterSelf() {

@@ -123,11 +123,6 @@ namespace KCliqueAlgorithm{
         }
     }
 
-
-    interface NumberReference{
-        value:number;
-    }
-
     /**
      * @brief
      * note that any subgraph of a fully connected graph is also fully connected
@@ -335,7 +330,20 @@ namespace KCliqueAlgorithm{
                 }
             }
 
+            for(const kc of this.cliqueComponents){
+                const ccs:KCliqueCC[]=kc.connectedComponents;
+                for(let idx:number=0;idx<ccs.length;++idx){
+                    const cc:KCliqueCC=ccs[idx];
+                    if(this.searchLargerClique(cc)){
+                        const info:ConnectedComponetInfo=ConnectedComponetInfo.POOL.get().set(kc.clique,idx);
+                        this.removeCC(info);
+                        ConnectedComponetInfo.POOL.release(info);
+                    }
+                }
+            }
+
             KCliqueCC.POOL.deallocateSome();
+            ConnectedComponetInfo.POOL.deallocateSome();
             return this;
         }
 
