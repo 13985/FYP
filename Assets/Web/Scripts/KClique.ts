@@ -277,7 +277,7 @@ namespace KCliqueAlgorithm{
                     kc.connectedComponents.push(cc);
                 }
 
-                const returnEdgeCode:NumberReference={value:0};
+                const returnEdgeCode:Reference<number>=new Reference<number>();
 
                 for(let currentClique:number=3;true;++currentClique){
                     const next:CliqueComponets=new CliqueComponets(currentClique);
@@ -625,9 +625,11 @@ namespace KCliqueAlgorithm{
             helper(KClique.OPACITY);
 
             if(this.states==undefined){return;}
-            let dataStates:DataState[]|null;
             this.states.resetStep();
             VisualizationUtils.Algorithm.setCurrentStep(0);
+
+            const dataStates:Reference<DataState[]>=new Reference<DataState[]>();
+            const localStates:Reference<VisualizationUtils.DescriptionState[]>=new Reference<VisualizationUtils.DescriptionState[]>();
             
             AnimtaionLoop:while(true){
                 const vsc:VisualizationUtils.VideoControlStatus=await this.waitfor();
@@ -636,26 +638,25 @@ namespace KCliqueAlgorithm{
                     break AnimtaionLoop;
                 case VisualizationUtils.VideoControlStatus.noAction:
                 case VisualizationUtils.VideoControlStatus.nextStep:
-                    if((dataStates=this.states.nextStep())==null){
+                    if(this.states.tryNextStep(dataStates,localStates)==false){
                         break AnimtaionLoop;
                     }
-                    this.setAnimationDisplay(dataStates,this.states.getCurrentLocalStates());
                     break;
                 case VisualizationUtils.VideoControlStatus.prevStep:
-                    if((dataStates=this.states.previousStep())==null){
+                    if(this.states.tryPreviousStep(dataStates,localStates)==false){
                         this.currentStep=0;
-                        dataStates=this.states.randomStep(0);
+                        this.states.tryRandomStep(0,dataStates,localStates);
                     }
-                    this.setAnimationDisplay(dataStates,this.states.getCurrentLocalStates());
                     break;
                 case VisualizationUtils.VideoControlStatus.randomStep:
-                    if((dataStates=this.states.randomStep(this.currentStep))==null){
-                        dataStates=this.states.randomStep(0);
+                    if(this.states.tryRandomStep(this.currentStep,dataStates,localStates)==false){
                         this.currentStep=0;
+                        this.states.tryRandomStep(0,dataStates,localStates);
                     }
-                    this.setAnimationDisplay(dataStates,this.states.getCurrentLocalStates());
                     break;
                 }
+                
+                this.setAnimationDisplay(dataStates.value,localStates.value);
                 VisualizationUtils.Algorithm.setCurrentStep(this.states.currentStep);
                 VisualizationUtils.VideoControl.progressBar.valueAsNumber=this.states.currentStep;
             }
@@ -971,7 +972,7 @@ namespace KCliqueAlgorithm{
          * @param b x-clique
          * @returns the vertex in b if they can be combined
          */
-        private testCombine(a:KCliqueCC,b:KCliqueCC,outEdgeCode?:NumberReference):Vertex|null{
+        private testCombine(a:KCliqueCC,b:KCliqueCC,outEdgeCode?:Reference<number>):Vertex|null{
             this.set0.clear();
             let left_v:Vertex|null=null;
             for(const v of a.vertices){

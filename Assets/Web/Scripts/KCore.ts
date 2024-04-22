@@ -509,8 +509,12 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             this.hideVerticesOutsideShells();
 
             if(this.states==undefined){return;}
-            let dataStates:DataState[]|null;
             this.states.resetStep();
+
+            const dataStates:Reference<DataState[]>=new Reference<DataState[]>();
+            const localStates:Reference<VisualizationUtils.DescriptionState[]>=new Reference<VisualizationUtils.DescriptionState[]>();
+
+            /*
 
             const minShell:number=parseInt((this.minOption as HTMLSelectElement).value);
             const maxShell:number=parseInt((this.maxOption as HTMLSelectElement).value);
@@ -518,42 +522,41 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             
             if(minShell>0){
                 const minStep:number=this.shellComponents[minShell].step;
-                dataStates=this.states.randomStep(minStep);
+                dataStates=this.states.tryRandomStep(minStep);
                 VisualizationUtils.VideoControl.progressBar.valueAsNumber=minStep;
                 this.setAnimationDisplay(dataStates,this.states.getCurrentLocalStates());
                 VisualizationUtils.VideoControl.currentStepSpan.innerText=`${minStep}`;
             }else{
                 VisualizationUtils.VideoControl.currentStepSpan.innerText=`0`;
             }
+            */
 
-            AnimtaionLoop:while(this.states.currentStep<=maxStep){
+            AnimtaionLoop:while(true){
                 const vsc:VisualizationUtils.VideoControlStatus=await this.waitfor();
                 switch(vsc){
                 case VisualizationUtils.VideoControlStatus.stop:
                     break AnimtaionLoop;
                 case VisualizationUtils.VideoControlStatus.noAction:
                 case VisualizationUtils.VideoControlStatus.nextStep:
-                    if((dataStates=this.states.nextStep())==null){
+                    if(this.states.tryNextStep(dataStates,localStates)==false){
                         break AnimtaionLoop;
                     }
-                    this.setAnimationDisplay(dataStates,this.states.getCurrentLocalStates());
                     break;
                 case VisualizationUtils.VideoControlStatus.prevStep:
-                    if((dataStates=this.states.previousStep())==null){
+                    if(this.states.tryPreviousStep(dataStates,localStates)==false){
                         this.currentStep=0;
-                        dataStates=this.states.randomStep(0);
+                        this.states.tryRandomStep(0,dataStates,localStates);
                     }
-                    this.setAnimationDisplay(dataStates,this.states.getCurrentLocalStates());
                     break;
                 case VisualizationUtils.VideoControlStatus.randomStep:
-                    if((dataStates=this.states.randomStep(this.currentStep))==null){
-                        dataStates=this.states.randomStep(0);
+                    if(this.states.tryRandomStep(this.currentStep,dataStates,localStates)==false){
                         this.currentStep=0;
+                        this.states.tryRandomStep(0,dataStates,localStates);
                     }
-                    this.setAnimationDisplay(dataStates,this.states.getCurrentLocalStates());
                     break;
                 }
-
+                
+                this.setAnimationDisplay(dataStates.value,localStates.value);
                 VisualizationUtils.Algorithm.setCurrentStep(this.states.currentStep);
                 VisualizationUtils.VideoControl.progressBar.valueAsNumber=this.states.currentStep;
             }
@@ -631,11 +634,11 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
             for(let i:number=0;i<this.graph.vertices.length;++i){
                 const vertex:Vertex=this.graph.vertices[i];
                 const ds:DataState=vertexStates[i];
-                vertex.circle?.setAttribute("opacity",ds.opacity);
+                (vertex.circle as SVGCircleElement).setAttribute("opacity",ds.opacity);
                 if(ds.isProcessed()){
-                    vertex.circle?.setAttribute("fill",this.shellComponents[ds.shell].color.toString());
+                    (vertex.circle as SVGCircleElement).setAttribute("fill",this.shellComponents[ds.shell].color.toString());
                 }else{
-                    vertex.circle?.setAttribute("fill","var(--reverse-color2)");
+                    (vertex.circle as SVGCircleElement).setAttribute("fill","var(--reverse-color2)");
                 }
                 (vertex.text as SVGTextElement).innerHTML=ds.text;
             }

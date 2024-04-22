@@ -422,48 +422,50 @@ var KCoreAlgorithm;
                 if (this.states == undefined) {
                     return;
                 }
-                let dataStates;
                 this.states.resetStep();
-                const minShell = parseInt(this.minOption.value);
-                const maxShell = parseInt(this.maxOption.value);
-                const maxStep = maxShell + 1 >= this.shellComponents.length ? Number.MAX_SAFE_INTEGER : this.shellComponents[maxShell + 1].step;
-                if (minShell > 0) {
-                    const minStep = this.shellComponents[minShell].step;
-                    dataStates = this.states.randomStep(minStep);
-                    VisualizationUtils.VideoControl.progressBar.valueAsNumber = minStep;
-                    this.setAnimationDisplay(dataStates, this.states.getCurrentLocalStates());
-                    VisualizationUtils.VideoControl.currentStepSpan.innerText = `${minStep}`;
+                const dataStates = new Reference();
+                const localStates = new Reference();
+                /*
+    
+                const minShell:number=parseInt((this.minOption as HTMLSelectElement).value);
+                const maxShell:number=parseInt((this.maxOption as HTMLSelectElement).value);
+                const maxStep:number=maxShell+1>=this.shellComponents.length?Number.MAX_SAFE_INTEGER:this.shellComponents[maxShell+1].step;
+                
+                if(minShell>0){
+                    const minStep:number=this.shellComponents[minShell].step;
+                    dataStates=this.states.tryRandomStep(minStep);
+                    VisualizationUtils.VideoControl.progressBar.valueAsNumber=minStep;
+                    this.setAnimationDisplay(dataStates,this.states.getCurrentLocalStates());
+                    VisualizationUtils.VideoControl.currentStepSpan.innerText=`${minStep}`;
+                }else{
+                    VisualizationUtils.VideoControl.currentStepSpan.innerText=`0`;
                 }
-                else {
-                    VisualizationUtils.VideoControl.currentStepSpan.innerText = `0`;
-                }
-                AnimtaionLoop: while (this.states.currentStep <= maxStep) {
+                */
+                AnimtaionLoop: while (true) {
                     const vsc = yield this.waitfor();
                     switch (vsc) {
                         case 4 /* VisualizationUtils.VideoControlStatus.stop */:
                             break AnimtaionLoop;
                         case 0 /* VisualizationUtils.VideoControlStatus.noAction */:
                         case 1 /* VisualizationUtils.VideoControlStatus.nextStep */:
-                            if ((dataStates = this.states.nextStep()) == null) {
+                            if (this.states.tryNextStep(dataStates, localStates) == false) {
                                 break AnimtaionLoop;
                             }
-                            this.setAnimationDisplay(dataStates, this.states.getCurrentLocalStates());
                             break;
                         case 2 /* VisualizationUtils.VideoControlStatus.prevStep */:
-                            if ((dataStates = this.states.previousStep()) == null) {
+                            if (this.states.tryPreviousStep(dataStates, localStates) == false) {
                                 this.currentStep = 0;
-                                dataStates = this.states.randomStep(0);
+                                this.states.tryRandomStep(0, dataStates, localStates);
                             }
-                            this.setAnimationDisplay(dataStates, this.states.getCurrentLocalStates());
                             break;
                         case 3 /* VisualizationUtils.VideoControlStatus.randomStep */:
-                            if ((dataStates = this.states.randomStep(this.currentStep)) == null) {
-                                dataStates = this.states.randomStep(0);
+                            if (this.states.tryRandomStep(this.currentStep, dataStates, localStates) == false) {
                                 this.currentStep = 0;
+                                this.states.tryRandomStep(0, dataStates, localStates);
                             }
-                            this.setAnimationDisplay(dataStates, this.states.getCurrentLocalStates());
                             break;
                     }
+                    this.setAnimationDisplay(dataStates.value, localStates.value);
                     VisualizationUtils.Algorithm.setCurrentStep(this.states.currentStep);
                     VisualizationUtils.VideoControl.progressBar.valueAsNumber = this.states.currentStep;
                 }
@@ -527,19 +529,18 @@ var KCoreAlgorithm;
             select.value = Math.max(start, Math.min(end - 1, val)).toString();
         }
         setAnimationDisplay(vertexStates, descriptionStates) {
-            var _a, _b, _c;
             if (vertexStates == null) {
                 return;
             }
             for (let i = 0; i < this.graph.vertices.length; ++i) {
                 const vertex = this.graph.vertices[i];
                 const ds = vertexStates[i];
-                (_a = vertex.circle) === null || _a === void 0 ? void 0 : _a.setAttribute("opacity", ds.opacity);
+                vertex.circle.setAttribute("opacity", ds.opacity);
                 if (ds.isProcessed()) {
-                    (_b = vertex.circle) === null || _b === void 0 ? void 0 : _b.setAttribute("fill", this.shellComponents[ds.shell].color.toString());
+                    vertex.circle.setAttribute("fill", this.shellComponents[ds.shell].color.toString());
                 }
                 else {
-                    (_c = vertex.circle) === null || _c === void 0 ? void 0 : _c.setAttribute("fill", "var(--reverse-color2)");
+                    vertex.circle.setAttribute("fill", "var(--reverse-color2)");
                 }
                 vertex.text.innerHTML = ds.text;
             }

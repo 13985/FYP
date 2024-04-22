@@ -214,7 +214,7 @@ var KCliqueAlgorithm;
                     cc.vertices.push(e.target);
                     kc.connectedComponents.push(cc);
                 }
-                const returnEdgeCode = { value: 0 };
+                const returnEdgeCode = new Reference();
                 for (let currentClique = 3; true; ++currentClique) {
                     const next = new CliqueComponets(currentClique);
                     const previous = this.cliqueComponents[currentClique - 2].connectedComponents; //currentClique == .length+2
@@ -532,9 +532,10 @@ var KCliqueAlgorithm;
                 if (this.states == undefined) {
                     return;
                 }
-                let dataStates;
                 this.states.resetStep();
                 VisualizationUtils.Algorithm.setCurrentStep(0);
+                const dataStates = new Reference();
+                const localStates = new Reference();
                 AnimtaionLoop: while (true) {
                     const vsc = yield this.waitfor();
                     switch (vsc) {
@@ -542,26 +543,24 @@ var KCliqueAlgorithm;
                             break AnimtaionLoop;
                         case 0 /* VisualizationUtils.VideoControlStatus.noAction */:
                         case 1 /* VisualizationUtils.VideoControlStatus.nextStep */:
-                            if ((dataStates = this.states.nextStep()) == null) {
+                            if (this.states.tryNextStep(dataStates, localStates) == false) {
                                 break AnimtaionLoop;
                             }
-                            this.setAnimationDisplay(dataStates, this.states.getCurrentLocalStates());
                             break;
                         case 2 /* VisualizationUtils.VideoControlStatus.prevStep */:
-                            if ((dataStates = this.states.previousStep()) == null) {
+                            if (this.states.tryPreviousStep(dataStates, localStates) == false) {
                                 this.currentStep = 0;
-                                dataStates = this.states.randomStep(0);
+                                this.states.tryRandomStep(0, dataStates, localStates);
                             }
-                            this.setAnimationDisplay(dataStates, this.states.getCurrentLocalStates());
                             break;
                         case 3 /* VisualizationUtils.VideoControlStatus.randomStep */:
-                            if ((dataStates = this.states.randomStep(this.currentStep)) == null) {
-                                dataStates = this.states.randomStep(0);
+                            if (this.states.tryRandomStep(this.currentStep, dataStates, localStates) == false) {
                                 this.currentStep = 0;
+                                this.states.tryRandomStep(0, dataStates, localStates);
                             }
-                            this.setAnimationDisplay(dataStates, this.states.getCurrentLocalStates());
                             break;
                     }
+                    this.setAnimationDisplay(dataStates.value, localStates.value);
                     VisualizationUtils.Algorithm.setCurrentStep(this.states.currentStep);
                     VisualizationUtils.VideoControl.progressBar.valueAsNumber = this.states.currentStep;
                 }

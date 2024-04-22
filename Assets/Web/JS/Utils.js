@@ -331,9 +331,11 @@ var VisualizationUtils;
                 VideoControl.runButton.disabled = true;
                 VideoControl.progressBar.valueAsNumber = 0;
                 MainApp.instance().showModificationExpands(false);
+                MainApp.instance().resultGW.hideCommandModule(true);
                 AlgorithmSelect.showOthers(false);
                 yield this.animate();
                 MainApp.instance().showModificationExpands(true);
+                MainApp.instance().resultGW.hideCommandModule(false);
                 AlgorithmSelect.showOthers(true);
                 this.isAnimating = false;
                 this.isPause = false;
@@ -603,12 +605,6 @@ var VisualizationUtils;
             }
             this.localStatesIndex = this.localStates;
             this.localStatesCurrent.length = 0;
-            /*
-            for(let v_idx:number=0;v_idx<this.graph.vertices.length;++v_idx){
-                const stateInfos:DataState[]=this.vertexStates.get(this.graph.vertices[v_idx].id) as DataState[];
-                this.returnbuffer[v_idx]=stateInfos[0];
-            }
-            */
         }
         /**
          * @returns order is same as graph.vertices
@@ -618,9 +614,9 @@ var VisualizationUtils;
          * vertex at idx 2<=>info at idx 2
          * ...
          */
-        nextStep() {
+        tryNextStep(outDataStates, outLocalStates) {
             if (this.currentStep >= this.maxStep) {
-                return null;
+                return false;
             }
             ++this.currentStep;
             for (let i = 0; i < this.dataKeys.length; ++i) {
@@ -653,11 +649,13 @@ var VisualizationUtils;
                 this.localStatesCurrent.push(child.state);
                 this.localStatesIndex = child;
             }
-            return this.dataStatesCurrent;
+            outDataStates.value = this.dataStatesCurrent;
+            outLocalStates.value = this.localStatesCurrent;
+            return true;
         }
-        previousStep() {
+        tryPreviousStep(outDataStates, outLocalStates) {
             if (this.currentStep <= 0) {
-                return null;
+                return false;
             }
             --this.currentStep;
             for (let i = 0; i < this.dataKeys.length; ++i) {
@@ -690,11 +688,13 @@ var VisualizationUtils;
                 this.localStatesCurrent.push(child.state);
                 this.localStatesIndex = child;
             }
-            return this.dataStatesCurrent;
+            outDataStates.value = this.dataStatesCurrent;
+            outLocalStates.value = this.localStatesCurrent;
+            return true;
         }
-        randomStep(targetStep) {
+        tryRandomStep(targetStep, outDataStates, outLocalStates) {
             if (targetStep < 0 || targetStep >= this.maxStep) {
-                return null;
+                return false;
             }
             this.currentStep = targetStep;
             for (let i = 0; i < this.dataKeys.length; ++i) {
@@ -732,7 +732,9 @@ var VisualizationUtils;
                     this.localStatesIndex = child;
                 }
             }
-            return this.dataStatesCurrent;
+            outDataStates.value = this.dataStatesCurrent;
+            outLocalStates.value = this.localStatesCurrent;
+            return true;
         }
         dataStatePush(dataKey, info) {
             this.dataStates.get(dataKey).push(info);
@@ -874,3 +876,6 @@ var ArrayUtils;
     }
     ArrayUtils.removeDuplicate = removeDuplicate;
 })(ArrayUtils || (ArrayUtils = {}));
+class Reference {
+    constructor() { }
+}

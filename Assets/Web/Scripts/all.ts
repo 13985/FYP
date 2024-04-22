@@ -129,7 +129,7 @@ class MainApp{
     private readonly resultGraph:Graph;
     
     private readonly gw:GraphWindow;
-    private readonly resultGW:GraphWindow;
+    public readonly resultGW:GraphWindow;
     
     private readonly kCore:KCoreAlgorithm.KCore;
     private readonly resultKCore:KCoreAlgorithm.KCore;

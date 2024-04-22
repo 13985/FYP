@@ -358,11 +358,13 @@ namespace VisualizationUtils{
             VideoControl.runButton.disabled=true;
             VideoControl.progressBar.valueAsNumber=0;
             MainApp.instance().showModificationExpands(false);
+            MainApp.instance().resultGW.hideCommandModule(true);
             AlgorithmSelect.showOthers(false);
 
             await this.animate();
 
             MainApp.instance().showModificationExpands(true);
+            MainApp.instance().resultGW.hideCommandModule(false);
             AlgorithmSelect.showOthers(true);
             this.isAnimating=false;
             this.isPause=false;
@@ -741,12 +743,6 @@ namespace VisualizationUtils{
             }
             this.localStatesIndex=this.localStates;
             this.localStatesCurrent.length=0;
-            /*
-            for(let v_idx:number=0;v_idx<this.graph.vertices.length;++v_idx){
-                const stateInfos:DataState[]=this.vertexStates.get(this.graph.vertices[v_idx].id) as DataState[];
-                this.returnbuffer[v_idx]=stateInfos[0];
-            }
-            */
         }
 
 
@@ -758,9 +754,9 @@ namespace VisualizationUtils{
          * vertex at idx 2<=>info at idx 2
          * ...
          */
-        public nextStep():TDataState[]|null{
+        public tryNextStep(outDataStates:Reference<TDataState[]>,outLocalStates:Reference<TLocalState[]>):boolean{
             if(this.currentStep>=this.maxStep){
-                return null;
+                return false;
             }
             ++this.currentStep;
 
@@ -792,13 +788,16 @@ namespace VisualizationUtils{
                 this.localStatesCurrent.push(child.state as TLocalState);
                 this.localStatesIndex=child;
             }
-            return this.dataStatesCurrent;
+
+            outDataStates.value=this.dataStatesCurrent;
+            outLocalStates.value=this.localStatesCurrent;
+            return true;
         }
 
 
-        public previousStep():TDataState[]|null{
+        public tryPreviousStep(outDataStates:Reference<TDataState[]>,outLocalStates:Reference<TLocalState[]>):boolean{
             if(this.currentStep<=0){
-                return null;
+                return false;
             }
             --this.currentStep;
 
@@ -830,13 +829,15 @@ namespace VisualizationUtils{
                 this.localStatesCurrent.push(child.state as TLocalState);
                 this.localStatesIndex=child;
             }
-            return this.dataStatesCurrent;
+            outDataStates.value=this.dataStatesCurrent;
+            outLocalStates.value=this.localStatesCurrent;
+            return true;
         }
 
 
-        public randomStep(targetStep:number):TDataState[]|null{
+        public tryRandomStep(targetStep:number,outDataStates:Reference<TDataState[]>,outLocalStates:Reference<TLocalState[]>):boolean{
             if(targetStep<0||targetStep>=this.maxStep){
-                return null;
+                return false;
             }
             this.currentStep=targetStep;
             
@@ -875,7 +876,10 @@ namespace VisualizationUtils{
                     this.localStatesIndex=child;
                 }
             }
-            return this.dataStatesCurrent;
+
+            outDataStates.value=this.dataStatesCurrent;
+            outLocalStates.value=this.localStatesCurrent;
+            return true;
         }
 
 
@@ -1046,4 +1050,11 @@ namespace ArrayUtils{
         }
         arr.length=i;
     }
+}
+
+
+class Reference<T>{
+    public value!:T;
+
+    constructor(){}
 }
