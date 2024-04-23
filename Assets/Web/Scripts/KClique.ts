@@ -741,7 +741,7 @@ namespace KCliqueAlgorithm{
 
             this.vertexToInfo.delete(a);
             this.checkCCs();
-            this.setVisualElementsColor(this.notColorful);
+            this.shrinkCliqueComponents().setVisualElementsColor(this.notColorful);
             return true;
         }
 
@@ -761,12 +761,12 @@ namespace KCliqueAlgorithm{
             const stableCCs:KCliqueCC[]=this.ccBuffer1;
             generatedCCs.length=0;
             stableCCs.length=0;
-            console.log(`f:${from} t:${to}`);
+            //console.log(`f:${from} t:${to}`);
 
             for(let i:number=0;i<fromInfos.length;){
                 const fromInfo:ConnectedComponetInfo=fromInfos[i];
                 const cc:KCliqueCC=this.getKCliqueCC(fromInfo);//for all cc of from
-                console.log(cc.toString("{"));
+                //console.log(cc.toString("{"));
 
                 if(this.fullyConnected(toV,cc)){//move directly, dont need to generate sub clique anymore
                     cc.vertices.push(toV);
@@ -788,7 +788,7 @@ namespace KCliqueAlgorithm{
 
                     for(let j:number=0;j<results.length;++j){
                         const cc_:KCliqueCC=results[j];
-                        console.log(cc_.toString("{"));
+                        //console.log(cc_.toString("{"));
                         if(this.fullyConnected(toV,cc_)==false){continue;}
 
                         cc_.vertices.push(toV);
@@ -908,7 +908,7 @@ namespace KCliqueAlgorithm{
                 this.addCC(cc);
             }
             this.checkCCs();
-            this.setVisualElementsColor(this.notColorful);
+            this.shrinkCliqueComponents().setVisualElementsColor(this.notColorful);
             return true;
         }
 
@@ -971,6 +971,18 @@ namespace KCliqueAlgorithm{
 
         private getEdgeStorkeWidth(clique:number):number{
             return 1+(clique*3)/(this.cliqueComponents.length+2);
+        }
+
+
+        private shrinkCliqueComponents():this{
+            if(ArrayUtils.last(this.cliqueComponents).connectedComponents.length<=0){
+                const endColor:Color=ArrayUtils.last(this.cliqueComponents).color;
+                while(ArrayUtils.last(this.cliqueComponents).connectedComponents.length<=0&&this.cliqueComponents.length>1){
+                    this.cliqueComponents.pop();
+                }
+                this.setColorGradient(this.cliqueComponents[0].color,endColor);
+            }
+            return this;
         }
 
 

@@ -277,7 +277,6 @@ var KCliqueAlgorithm;
                     }
                 }
             }
-            this.checkCCs();
             KCliqueCC.POOL.deallocateSome();
             ConnectedComponetInfo.POOL.deallocateSome();
             return this;
@@ -643,7 +642,7 @@ var KCliqueAlgorithm;
             }
             this.vertexToInfo.delete(a);
             this.checkCCs();
-            this.setVisualElementsColor(this.notColorful);
+            this.shrinkCliqueComponents().setVisualElementsColor(this.notColorful);
             return true;
         }
         addEdge(from, to) {
@@ -660,11 +659,11 @@ var KCliqueAlgorithm;
             const stableCCs = this.ccBuffer1;
             generatedCCs.length = 0;
             stableCCs.length = 0;
-            console.log(`f:${from} t:${to}`);
+            //console.log(`f:${from} t:${to}`);
             for (let i = 0; i < fromInfos.length;) {
                 const fromInfo = fromInfos[i];
                 const cc = this.getKCliqueCC(fromInfo); //for all cc of from
-                console.log(cc.toString("{"));
+                //console.log(cc.toString("{"));
                 if (this.fullyConnected(toV, cc)) { //move directly, dont need to generate sub clique anymore
                     cc.vertices.push(toV);
                     if (cc.clique() - 1 >= this.cliqueComponents.length) {
@@ -682,7 +681,7 @@ var KCliqueAlgorithm;
                     const results = generatorFrom.generate(fromV, clique);
                     for (let j = 0; j < results.length; ++j) {
                         const cc_ = results[j];
-                        console.log(cc_.toString("{"));
+                        //console.log(cc_.toString("{"));
                         if (this.fullyConnected(toV, cc_) == false) {
                             continue;
                         }
@@ -793,7 +792,7 @@ var KCliqueAlgorithm;
                 this.addCC(cc);
             }
             this.checkCCs();
-            this.setVisualElementsColor(this.notColorful);
+            this.shrinkCliqueComponents().setVisualElementsColor(this.notColorful);
             return true;
         }
         /**
@@ -848,6 +847,16 @@ var KCliqueAlgorithm;
         }
         getEdgeStorkeWidth(clique) {
             return 1 + (clique * 3) / (this.cliqueComponents.length + 2);
+        }
+        shrinkCliqueComponents() {
+            if (ArrayUtils.last(this.cliqueComponents).connectedComponents.length <= 0) {
+                const endColor = ArrayUtils.last(this.cliqueComponents).color;
+                while (ArrayUtils.last(this.cliqueComponents).connectedComponents.length <= 0 && this.cliqueComponents.length > 1) {
+                    this.cliqueComponents.pop();
+                }
+                this.setColorGradient(this.cliqueComponents[0].color, endColor);
+            }
+            return this;
         }
         /**
          * @summary test if a and b intersect in x-1 subclique and the two remain vertices in a and b are connected by edge, if yes then return the remain vertex in b, else null. a and b must have the same clique i.e. the number of vertices

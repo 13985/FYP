@@ -251,7 +251,7 @@ class MainApp {
             case 2 /* AlgorithmType.BOTH */: {
                 this.showModificationExpands(false);
                 this.animationExpand.setAttribute("style", "display:none;");
-                this.resultGW.showCommandModule(false).pressToAddEdge(false);;
+                this.resultGW.showCommandModule(false).pressToAddEdge(false);
                 if (graphHasUpdated) {
                     if (VisualizationUtils.Algorithm.VisualizationTarget() == this.kCore) {
                         this.resultKClique.createIndexStructure().setColorGradient(VertexGradient.start, VertexGradient.end);
