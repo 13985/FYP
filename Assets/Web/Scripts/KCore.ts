@@ -380,6 +380,7 @@ set1: storing all unprocessed vertices with degree > expored current_core`;
                             ++step;
                         }
                         this.states.localStatePop(step);
+                        ++step
                     }
                     this.states.dataStatePush(v_id,DataState.POOL.get().set(step,undefined,currentShell,KCore.OPACITY,`${v_id}:deg(/)`));
                     this.states.localStatePop(step);

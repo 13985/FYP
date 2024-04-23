@@ -138,6 +138,7 @@ var VisualizationUtils;
             VideoControl.runButton.addEventListener("click", () => {
                 if (Algorithm.visualizationTarget) {
                     Algorithm.visualizationTarget.start();
+                    MainApp.instance().resultGW.pressToAddEdge(false);
                     if (Algorithm.visualizationTarget instanceof KCoreAlgorithm.KCore) {
                         /**
                          * @summary

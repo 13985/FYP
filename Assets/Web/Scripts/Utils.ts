@@ -173,6 +173,7 @@ namespace VisualizationUtils{
             VideoControl.runButton.addEventListener("click",():void=>{
                 if(Algorithm.visualizationTarget){
                     Algorithm.visualizationTarget.start();
+                    MainApp.instance().resultGW.pressToAddEdge(false);
                     if(Algorithm.visualizationTarget instanceof KCoreAlgorithm.KCore){
                         /**
                          * @summary

@@ -104,6 +104,11 @@ label.speed{
 }
 
 
+.speed.text{
+    color: var(--reverse-color0);
+}
+
+
 input.command{
     background-color: var(--main-color1);
     color: var(--reverse-color0);
